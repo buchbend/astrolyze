@@ -5,11 +5,19 @@ setup(
     version='0.1.0',
     author='Christof Buchbender',
     author_email='christof.buchbender@gmail.com',
-    packages=['astrolyze', 'astrolyze/maps', 'astrolyze/spectra','astrolyze/sed',
-              'astrolyze/maptools', 'astrolyze/lte', 'astrolyze/functions',
-              'astrolyze/setup', 'astrolyze/setup/paths', 'astrolyze/setup/database'],
+    packages=['astrolyze', 
+              'astrolyze/maps',
+              'astrolyze/spectra',
+              'astrolyze/sed', 
+              'astrolyze/maptools',
+              'astrolyze/lte', 
+              'astrolyze/functions', 
+              'astrolyze/setup',
+              'astrolyze/setup/paths', 
+              'astrolyze/setup/database'
+             ],
     scripts=[],
-    url='',
+    url='http://www.strange-associations.de/astrolyze/',
     license='LICENSE.txt',
     description='Reduction and analysing tools for (mainly) Radioastronomy.',
     long_description=open('README.txt').read(),
@@ -23,6 +31,7 @@ setup(
         "random >= 0.1.0",
         "pysqlite2 >= 0.1.0",
         "socket >= 0.1.0"
+        "docutils >= 0.3"
     ],
 )
 

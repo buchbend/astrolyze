@@ -5,7 +5,7 @@ setup(
     version='0.1.0',
     author='Christof Buchbender',
     author_email='christof.buchbender@gmail.com',
-    packages=['astrolyze', 'astrolyze/maps', 'astrolyze/sed',
+    packages=['astrolyze', 'astrolyze/maps', 'astrolyze/spectra','astrolyze/sed',
               'astrolyze/maptools', 'astrolyze/lte', 'astrolyze/functions',
               'astrolyze/setup', 'astrolyze/setup/paths', 'astrolyze/setup/database'],
     scripts=[],

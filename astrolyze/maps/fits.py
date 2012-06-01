@@ -89,14 +89,15 @@ class FitsMap(main.Map):
         --------
         """
         mapName = self.returnName()
+        
+        if backup == True:
+            os.system('cp ' + str(mapName) + ' ' + str(mapName) + '_old')
+        os.system('rm ' + str(mapName))
         try:
-            if backup == True:
-                os.system('cp ' + str(mapName) + ' ' + str(mapName) + '_old')
-            os.system('rm ' + str(mapName))
             pyfits.writeto(mapName, self.data, self.header)
         except:
             print 'Problem with the header or data format. -> Exit!'
-            sys.exit()
+            raise SystemExit
         return FitsMap(mapName)
 
     def updateHeader(self):
@@ -166,8 +167,16 @@ class FitsMap(main.Map):
 
     def get_beam_size(self):
         r"""
-        Calulates the Beamsize in m^2 if distance is given
-        if it is not given the PixelSize is in sterradian.
+        Calulates the Beamsize in m^2 if the distance to the source is given
+        if not given the PixelSize is in sterradian.
+
+        Notes
+        -----
+
+        The formula used is:
+
+        .. math:
+            \Omega = 1.133 * FWHM(rad)^2 \cdot (Distance(m)^2)
         """
         if self.distance == None:
             self.beamSize = (1.133 * const.a2r ** 2 * self.resolution[0]
@@ -179,7 +188,7 @@ class FitsMap(main.Map):
     def get_pixel_size(self):
         r"""
         Calulates the Area of a pixel in m^2 if distance is given
-        if it is not given the PixelSize is in sterradian.
+        if not given the PixelSize is in sterradian.
         """
         _pixSize = np.asarray([float(math.fabs(self.header['CDELT1']) *
                              const.d2r), float(math.fabs(self.header['CDELT2'])
@@ -190,6 +199,8 @@ class FitsMap(main.Map):
         self.pixelSize = math.sqrt((float(_pixSize)) ** 2)
 
     def __smooth(self, newRes, oldRes=None, scale='0.0'):
+        # TODO: In Development. It's not sure if it ever will be finished.
+        # No need to reinvent the wheel!
         r"""
         ..  warning::
 
@@ -217,7 +228,8 @@ class FitsMap(main.Map):
         self.mapName = self.returnName(resolution=str(newRes))
         self.resolution = newRes
 
-    def cut_map(self, x1y1, x2y2, pix_or_coord='coord'):
+    def _cut_map(self, x1y1, x2y2, pix_or_coord='coord'):
+        # TODO: Check if still valid!!!!
         r"""
         Cutting an rectangle out of a map. Giving the corners in
         coordinates or in pixels.
@@ -410,7 +422,7 @@ class FitsMap(main.Map):
         newAnnotation: logical
             If True ``"apertures.ann"`` is overwritten. If False an old
             ``"apertures.ann"`` is used to append the new apertures. If it not
-            exists a new one is created. The latter is the default. 
+            exists a new one is created. The latter is the default.
 
         Returns
         -------
@@ -540,7 +552,8 @@ class FitsMap(main.Map):
         pixel: List
             [x, y]; the pixel coordinates of the map.
         """
-        # equatorial_to_degrees is only possible to execute if coordinate is in RA DEC
+        # equatorial_to_degrees is only possible to execute if 
+        # coordinate is in RA DEC
         try:
             coordinate = astFunc.equatorial_to_degrees(coordinate)
         except:
@@ -673,7 +686,7 @@ class FitsMap(main.Map):
                 3. MJy/sterad: ``"MJyPsr"``, ``"MJy/sr"``
                 4. Temperature: ``"Tmb"``, ``"T"``, ``"Kkms"``
         frequency: float
-            Can be used if self.frequency is NaN. The frequency (in GHz)is
+            Can be used if self.frequency is NaN. The frequency (in GHz) is
             needed for conversions between temperature and Jansky/Erg scale.
             Other conversions don't need it.
 
