@@ -1,3 +1,5 @@
+# Copyright (C) 2012, Christof Buchbender
+# BSD Licencse
 import math
 import os
 import string
@@ -669,6 +671,11 @@ class GildasMap(main.Map):
         r"""
         Converts the actual map to a Fits map.
 
+        Returns
+        -------
+
+        FitsMap Object.
+
         Examples
         --------
 
@@ -697,6 +704,11 @@ class GildasMap(main.Map):
     def toMiriad(self):
         r"""
         Converts the actual map to a Miriad map.
+
+        Returns
+        -------
+
+        MiriadMap Object.
 
         Examples
         --------

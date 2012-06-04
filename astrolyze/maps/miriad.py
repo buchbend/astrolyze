@@ -1,3 +1,5 @@
+# Copyright (C) 2012, Christof Buchbender
+# BSD Licencse
 import math
 import os
 import string
@@ -28,6 +30,25 @@ class MiriadMap(main.Map):
             sys.exit()
 
     def toFits(self):
+        r"""
+        Converts the actual map to a Fits map.
+
+        Returns
+        -------
+
+        FitsMap Object.
+
+        Examples
+        --------
+
+        With:
+
+        >>> map = miriadMap('M33_MIPS_24mum_JyB_5')
+        >>> map = map.toFits()
+
+        it is possible to continue working with the Fits map, using
+        :class:`maps.fits.FitsMap` class.
+        """
         os.system('rm '+str(self.returnName())+'.fits')
         print 'rm '+str(self.mapName)+'.fits'
         string = ('fits in='+str(self.mapName)+' out='+str(self.returnName())+'.'
@@ -38,6 +59,25 @@ class MiriadMap(main.Map):
         return fits.FitsMap(str(self.returnName())+'.fits')
 
     def toGildas(self):
+        r"""
+        Converts the actual map to a Gildas map.
+
+        Returns
+        -------
+
+        GildasMap Object.
+
+        Examples
+        --------
+
+        With:
+
+        >>> map = miriadMap('M33_MIPS_24mum_JyB_5')
+        >>> map = map.toGildas()
+
+        it is possible to continue working with the Fits map, using
+        :class:`maps.gildas.GildasMap` class.
+        """
         self.toFits()
         os.system('rm '+str(self.returnName())+'.gdf')
         self.convFile = open('temp.greg','w')
@@ -51,62 +91,109 @@ class MiriadMap(main.Map):
         return gildas.GildasMap(self.gildasName)
 
     def toMiriad(self):
+        r"""
+        Copies the actual map changing the name such that it takes changes in
+        keywords into account.
+
+        Returns
+        -------
+
+        MiriadMap Object.
+
+        Examples
+        --------
+
+        With:
+
+        >>> map = miriadMap('M33_MIPS_24mum_JyB_5')
+        >>> map = map.toMiriad()
+
+        it is possible to continue working with the Miriad map, using
+        :class:`maps.gildas.MiriadMap` class.
+        """
         os.system('cp -rf '+str(self.mapName)+' '+str(self.returnName()))
         print 'cp -rf '+str(self.mapName)+' '+str(self.returnName())
         self.mapName=self.returnName()
         return self
 
-    def smooth(self, newRes, oldRes=None, scale='0.0'):
-        if oldRes == None:
+    def smooth(self, new_resolution, old_resolution=None, scale='0.0'):
+        r"""
+        Smooths a miriad map to the new resolution. TODO Update to
+        new reoslution scheme!!!!!
+
+        Parameters
+        ----------
+
+        new_resolution: float or list
+            The resolution in of the smoothed image. 
+            Can be a:
+                * float: Output beam has same major and minor axis [arcsec] and
+                         the position angle (PA) [degrees] is 0.
+                * A list with two entries:
+                        The major and minor axis. PA is 0. 
+                        E.g. [major_axis, minor_axis ]
+                * A list with three entries:
+                        [major_axis, minor_axis, PA] 
+        old_resolutio: float
+            If None the self.resolution information is taken into account. 
+        scale:string
+
+        Returns
+        -------
+
+        MiriadMap Object:
+            The smoothed image.
+        """
+        if old_resolution == None:
             oldMajor = self.resolution[0]
             oldMinor = self.resolution[1]
             pa = self.resolution[2]
-        if oldRes != None:
-            if oldRes is list:
-                if len(oldRes) == 2:
-                    oldMajor = oldRes[0]
-                    oldMinor = oldRes[1]
+        if old_resolution != None:
+            if old_resolution is list:
+                if len(old_resolution) == 2:
+                    oldMajor = old_resolution[0]
+                    oldMinor = old_resolution[1]
                     pa = 0
-                if len(oldRes) == 3:
-                    oldMajor = oldRes[0]
-                    oldMinor = oldRes[1]
-                    pa = oldRes[2]
-            if oldRes is not list:
-                oldMajor = oldRes
-                oldMinor = oldRes
+                if len(old_resolution) == 3:
+                    oldMajor = old_resolution[0]
+                    oldMinor = old_resolution[1]
+                    pa = old_resolution[2]
+            if old_resolution is not list:
+                oldMajor = old_resolution
+                oldMinor = old_resolution
                 pa = 0
-        if float(oldMajor) > float(newRes) or float(oldMinor) > float(newRes):
+        if (float(oldMajor) > float(new_resolution) or float(oldMinor) >
+           float(new_resolution)):
             print 'Error: Old Resolution bigger than new one!'
         # calculate the fwhm for the convolving gaussian    
-        fwhmMajor = math.sqrt(float(newRes)**2-float(oldMajor)**2)
-        fwhmMinor = math.sqrt(float(newRes)**2-float(oldMinor)**2)
+        fwhmMajor = math.sqrt(float(new_resolution)**2-float(oldMajor)**2)
+        fwhmMinor = math.sqrt(float(new_resolution)**2-float(oldMinor)**2)
         print fwhmMajor, fwhmMinor
         os.system('rm -rf '+str(self.returnName(resolution=[
-                                                float(newRes), float(newRes), 
-                                                0.0])))
+                  float(new_resolution), float(new_resolution), 0.0])))
         if scale != '':
             executeString = ('smooth in='+str(self.mapName)+' '
-        'out='+str(self.returnName(resolution=[float(newRes), 
-                                               float(newRes), 0.0]))+' '
+        'out='+str(self.returnName(resolution=[float(new_resolution),
+                   float(new_resolution), 0.0]))+' '
         'fwhm='+str('%.2f'%(fwhmMajor))+', '+str('%.2f'%(fwhmMinor))+' '
         'pa='+str(pa)+' scale='+str(scale))
             print executeString
             os.system(executeString)
         else:
             executeString =  ('smooth in='+str(self.mapName)+' '
-        'out='+str(self.returnName(resolution=[float(newRes), 
-                                               float(newRes), 0.0]))+' '
+        'out='+str(self.returnName(resolution=[float(new_resolution),
+                   float(new_resolution), 0.0]))+' '
         'fwhm='+str('%.2f'%(fwhmMajor))+', '+str('%.2f'%(fwhmMinor))+' '
         'pa='+str(pa)+' scale='+str(scale))
             print executeString
             os.system(executeString)
         # set the mapName and the resolution to the new values<
-        self.mapName = self.returnName(resolution=[float(newRes), 
-                                                   float(newRes), 0.0])
-        self.resolution = [float(newRes), float(newRes), 0.0]
-        return mapClassMiriad.MiriadMap(self.returnName())
+        self.mapName = self.returnName(resolution=[float(new_resolution), 
+                                                   float(new_resolution), 0.0])
+        self.resolution = [float(new_resolution), float(new_resolution), 0.0]
+        return MiriadMap(self.returnName())
 
-    def moment(self, iN='', region='', out='', mom='0', axis='', 
+    def _moment(self, iN='', region='', out='', mom='0', axis='', 
                clip='', rngmsk='', raw=''):
         '''
         Wrap around MIRIADs moment task. 
@@ -114,9 +201,6 @@ class MiriadMap(main.Map):
         By default (-> if you give no arguments to the function)
         it creates the zeroth moment of the map
         '''
-
-
-
         fileout=open('miriad.out','a')
         string = 'moment '
         if iN == '':
@@ -218,7 +302,7 @@ class MiriadMap(main.Map):
         self.mapName = out
 
 
-    def regridMiriadToArcsec(self, value, JyB_KkmS='KkmS'):
+    def _regridMiriadToArcsec(self, value, JyB_KkmS='KkmS'):
         fitsFile = self.toFits()
         self.naxis1 = float(fitsFile.header['naxis1'])
         self.naxis2 = float(fitsFile.header['naxis2'])

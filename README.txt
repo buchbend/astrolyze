@@ -1,1 +1,7 @@
-The Readme file should be written in reST so that the PyPi.
+.. Copyright (C) 2012, Christof Buchbender
+.. BSD Licencse
+#########
+Astrolyze
+#########
+
+This package

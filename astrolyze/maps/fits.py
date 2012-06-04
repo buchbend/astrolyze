@@ -1,3 +1,5 @@
+# Copyright (C) 2012, Christof Buchbender
+# BSD Licencse
 import os
 import string
 import sys
@@ -176,6 +178,7 @@ class FitsMap(main.Map):
         The formula used is:
 
         .. math:
+
             \Omega = 1.133 * FWHM(rad)^2 \cdot (Distance(m)^2)
         """
         if self.distance == None:
@@ -274,7 +277,7 @@ class FitsMap(main.Map):
             self.data
         except:
             self.get_data()
-    # needed if to check the dimension of the data array
+        # needed if to check the dimension of the data array
         if len(self.data.shape) > 2:
             for i in range(len(self.data.shape) - 2):
                 self.data = self.data[0]
@@ -297,7 +300,8 @@ class FitsMap(main.Map):
         self.comments += ['cut']
         self.update_file()
 
-    def strip(self, coords, radial=None, centerCoord=None, distance=None):
+    def _strip(self, coords, radial=None, centerCoord=None, distance=None):
+        # TODO: OLD code. Check or remove.
         r"""
         Extracts a linear cut trough a map between two coordinates.
 
@@ -382,11 +386,14 @@ class FitsMap(main.Map):
 
     def read_aperture(self, position, apertureSize=0, backgroundSize=0,
                      output=False, annotation=False, newAnnotation=False):
+        # TODO: needs better scheme for the header keywords. Migth not
+        # work with all maps.
         r"""
-        Extract the flux inside an aperture.
+        Extract the sum and mean flux inside an aperture of a given size and
+        at a given position..
 
         This function can be used to read the flux in the area of a
-        circular/gaussian beam solid angle, as well as to correct for the
+        circular aperture, as well as to correct for the
         background flux.
 
         Parameters
@@ -412,40 +419,50 @@ class FitsMap(main.Map):
             is measurd in the ring described by apertureSize and
             backgroundSize. Default is 0 and thus **no background substaction**
             is applied.
+
         output: True or False
             If True the function reports the calculated values during
             execution.
+
         annotion: logical
-            If True an kvis annotation file ``"apertures.ann"`` containing the
-            aperture used to integrate the flux. Default is False, i.e. not to
-            create the aperture.
+            If True a kvis annotation file ``"apertures.ann"`` containing the
+            aperture used to integrate the flux is created. Default is False,
+            i.e. not to create the aperture. 
+
         newAnnotation: logical
             If True ``"apertures.ann"`` is overwritten. If False an old
             ``"apertures.ann"`` is used to append the new apertures. If it not
-            exists a new one is created. The latter is the default.
+            exists a new one is created. The latter is the default. 
 
         Returns
         -------
         List:  [Sum, Mean, Number of pixels]
+
+        Notes
+        -----
+
+        The pixel sizes have to be quadratic for the algorithm to work. It
+        measures a circle by counting the pixels from the central pixel
+        corresponding to the given coordinate.
         """
-        #calculate the x,y Pixel coordinate of the position
+        # Calculate the x,y Pixel coordinate of the position.
         xCenter, yCenter = self.sky2pix(position)
-        # Read in the pixel Size (normaly in Grad FITS-Standard)
+        # Read the pixel Size (normaly in Grad FITS-Standard)
         try:
             self.pixSize1 = float(self.header['CDELT1'])
             self.pixSize2 = float(self.header['CDELT2'])
         except:
+            # sometimes the header keywords are different.
             try:
                 self.pixSize1 = float(self.header['XPIXSIZE'])
                 self.pixSize2 = float(self.header['YPIXSIZE'])
                 self.pixSize1 = self.pixSize1 / 60 / 60
                 self.pixSize2 = self.pixSize2 / 60 / 60
             except:
-                print 'No Header keyword with pixsize found'
+                print 'No Header keyword for the pixsize found'
                 sys.exit()
          # Check if the pixel size is quadratic, if not the function does not
          # work correctly (yet)
-
         if (((self.pixSize1) ** 2 - (self.pixSize2) ** 2) ** 2 <
             ((self.pixSize1) ** 2) * 0.01):
             if output == True:
@@ -482,7 +499,7 @@ class FitsMap(main.Map):
         # Now: Initialize variables
         sum = 0  # will store the sum of all Pixels in the aperture
         N = 0   # counts the number of pixels in the aperture to be able to
-                # build the mean
+                # calculate the mean
         sumBackgnd = 0  # the sum of all pixels in the background
         NBackgnd = 0   # number of pixels in the background
         # calculate the background
@@ -497,7 +514,7 @@ class FitsMap(main.Map):
                         NBackgnd += 1
             backgndMean = sumBackgnd / NBackgnd
             print backgndMean
-    # caclulate the sum in the aperture
+        # caclulate the sum in the aperture
         for x in range(int(x_min), int(x_max)):
             for y in range(int(y_min), int(y_max)):
                 if (math.floor(math.sqrt((xCenter - x) ** 2 + (yCenter - y) **
@@ -507,7 +524,6 @@ class FitsMap(main.Map):
                     else:
                         sum += self.data[y][x]
                     N += 1
-    # print sum,(sum/N),sumBackgnd,N,NBackgnd,backgndMean
         if backgroundSize != 0:
             mean = (sum / N) - backgndMean
             sumcorrected = sum - (N * backgndMean)
@@ -558,7 +574,6 @@ class FitsMap(main.Map):
             coordinate = astFunc.equatorial_to_degrees(coordinate)
         except:
             pass
-        print self.mapName
         pixel = self.wcs.wcs_sky2pix([coordinate], 1)[0]
         pixel = [int(round(float(pixel[0]))) - 1, int(round(float(pixel[1]))) -
                  1]

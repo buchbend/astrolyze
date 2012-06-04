@@ -13,14 +13,14 @@ setup(
               'astrolyze/lte', 
               'astrolyze/functions', 
               'astrolyze/setup',
-              'astrolyze/setup/paths', 
               'astrolyze/setup/database'
              ],
-    scripts=[],
+    scripts=['bin/setup_databases.py'],
     url='http://www.strange-associations.de/astrolyze/',
     license='LICENSE.txt',
     description='Reduction and analysing tools for (mainly) Radioastronomy.',
     long_description=open('README.txt').read(),
+    classifiers=['Topic :: Scientific/Engineering :: Astronomy']
     install_requires=[
         "numpy >= 1.1.1",
         "pyfits >= 0.1.4",
