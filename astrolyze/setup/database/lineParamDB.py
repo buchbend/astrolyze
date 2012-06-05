@@ -1,6 +1,6 @@
 from pysqlite2 import dbapi2 as sqlite
 import os
-import constants as const
+import  astrolyze.functions.constants as const
 from astrolyze.setup.paths import prefix
 # Keywords
 

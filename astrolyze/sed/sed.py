@@ -1,3 +1,5 @@
+# Copyright (C) 2012, Christof Buchbender
+# BSD Licencse
 import sys
 import numpy as np
 import matplotlib.pyplot as plt

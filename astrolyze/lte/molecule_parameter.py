@@ -1,18 +1,20 @@
-"""
+# Copyright (C) 2012, Christof Buchbender
+# BSD Licencse
+r"""
 This script generates a dictionary storing the information of molecular
 transitions.
-r"""
+"""
 from numpy import interp
+
 import astrolyze.functions.constants as const
-molDict = {}
 
 class Molecule:
     r"""
-    A class that holds attributes that define the characteristics of an
+    A class holding attributes that define the characteristics of an
     individual tansition of a molecules.
 
     The :py:func:`astrolyze.functions.astro_functions.calc_N` routine
-    depends on this 
+    depends on this class.
 
     Parameters
     ----------
@@ -45,6 +47,8 @@ class Molecule:
         self.gu = gu
         self.name = name
         self.mu = mu
+
+molDict = {}
 
 # HCO+ (1-0)
 nu  =  89.1885247e9   # Hz

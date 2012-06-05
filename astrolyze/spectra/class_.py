@@ -1,3 +1,5 @@
+# Copyright (C) 2012, Christof Buchbender
+# BSD Licencse
 import math
 import os
 import string
@@ -21,6 +23,19 @@ class ClassSpectra(Map):
     r"""
     Provides some usefull automated functions to work on Class
     Spectra in an convenient way.
+
+    Examples
+    --------
+
+    Extracting a spectra at a given position from a spectral cube can be done
+    as follows
+
+    >>> from astrolyze.spectra import *
+    >>>
+    >>> cube = ClassSpectra(filename)
+    >>> coordinate = ['1:34:7.00', '+30:47:52.00']
+    >>> cube.get_spectra_from_cube(coordinate)
+    Generates a 30m file with comment extract in the actual cube.prefix path.
     """
     def __init__(self, mapName, nameConvention=True):
         r"""Initializes a Class Spectral File."""
@@ -67,7 +82,7 @@ class ClassSpectra(Map):
         pyclass.comm('set angle sec')
 
     def get_spectra_from_cube(self, coordinate, angle=0, prefix=None,
-                              accuracy=2):
+                              accuracy=2, region=False):
         r"""
         Extracts one spectra at the position of coordinates from a
         spectral cube.
@@ -88,6 +103,10 @@ class ClassSpectra(Map):
         accuracy: float
             The tolerance in arcsec to find a spectra corresponding to the
             given coordinate.
+
+        region: True or False
+            Returns either all spectra found ``True`` or only the first
+            ``False``.
 
         Returns
         -------
@@ -118,9 +137,15 @@ class ClassSpectra(Map):
                 print ('###\nFound a spectra in a ' + str(accuracy) + ' arcsec '
                        'radius.\n###')
                 break
-        return_name = self.returnName(prefix = _prefix, comments=['extract'])
-        pyclass.comm('file out ' + return_name + ' single /overwrite')
-        pyclass.comm('write')
+        if not region:
+            return_name = self.returnName(prefix = _prefix, comments=['extract'])
+            pyclass.comm('file out ' + return_name + ' single /overwrite')
+            pyclass.comm('write')
+        if region:
+            return_name = self.returnName(prefix = _prefix, comments=['region'])
+            pyclass.comm('file out ' + return_name + ' single /overwrite')
+            pyclass.comm('find')
+            pyclass.comm('copy')
         return ClassSpectra(return_name)
 
 #    def set_selection(self, telescope=None, line=None, source=None):
@@ -128,6 +153,16 @@ class ClassSpectra(Map):
 #        Select subsets of the spectra in the input file.
 #        """
 #        telescope = telescop
+
+    def get_region_from_cube(self, coordinate, angle=0, prefix=None, accuracy=10):
+        r"""
+        The same as :py:func:``get_spectra_from_cube`` but returns all spectra
+        found inside a circular region arounf coordinate and in a radius of 
+        accuracy arcsec. ("set match "'accuracy')
+        """
+        return self.get_spectra_from_cube(coordinate, angle=angle,
+                                          prefix=prefix, accuracy=accuracy,
+                                          region=True)
 
     def get_average_spectrum(self, prefix=None):
         r"""
@@ -158,11 +193,19 @@ class ClassSpectra(Map):
         return ClassSpectra(return_name)
 
     def save_figure(self, name=None):
+        r"""
+        Helper function that saves the current plot.
+        """
         name = name or self.returnName(dataFormat='eps')
         pyclass.comm('ha ' + name + '/dev eps color')
 
 
     def quick_view(self):
+        r"""
+        Helper Functions that displays the first spectrum of the loaded
+        file. 
+        """
+        # TODO: make more usefull.
         pyclass.comm('file in ' + self.mapName)
         pyclass.comm('find')
         pyclass.comm('get f')

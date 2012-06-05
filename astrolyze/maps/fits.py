@@ -40,7 +40,6 @@ class FitsMap(main.Map):
         self.headerKeywords['species'] = ['LINE', 'FREQUENCY']
         self.headerKeywords['fluxUnit'] = ['BUNIT']
         self.headerKeywords['resolution'] = ['BMAJ', 'BMIN']
-        self.get_beam_size()
         self.get_pixel_size()
 
     def __get_data(self):
@@ -166,27 +165,6 @@ class FitsMap(main.Map):
         os.system('cp ' + str(self.mapName) + ' ' + str(self.mapName) + '_old')
         os.system('rm ' + str(self.mapName))
         pyfits.writeto(self.mapName, self.data, self.header)
-
-    def get_beam_size(self):
-        r"""
-        Calulates the Beamsize in m^2 if the distance to the source is given
-        if not given the PixelSize is in sterradian.
-
-        Notes
-        -----
-
-        The formula used is:
-
-        .. math:
-
-            \Omega = 1.133 * FWHM(rad)^2 \cdot (Distance(m)^2)
-        """
-        if self.distance == None:
-            self.beamSize = (1.133 * const.a2r ** 2 * self.resolution[0]
-                            * self.resolution[1])
-        else:
-            self.beamSize = (1.133 * (self.distance * const.a2r * const.pcInM)
-                            ** 2 * self.resolution[0] * self.resolution[1])
 
     def get_pixel_size(self):
         r"""

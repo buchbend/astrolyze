@@ -125,6 +125,7 @@ class Map:
             self.connection.close()
         except:
             self.calibrationError = np.nan
+        self.get_beam_size()
 
     def __resolveSpecies(self):
         '''
@@ -161,6 +162,7 @@ class Map:
         '''
         Read the the resolution string from the map name.
         '''
+        # TODO: include handling of 'uk'
         string = self.mapNameList[4]
         # Test if there is a digit after the last point.
         # To exclude file endings like .fits.gdf.
@@ -170,13 +172,19 @@ class Map:
         test = string.split('.')
         x = True
         while x:
+            print string
+            if 'uk' in string:
+                break
             try:
                 float(test[-1][:1])
                 x = False
+            except KeyboardInterrupt:
+                sys.exit()
             except:
                 string = string.replace('.' + test[-1], '')
                 test = test[0:-1]
-
+        if 'uk' in string:
+            return string
         # Resolve the resolution naming scheme explained above.
         if 'x' in string and 'a' in string:
             major = float(string.split('x')[0])
@@ -234,6 +242,31 @@ class Map:
         if type(resolution) is str:
             string = resolution
         return string
+
+    def get_beam_size(self):
+        r"""
+        Calulates the Beamsize in m^2 if the distance to the source is given
+        if not given the PixelSize is in sterradian.
+
+        Notes
+        -----
+
+        The formula used is:
+
+        .. math:
+
+            \Omega = 1.133 * FWHM(rad)^2 \cdot (Distance(m)^2)
+        """
+        if self.resolution != 'uk':
+            if self.distance == None:
+                self.beamSize = (1.133 * const.a2r ** 2 * self.resolution[0] *
+                                 self.resolution[1])
+            else:
+                self.beamSize = (1.133 * (self.distance * const.a2r *
+                                 const.pcInM) ** 2 * self.resolution[0] *
+                                 self.resolution[1])
+        else:
+            self.beamSize = np.nan
 
     def changeMapName(self, source=None, telescope=None, species=None,
                       fluxUnit=None, resolution=None, comments=None,

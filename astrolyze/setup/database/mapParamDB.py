@@ -48,7 +48,25 @@ species = '2MM'
 calError = 0.15
 cursor.execute('INSERT INTO Maps VALUES (null,?,?,?)',(telescope,species,calError))
 
+telescope = '1WISE'
+species = '3.4MUM'
+calError = 0.15
+cursor.execute('INSERT INTO Maps VALUES (null,?,?,?)',(telescope,species,calError))
 
+telescope = '1WISE'
+species = '4.6MUM'
+calError = 0.15
+cursor.execute('INSERT INTO Maps VALUES (null,?,?,?)',(telescope,species,calError))
+
+telescope = '1WISE'
+species = '12MUM'
+calError = 0.15
+cursor.execute('INSERT INTO Maps VALUES (null,?,?,?)',(telescope,species,calError))
+
+telescope = '1WISE'
+species = '22MUM'
+calError = 0.15
+cursor.execute('INSERT INTO Maps VALUES (null,?,?,?)',(telescope,species,calError))
 connection.commit()
 
 cursor.close()

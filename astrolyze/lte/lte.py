@@ -1,3 +1,5 @@
+# Copyright (C) 2012, Christof Buchbender
+# BSD Licencse
 r"""
 Functions to calculate LTE column densities.
 

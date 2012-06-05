@@ -1,3 +1,5 @@
+# Copyright (C) 2012, Christof Buchbender
+# BSD Licencse
 import math
 
 from constants import *
