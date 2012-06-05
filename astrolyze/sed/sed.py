@@ -9,17 +9,23 @@ from astrolyze.maps import *
 
 class SedStack:
     r"""
-    Reads in the SEDs from a stack of maps at given coordinates and creates a
-    stack of Sed objects.
+    Reads in the SEDs from the maps stored under the input folder at given
+    coordinates and creates a stack of Sed objects.
     """
-    def __init__(self, folder, data_format='.fits', filein=None):
+    def __init__(self, folder, data_format='.fits', filein=None,
+                 coordinates=None, flux_aquisition='aperture', aperture=120,
+                 annotation=False):
         #Some Defaults
-        self.flux_aquisition = 'aperture'
-        self.aperture = 120
-        self.annotation = False
-
+        self.flux_aquisition = flux_aquisition
+        self.aperture = aperture
+        self.annotation = annotation
         self.load_file_list(folder, data_format)
-        self.load_coordinates(filein)
+        if filein is None and coordinates is None: 
+            pass
+        if filein is None:
+            self.load_coordinates(filein)
+        if coordinates is None:
+            self.coordinates = cooridnates
         self.get_seds()
 
     def load_file_list(self, folder, data_format):
@@ -160,8 +166,6 @@ class Sed:
         self.residuals = False
         self.nu_or_lambda = 'nu'
 
-
-
     def grey_body_fit(self):
         r""""
         Fitting a multi componenet grey body to the input data in flux_array.
@@ -254,11 +258,11 @@ class Sed:
             x=y
             model =modelLambda
             grey = greyLambda
-        plt.loglog(x,model,ls='-',color=color,label='_nolegend_',lw=0.5,marker='')
+        plt.loglog(x,model,ls='-', color=color, label='_nolegend_', lw=0.5, marker='')
         linestyles = [':','-.','-']
         j=0
         for i in grey:
-            plt.loglog(x,i,color=color,ls=linestyles[j],lw=0.5,marker='')
+            plt.loglog(x, i, color=color, ls=linestyles[j], lw=0.5, marker='')
             j+=1
 
 # Old Code

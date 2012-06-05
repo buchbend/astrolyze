@@ -11,7 +11,7 @@ import numpy as np
 from pysqlite2 import dbapi2 as sqlite
 from scipy.ndimage import gaussian_filter
 
-from astrolyze.setup.paths import prefix
+import astrolyze_prefix as prefix
 import astrolyze.functions.constants as const
 from astrolyze.functions import units
 

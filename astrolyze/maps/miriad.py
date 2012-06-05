@@ -16,9 +16,7 @@ import main
 import fits
 import gildas
 
-from astrolyze.setup.paths import prefix
 import astrolyze.functions.constants as const
-
 
 class MiriadMap(main.Map):
 
@@ -49,10 +47,10 @@ class MiriadMap(main.Map):
         it is possible to continue working with the Fits map, using
         :class:`maps.fits.FitsMap` class.
         """
-        os.system('rm '+str(self.returnName())+'.fits')
-        print 'rm '+str(self.mapName)+'.fits'
-        string = ('fits in='+str(self.mapName)+' out='+str(self.returnName())+'.'
-                 'fits op=xyout')
+        os.system('rm '+str(self.returnName(dataFormat='fits')))
+        print 'rm '+str(self.returnName(dataFormat='fits'))
+        string = ('fits in=' + str(self.mapName) + ' out=' +
+                  str(self.returnName(dataFormat='fits')) + ' op=xyout')
         print string
         os.system(string)
         self.fitsName = str(self.returnName())+'.fits'
@@ -81,9 +79,9 @@ class MiriadMap(main.Map):
         self.toFits()
         os.system('rm '+str(self.returnName())+'.gdf')
         self.convFile = open('temp.greg','w')
-        self.convFile.write('fits '+str(self.mapName)+'.fits to '+
-                            str(self.returnName())+'.gdf\n'
-                            'exit\n')
+        self.convFile.write('fits '+str(self.returnName(dataFormat = 'fits')) +
+                            ' to ' + str(self.returnName(dataFormat = 'gdf')) +
+                            '\nexit\n')
         self.convFile.close()
         os.system('greg -nw @temp.greg')
         self.gildasName = str(self.mapName)+'.gdf'

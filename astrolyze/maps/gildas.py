@@ -15,8 +15,8 @@ import main
 import fits
 import miriad
 
+import astrolyze
 from astrolyze.spectra import *
-from astrolyze.setup.paths import prefix
 import astrolyze.functions.constants as const
 
 
@@ -666,6 +666,13 @@ class GildasMap(main.Map):
         if save:
             filename = filename or 'quick_preview.eps'
             pygreg.comm('ha '+filename+' dev eps color')
+
+    def get_spectra_from_cube(self, coordinate, angle=0, prefix=None,
+                              accuracy=2):
+        spectra = self.lmv()
+        spectra = spectra.get_spectra_from_cube(coordinate, angle=0,
+                                                prefix=None, accuracy=2)
+        return spectra
 
     def toFits(self):
         r"""

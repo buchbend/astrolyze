@@ -12,7 +12,7 @@ import pyclass
 from astrolyze.maps.main import *
 import astrolyze.maps.gildas
 
-from astrolyze.setup.paths import prefix
+import astrolyze_prefix as prefix
 import astrolyze.functions.constants as const
 from astrolyze.functions import astro_functions as astFunc
 import astrolyze.functions.units
@@ -36,9 +36,10 @@ class ClassSpectra(Map):
         Initial setup, loading all the variables correponding to
         the cube.
         """
+        self.set_defaults()
         pyclass.comm('file in ' + self.mapName)
         pyclass.comm('find')
-        pyclass.comm('get f')
+        pyclass.comm('get first')
         self._load_class_variables()
         self.dec_coordinate = self.vars.r.head.pos.bet.__sicdata__
         self.ra_coordinate = self.vars.r.head.pos.lam.__sicdata__
@@ -63,7 +64,7 @@ class ClassSpectra(Map):
         pyclass.comm('set def')
         pyclass.comm('set plot hist')
         pyclass.comm('set form long')
-        pyclass.comm('set unit sec')
+        pyclass.comm('set angle sec')
 
     def get_spectra_from_cube(self, coordinate, angle=0, prefix=None,
                               accuracy=2):
@@ -108,6 +109,8 @@ class ClassSpectra(Map):
             pyclass.comm('find')
             try:
                 pyclass.comm('get f')
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
             except:
                 print  '###\nNothing found, raising tolerance by 1 arsec.\n###'
                 accuracy = accuracy + 1
@@ -118,6 +121,7 @@ class ClassSpectra(Map):
         return_name = self.returnName(prefix = _prefix, comments=['extract'])
         pyclass.comm('file out ' + return_name + ' single /overwrite')
         pyclass.comm('write')
+        return ClassSpectra(return_name)
 
 #    def set_selection(self, telescope=None, line=None, source=None):
 #        r"""
@@ -151,9 +155,16 @@ class ClassSpectra(Map):
         return_name = self.returnName(prefix = _prefix, comments=['average'])
         pyclass.comm('file out ' + return_name + ' single /overwrite')
         pyclass.comm('write')
-        #return ClassSpectra(return_name)
+        return ClassSpectra(return_name)
 
     def save_figure(self, name=None):
         name = name or self.returnName(dataFormat='eps')
         pyclass.comm('ha ' + name + '/dev eps color')
+
+
+    def quick_view(self):
+        pyclass.comm('file in ' + self.mapName)
+        pyclass.comm('find')
+        pyclass.comm('get f')
+        pyclass.comm('pl')
 

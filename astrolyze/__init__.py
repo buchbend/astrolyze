@@ -1,5 +1,4 @@
-
-#__all__ = ["maptools", "mapclass"]
+#__all__ = ["functions", "maps", "spectra", "sed", "lte"]
 
 from maps import *
 from spectra import *
