@@ -4,7 +4,6 @@ import os
 import site
 from distutils.core import setup
 
-
 if not os.path.exists(os.path.expanduser('~/.astrolyze')):
     r"""
     Creating a folder where custom setups can be stored.
@@ -14,6 +13,7 @@ if not os.path.exists(os.path.expanduser('~/.astrolyze')):
     os.system('mkdir ~/.astrolyze')
     os.system('mkdir ~/.astrolyze/setup')
     os.system('mkdir ~/.astrolyze/database')
+
 
 def extend_path(path):
     r"""
@@ -27,10 +27,14 @@ def extend_path(path):
     pth_file.write(string)
     pth_file.close()
 
+
 def init_data_base():
-    os.system('rm -rf ' + os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix.py'))
-    init_prefix = 'dataBase = "' + os.path.expanduser('~/HERMES/dataBase/') + '"\n'
-    file_out = open(os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix.py'),'w')
+    os.system('rm -rf ' +
+              os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix.py'))
+    init_prefix = 'dataBase = "' + os.path.expanduser('~/HERMES/dataBase/') +
+                  '"\n'
+    file_out = open(os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix'
+                    '.py'), 'w')
     file_out.write(init_prefix)
     file_out.close()
 
@@ -71,4 +75,3 @@ setup(
         "docutils"
     ],
 )
-

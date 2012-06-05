@@ -21,16 +21,19 @@ def extend_path(path):
     So far only needed for the database setup.
     """
     # TODO: Make sure the file goes to the correct folder. 
-    #       So far its maybe only valid for my computer. 
+    #       So far its maybe only valid for my computer.
     string = os.path.expanduser(path)
     pth_file = open('/usr/lib/python2.7/dist-packages/astrolyze.pth', 'w')
     pth_file.write(string)
     pth_file.close()
 
 def init_data_base():
-    os.system('rm -rf ' + os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix.py'))
-    init_prefix = 'dataBase = "' + os.path.expanduser('~/HERMES/dataBase/') + '"\n'
-    file_out = open(os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix.py'),'w')
+    os.system('rm -rf ' +
+              os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix.py'))
+    init_prefix = 'dataBase = "' + os.path.expanduser('~/HERMES/dataBase/') +
+                  '"\n'
+    file_out = open(os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix'
+                    '.py'), 'w')
     file_out.write(init_prefix)
     file_out.close()
 
