@@ -31,8 +31,8 @@ def extend_path(path):
 def init_data_base():
     os.system('rm -rf ' +
               os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix.py'))
-    init_prefix = 'dataBase = "' + os.path.expanduser('~/HERMES/dataBase/') +
-                  '"\n'
+    init_prefix = ('dataBase = "' + os.path.expanduser('~/HERMES/dataBase/') +
+                  '"\n')
     file_out = open(os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix'
                     '.py'), 'w')
     file_out.write(init_prefix)

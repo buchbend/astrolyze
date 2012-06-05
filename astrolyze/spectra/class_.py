@@ -199,7 +199,6 @@ class ClassSpectra(Map):
         name = name or self.returnName(dataFormat='eps')
         pyclass.comm('ha ' + name + '/dev eps color')
 
-
     def quick_view(self):
         r"""
         Helper Functions that displays the first spectrum of the loaded
@@ -210,4 +209,3 @@ class ClassSpectra(Map):
         pyclass.comm('find')
         pyclass.comm('get f')
         pyclass.comm('pl')
-
