@@ -13,6 +13,7 @@ if not os.path.exists(os.path.expanduser('~/.astrolyze')):
     os.system('mkdir ~/.astrolyze')
     os.system('mkdir ~/.astrolyze/setup')
     os.system('mkdir ~/.astrolyze/database')
+    os.system('mkdir ~/.astrolyze/lte')
 
 
 def extend_path(path):
@@ -56,7 +57,10 @@ setup(
               'astrolyze/setup',
               'astrolyze/setup/database'
              ],
-    scripts=['bin/setup_databases.py'],
+    scripts=['bin/setup_astrolyze.py'],
+    data_files=[(os.path.expanduser('~/.astrolyze/setup/'),
+                ['cfg/line_parameter.txt', 'cfg/galaxy_parameter.txt',
+                'cfg/calibration_error.txt'])],
     url='http://www.strange-associations.de/astrolyze/',
     license='LICENSE.txt',
     description='Reduction and analysing tools for (mainly) Radioastronomy.',
