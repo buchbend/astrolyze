@@ -40,3 +40,5 @@ from main import *
 from fits import *
 from gildas import *
 from miriad import *
+
+import tools

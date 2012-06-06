@@ -116,7 +116,7 @@ class Map:
             self.connection = sqlite.connect(str(prefix.dataBase) +
                                          'parameter.db')
             self.cursor = self.connection.cursor()
-            self.cursor.execute("SELECT * FROM Maps WHERE Telescope = "
+            self.cursor.execute("SELECT * FROM cal_error WHERE Telescope = "
                                 " ? AND Species = ?", (self.telescope.upper(),
                                                        self.species.upper()))
             self.params = self.cursor.fetchall()[0]

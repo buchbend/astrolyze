@@ -21,7 +21,8 @@ def get_line_parameter(filein, database):
     lines = []
     for row in filein[1:]:
         line_name, frequency = row.split()
-        lines += [line_name, float(frequency), float(const.c/float(frequency))]
+        lines += [[line_name, float(frequency)*1e9,
+                   float(const.c/float(frequency)/1e9)]]
     print database
     connection = sqlite.connect(database)
     cursor = connection.cursor()
@@ -41,10 +42,10 @@ def get_galaxy_parameter(filein, database):
     galaxies = []
     for row in filein[1:]:
         (galaxy_name, morphology_type, distance, v_lsr, RA, DEC, PA,
-        inclination, R25) = i.split()
-        galaxies += [galaxy_name, morphology_type, float(distance),
+        inclination, R25) = row.split()
+        galaxies += [[galaxy_name, morphology_type, float(distance),
                      float(v_lsr), RA, DEC, float(PA), float(inclination),
-                     float(R25)]
+                     float(R25)]]
     connection = sqlite.connect(database)
     cursor = connection.cursor()
     cursor.execute('CREATE TABLE Galaxies (id INTEGER PRIMARY KEY, Name '
@@ -53,38 +54,46 @@ def get_galaxy_parameter(filein, database):
                    'Inclination FLOAT, R25 FLOAT)')
     for i in galaxies:
         cursor.execute('INSERT INTO Galaxies VALUES (null, ?, ?, ?, ?, ?, ?, '
-                       '?, ?)',(i[0], i[1], i[2], i[3], i[4] + i[5], i[6],
+                       '?, ?)',(i[0], i[1], i[2], i[3], i[4] + ' ' + i[5], i[6],
                                 i[7], i[8]))
     connection.commit()
     cursor.close()
     connection.close()
 
-def get_calibration_parameter(filein, database):
+def get_calibration_error(filein, database):
     filein = open(filein).readlines()
-    calibration_error = []
+    calibration_error_list = []
     for row in filein[1:]:
-        telescope, species, calibration_error = i.split()
-        calibration_error += [telescope, species, float(calibration_error)]
+        items = row.split()
+        telescope = items[0]
+        species = items[1]
+        calibration_error = items[2]
+        # The rest of the words in the row are interpreted as reference.
+        # ' '.join() produces one string with one space between the items.
+        reference = ' '.join(items[3:])
+        calibration_error_list += [[telescope, species,
+                                    float(calibration_error), reference]]
     connection = sqlite.connect(database)
     cursor = connection.cursor()
-    cursor.execute('CREATE TABLE Maps (id INTEGER PRIMARY KEY, Telescope '
-                    'VARCHAR(50), Species VARCHAR(50), uncertainty DOUBLE)')
-    for i in calibration_error:
-        cursor.execute('INSERT INTO Galaxies VALUES (null, ?, ?, ?)',
-                       (i[0], i[1], i[2]))
+    cursor.execute('CREATE TABLE cal_error (id INTEGER PRIMARY KEY, Telescope '
+                    'VARCHAR(50), Species VARCHAR(50), uncertainty DOUBLE, '
+                    'Reference VARCHAR(50))')
+    for i in calibration_error_list:
+        cursor.execute('INSERT INTO cal_error VALUES (null, ?, ?, ?, ?)',
+                       (i[0], i[1], i[2], i[3]))
     connection.commit()
     cursor.close()
     connection.close()
 
 def create_database(database):
     if os.path.isfile(database):
-        os.system('rm -rf ' + dataBase)
+        os.system('rm -rf ' + database)
     filein = os.path.expanduser('~/.astrolyze/setup/line_parameter.txt')
     get_line_parameter(filein, database)
     filein = os.path.expanduser('~/.astrolyze/setup/galaxy_parameter.txt')
     get_galaxy_parameter(filein, database)
     filein = os.path.expanduser('~/.astrolyze/setup/calibration_error.txt')
-    get_calibration_parameter(filein, database)
+    get_calibration_error(filein, database)
 
 
 if __name__ == "__main__":

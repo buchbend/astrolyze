@@ -32,12 +32,24 @@ def extend_path(path):
 def init_data_base():
     os.system('rm -rf ' +
               os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix.py'))
-    init_prefix = ('dataBase = "' + os.path.expanduser('~/HERMES/dataBase/') +
-                  '"\n')
+    init_prefix = ('dataBase = "' + 
+                    os.path.expanduser('~/.astrolyze/database/') + '"\n')
     file_out = open(os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix'
                     '.py'), 'w')
     file_out.write(init_prefix)
     file_out.close()
+
+def change_permissions():
+    r"""
+    This asures that the user can modify the files to customize the database
+    entries.
+    """
+    os.system('chmod 777 ' +
+              os.path.expanduser('~/.astrolyze/setup/line_parameter.txt'))
+    os.system('chmod 777 ' +
+              os.path.expanduser('~/.astrolyze/setup/galaxy_parameter.txt'))
+    os.system('chmod 777 ' +
+              os.path.expanduser('~/.astrolyze/setup/calibration_error.txt'))
 
 init_data_base()
 extend_path('~/.astrolyze/setup/')
@@ -79,3 +91,5 @@ setup(
         "docutils"
     ],
 )
+
+change_permissions()
