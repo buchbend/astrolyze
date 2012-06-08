@@ -61,7 +61,7 @@ Aul =  10 ** (-2.2608)
 gu  = 3.
 mu  = 3.9*const.debye_to_EsuCm
 HCO = Molecule(nu, Q, T, Eu, Aul, gu, mu, 'HCO+(1-0)')
-molDict['HCO']=HCO 
+molDict['HCO'] = HCO 
 
 # HOC+ (1-0)
 nu  =  89.4874140e9  # Hz

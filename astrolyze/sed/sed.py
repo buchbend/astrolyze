@@ -4,30 +4,31 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-import astrolyze.maptools as mt
+import astrolyze.maps.tools as mt
 import astrolyze.functions.astro_functions as af
 
-from astrolyze.maps import *
+from astrolyze import *
 
 class SedStack:
     r"""
     Reads in the SEDs from the maps stored under the input folder at given
     coordinates and creates a stack of Sed objects.
     """
-    def __init__(self, folder, data_format='.fits', filein=None,
-                 coordinates=None, flux_aquisition='aperture', aperture=120,
+    def __init__(self, folder, data_format='.fits', filein=False,
+                 coordinates=False, flux_aquisition='aperture', aperture=120,
                  annotation=False):
-        #Some Defaults
+        # Some Defaults
         self.flux_aquisition = flux_aquisition
         self.aperture = aperture
         self.annotation = annotation
         self.load_file_list(folder, data_format)
-        if filein is None and coordinates is None: 
+        # check if the coordinates are given as 
+        if not filein and not coordinates: 
             pass
-        if filein is None:
+        if filein:
             self.load_coordinates(filein)
-        if coordinates is None:
-            self.coordinates = cooridnates
+        if coordinates:
+            self.coordinates = coordinates
         self.get_seds()
 
     def load_file_list(self, folder, data_format):
@@ -60,17 +61,17 @@ class SedStack:
         """
         self.file_list = mt.get_list(folder, data_format)
         self.maps = []
-        # loading the maps with the mapclass
+        # loading the maps with the maps module
         for item in self.file_list:
             if '.fits' in item:
-                map = FitsMap(item)
-                self.maps += [map]
+                map_ = FitsMap(item)
+                self.maps += [map_]
             if '.gdf' in item:
-                map = GildasMap(item)
-                map = map.toFits()
-                self.maps += [map]
+                map_ = GildasMap(item)
+                map_ = map_.toFits()
+                self.maps += [map_]
 
-    def load_coordinates(self, filein):
+    def load_coordinates(self, input_file):
         r"""
         Loads the coordinated where the SEDs should be evaluated
         from either a file or a list. Both are not possible.
@@ -90,6 +91,7 @@ class SedStack:
         -------
 
         self.coordinates: list
+        self.source_names: list
             Format::
             [[source_name_1, RA_1, DEC_1] , ... , [source_name_N, RA_N, DEC_N]]
 
@@ -100,7 +102,7 @@ class SedStack:
         Equatorial:
         >>> equatorial_coordinates = ['02:23:21', '-02:23:21']
         """
-        lines = open(filein).readlines()
+        lines = open(input_file).readlines()
         self.coordinates = []
         self.source_names = []
         for line in lines:
@@ -111,36 +113,40 @@ class SedStack:
             # source_names and coordinates have to be the same
             # lenght.
             # ADD RAISE Exception correctly
-            self.number_of_seds = len(coordinates)
+            raise ValueError("Something went wrong reding the cooridnates.")
+        self.number_of_seds = len(self.coordinates)
 
     def get_seds(self):
+        r"""
+        
+        """
         self.sed_stack = []
         for x, coordinate in enumerate(self.coordinates):
             flux_array = [[], [], []]
-            for map in self.maps:
+            for maps in self.maps:
                 try:
                     if self.flux_aquisition_type == 'aperture':
-                        flux = map.read_aperture(coordinate, 
+                        flux = maps.read_aperture(coordinate, 
                                          apertureSize=self.aperture, 
                                          annotation=self.annotation)
                     if self.flux_aquisition_type == 'pixel':
-                        flux = map.read_flux(coordinate)
-                    print  map.calibrationError
-                    print map.frequency
-                    flux_array[0] += [map.frequency/1e9]
+                        flux = maps.read_flux(coordinate)
+                    printmaps.calibrationError
+                    print maps.frequency
+                    flux_array[0] += [maps.frequency/1e9]
                     flux_array[1] += [flux[0]]
-                    flux_array[2] += [flux[0] * map.calibrationError]
+                    flux_array[2] += [flux[0] * maps.calibrationError]
                     names += self.source_names[x]
                 except:
                     continue
             flux_array = np.asarray(flux_array)
-            self.sed_stack += [Sed(coordinate, self.source_names[x], 
+            self.sed_stack += [Sed(self.source_names[x], coordinate,
                                    flux_array)]
 
 
 class Sed:
     r"""
-    This class handles a single sed. Fitting plotting and so on. 
+    This class handles a single SED. Basically it is able to fit Fitting, plotting and so on. 
     It should contain the data, fitting, 
     """
     def __init__(self, source_name, coordinate, flux_array):
@@ -160,7 +166,7 @@ class Sed:
         self.p2 = None 
         # Setting up default input choices for the 
         # grey_body_fit function from astroFunctions.
-        # please check there for their meaning.
+        # please check this function for more details.
         self.fit_beta = False
         self.kappa = 'Kruegel'
         self.fix_temperature = False
@@ -179,20 +185,18 @@ class Sed:
         """
         try:
             self.p2, self.chisq = af.grey_body_fit(data=self.flux_array,
-                                          start_parameter = self.p1, 
+                                          start_parameter=self.p1, 
                                           nu_or_lambda=self.nu_or_lambda, 
                                           fit_beta=self.fit_beta, 
                                           fix_temperature=self.fix_temperature,
                                           kappa=self.kappa, 
                                           residuals=self.residuals)
-            self.fit_temperatures = self.p2[0]
-            self.fit_masses = self.p2[1]
-            self.fit_beta = self.p2[2]
-            self.fit_done = True
         except:
-            pass
-            #raise ValueError('Data could not be fitted!')
-            #sys.exit()
+            raise ValueError('Data could not be fitted!')
+        self.fit_temperatures = self.p2[0]
+        self.fit_masses = self.p2[1]
+        self.fit_beta = self.p2[2]
+        self.fit_done = True
 
     def plot_sed(self, axes=plt.gca(), nu_or_lambda='nu', color='black', linewidth=0.5, 
                  xRange='normal'):

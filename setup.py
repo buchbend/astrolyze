@@ -9,7 +9,7 @@ if not os.path.exists(os.path.expanduser('~/.astrolyze')):
     Creating a folder where custom setups can be stored.
     So far fized to .astrolyze in the home folder.
     """
-    # TODO: Allow custom paths!!!
+    # TODO: Allow custom paths!!! Or NOT, decide!!!
     os.system('mkdir ~/.astrolyze')
     os.system('mkdir ~/.astrolyze/setup')
     os.system('mkdir ~/.astrolyze/database')
@@ -55,7 +55,7 @@ init_data_base()
 extend_path('~/.astrolyze/setup/')
 
 setup(
-    name='AstroLyze',
+    name='astrolyze',
     version='0.1.0',
     author='Christof Buchbender',
     author_email='christof.buchbender@gmail.com',
@@ -63,11 +63,8 @@ setup(
               'astrolyze/maps',
               'astrolyze/spectra',
               'astrolyze/sed', 
-              'astrolyze/maptools',
               'astrolyze/lte', 
               'astrolyze/functions', 
-              'astrolyze/setup',
-              'astrolyze/setup/database'
              ],
     scripts=['bin/setup_astrolyze.py'],
     data_files=[(os.path.expanduser('~/.astrolyze/setup/'),

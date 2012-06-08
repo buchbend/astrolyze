@@ -27,15 +27,17 @@ class GildasMap(main.Map):
     def __init__(self, mapName, nameConvention=True):
         r"""Initializes a Gildas map"""
         main.Map.__init__(self, mapName, nameConvention)
-        self.__init_map_to_greg()
+        self._init_map_to_greg()
         if self.dataFormat not in self.gildas_formats:
             print ('Exiting: Not a Gildas format (AFAIK). Supported'
                    'Formats Can be extended.')
             sys.exit()
 
-    def __init_map_to_greg(self):
+    def _init_map_to_greg(self):
         pygreg.comm('image ' + self.mapName)
         self._load_gildas_variables()
+        pygreg.comm('let name ' + self.mapName.replace('.' + self.dataFormat, ''))
+        pygreg.comm('let type ' + self.dataFormat)
 
     def _load_gildas_variables(self):
         r"""
@@ -58,8 +60,24 @@ class GildasMap(main.Map):
         self.crpix_2 = self.convert[1][0]
         self.crval_2 = self.convert[1][1]
         self.cdelt_2 = self.convert[1][2]
+        self.ra_coordinate = self.vars.g_ra.__sicdata__
+        self.dec_coordinate = self.vars.g_dec.__sicdata__
+        # conversion to degrees
+        self.ra_coordinate = self.ra_coordinate * const.r2d
+        self.dec_coordinate = self.dec_coordinate * const.r2d
+        self.central_coordinate_degrees = [self.ra_coordinate,
+                                           self.dec_coordinate]
+        self.central_coordinate_equatorial = astFunc.degrees_to_equatorial(
+                                             self.central_coordinate_degrees)
 
-    def regrid_to_arcsec(self, value):
+    def set_defaults(self):
+        r"""
+        Reset all selection criteria.
+        """
+        pyclass.comm('set def')
+        pyclass.comm('clear')
+
+    def _regrid_to_arcsec(self, value):
         r"""
         Regrids the pixel size of the map to a multiple of arcseconds.
 
@@ -82,7 +100,7 @@ class GildasMap(main.Map):
 #        self.crval2 = float(fitsFile.header['CRVAL2'])
 #        self.crpix1 = float(fitsFile.header['CRPIX1'])
 #        self.crpix2 = float(fitsFile.header['CRPIX2'])
-        self.cdelt1arcs = float(self.cdelt_11) / (value * (1. / 60 / 60))
+        self.cdelt1arcs = float(self.cdelt_1) / (value * (1. / 60 / 60))
         self.naxis1New = self.naxis_1 * math.sqrt(self.cdelt1arcs ** 2)
         self.crpix1New = self.naxis1New / (self.naxis_1 / self.crpix_1)
         self.comments += ['IP1']
@@ -107,30 +125,27 @@ class GildasMap(main.Map):
         __fileout.close()
         os.system('greg -nw @interpolate.greg')
 
-    def spectrum(self, coordinates, fileout=None, prefix=None,):
+    def spectrum(self, coordinate, fileout=None, prefix=None,
+                 create_spectrum=True): 
         r"""
         Wrapper to the spectrum command from greg that extracts
-        a spectrum from a cube at a given positions.
+        a spectrum from a cube at a given positions. By default it also creates
+        a 30m file readable by class from the table.
 
         Parameters
         ----------
-
-        coordinates: list
+        coordinate: list
             A list with the coordinates in floats in units of Degrees,
-            or in string for equatorial coordinates.
-
+            or in string for equatorial coordinate.
         fileout: string
             The name of the table where the spectrum will be stored.
             Default is the same name as the map with ``".tab"`` as ending.
-
         prefix:
             The path to the folder where the newly created file will be
             stored.  Defaults to the prefix currently stored in self.prefix.
-
-        Notes
-        -----
-
-        Tested and working.
+        create_spectrum: True or False
+            Turn the creation of a 30m with the spectrum of ``False`` or on
+            ``True``.
 
         Examples
         --------
@@ -140,6 +155,8 @@ class GildasMap(main.Map):
         >>> coordinate = ['1:34:7.00', '+30:47:52.00']
         >>> map.spectrum(coordinate)
         Creates M33_PdBI_12co10_Tmb_22.0_2kms.tab in the present folder.
+
+..        Tested and working.
         """
         os.system('rm spectrum.init')
         if prefix is None:
@@ -154,8 +171,8 @@ class GildasMap(main.Map):
                       '"\nTASK\FILE "Output table name" OUT$ "'
                       + fileout
                       + '"\n'
-                      'TASK\CHARACTER "Absolute coordinates" COORD$ "'
-                      + coordinates[0] + ' ' + coordinates[1] + '"\n'
+                      'TASK\CHARACTER "Absolute coordinate" COORD$ "'
+                      + coordinate[0] + ' ' + coordinate[1] + '"\n'
                       'TASK\GO')
         __maskInit.write(__init_string)
         __maskInit.close()
@@ -165,6 +182,15 @@ class GildasMap(main.Map):
         os.system('greg -nw @temp.greg')
         os.system('rm temp.greg')
         os.system('rm spectrum.init')
+        if create_spectrum:
+            file_30m = self.returnName(comments=['extract'], prefix=prefix,
+                                       dataFormat='30m')
+            print 'file out ' + file_30m + ' single /over'
+            print 'col x 1 y 2  /table ' + prefix + fileout
+            pyclass.comm('file out ' + file_30m + ' single /over')
+            pyclass.comm('col x 1 y 2  /table ' + prefix + fileout)
+            pyclass.comm('model y x')
+            pyclass.comm('write')
 
     def lmv(self, fileout=None, prefix=None):
         r"""
@@ -182,10 +208,7 @@ class GildasMap(main.Map):
             The path were the class file will be stores. Defaults to
             the current path.
 
-        Notes
-        -----
-
-        Tested and working.
+..        Tested and working.
         """
         if prefix is None:
             prefix = self.prefix
@@ -262,20 +285,16 @@ class GildasMap(main.Map):
 
         Parameters
         ----------
-
         template: string
             Full path to a map in GDF Format whose central
             coordinate and pixel size will serve as a template.
-
         coord: list
             List of coordinate strings in RA DEC (J2000) that
             will become the new centre of the map.
-
         prefix: string
             The path where the output is to be stored if different
             from the current prefix of the map. If None the current
             self.prefix of the GildasMap instance is used.
-
         keep_pixsize: bool
             If False reproject guesses the new pixel sizes after reprojection
             these are normally smaller than the original ones.
@@ -283,21 +302,17 @@ class GildasMap(main.Map):
 
         Returns
         -------
-
         GildasMap Object: Instance for the reprojected map.
 
         Raises
         ------
-
         SystemExit
             If both **template** and **coord** are not ``None``.
-
         ValueError
             If keep_pixsize is not a boolean.
 
         Examples
         --------
-
         >>> map.reproject(coord = ['1:34:32.8', '30:47:00.6'])
         >>> map.reproject(template = 'M33_SPIRE_250_JyB_18.1.gdf')
 
@@ -421,20 +436,16 @@ class GildasMap(main.Map):
         ----------
         velo_range: list
             Velocity range for the integration.
-
         threshold: float
             Value under which pixels are blanked.
-
         smooth: string
             One of Either ``"NO"`` or ``"YES"``. Controls
             if the map is smoothed before applying the cut threshold. Getting
             rid of noise peaks over the threshold.
             Defaults to ``'YES'``
-
         prefix: string
             The path where the output is to be stored if different
             from the current prefix of the map.
-
         comment: string
             Optional comments to be added to the new map name.
 
@@ -500,7 +511,6 @@ class GildasMap(main.Map):
         ----------
         angle: float [deg]
             Rotation angle.
-
         prefix: string
             The path where the output is to be stored if different
             from the current prefix of the map.
@@ -511,7 +521,6 @@ class GildasMap(main.Map):
 
         Examples
         --------
-
         >>> map.goRot(45)
 
         To change the central coordinate first use
@@ -557,18 +566,15 @@ class GildasMap(main.Map):
                    position angle defaults to 0.
                 3. a list with three floats: [major_axis, minor_axis,
                    position_angle].
-
         old_resolution: float or list
             Same format as new_resolution. Defaults to self.resolution of the
             map instance.
-
         prefix: string
             The path where the output is to be stored if different
             from the current prefix of the map.
 
         Notes
         -----
-
         .. warning::
 
             The gauss_smooth Task from GILDAS only gives correct output
@@ -645,13 +651,66 @@ class GildasMap(main.Map):
         os.system('rm temp.greg')
         return GildasMap(self.returnName(resolution=new_resolution))
 
+    def custom_go_spectrum(self, coordinate=False, size=False, angle=0):
+        r"""
+        This function used the ``go spectrum`` command from GREG to plot
+        the spectra in a region given by ``size`` around the cooridinate given 
+        by ``coordinate``.
+
+        Parameters
+        ----------
+        coordinate: list
+            A list with the coordinates in floats in units of Degrees, or in
+            string for equatorial coordinates. Default to ``False``, meaning
+            the center of the map, determined from the map header is used.
+        size: list
+            The region from that spectra are plotted in arcsec, e.g. size =
+            [50, 50] means a region of 50x50 arcsec around the given
+            cooridnate. Defaults to None, which translates to size = [0, 0] in
+            greg which in turn plots the full map size. 
+        angle: float [degrees]
+            Needed if map is rotated to get the correct offsets. Defaults to 0.
+        """
+        # go spectrum reads the variable center which gives the coordinates
+        # in offsets from the central coordinate in the header
+        if coordinate:
+            offset = astFunc.calc_offset(self.central_coordinate_equatorial,
+                                     coordinate, angle, output_unit='arcsec')
+        else:
+            offset = [0, 0]
+        print offset
+        if not size:
+            size = [0, 0]
+        self.comments += ['go-spectrum']
+        name = self.returnName(dataFormat='eps')
+        string = ('let center ' + str(offset[0]) + ' ' + str(offset[1]) + '\n'
+                  'let size ' + str(size[0]) + ' ' + str(size[1]) + '\n'
+                  'let name ' + self.mapName.replace('.' + self.dataFormat, '') + '\n'
+                  'let type ' + self.dataFormat + '\n'
+                  'go spectrum \n'
+                  'ha ' + name + ' /dev eps color /over \n'
+                  'exit \n'
+                  )
+        print string
+        fileout = open('temp.greg', 'w')
+        fileout.write(string)
+        fileout.close()
+        os.system('greg -nw @temp.greg')
+        os.system('rm -rf temp.greg')
+
+    def save_figure(self, name=None):
+        r"""
+        Helper function that saves the current plot.
+        """
+        name = name or self.returnName(dataFormat='eps')
+        pygreg.comm('ha ' + name + '/dev eps color')
+
     def quick_preview(self, save=False, filename=None):
         r"""
         Plotting the map and optionally save the figure.
 
         Parameters
         ----------
-
         save: True or False
             Choose wether or nor to save the figure.
         filename: string
@@ -680,12 +739,10 @@ class GildasMap(main.Map):
 
         Returns
         -------
-
         FitsMap Object.
 
         Examples
         --------
-
         With:
 
         >>> map = gildasMap('M33_MIPS_24mum_JyB_5.gdf')
@@ -714,12 +771,10 @@ class GildasMap(main.Map):
 
         Returns
         -------
-
         MiriadMap Object.
 
         Examples
         --------
-
         With:
 
         >>> map = gildasMap('M33_MIPS_24mum_JyB_5.gdf')

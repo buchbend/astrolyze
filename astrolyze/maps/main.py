@@ -1,5 +1,5 @@
 # Copyright (C) 2012, Christof Buchbender
-# BSD Licencse
+# BSD License (License.txt)
 import math
 import os
 import string
@@ -101,10 +101,10 @@ class Map:
             self.R25 = None
         try:
             self.connection = sqlite.connect(str(prefix.dataBase) +
-                                         'parameter.db')
+                                             'parameter.db')
             self.cursor = self.connection.cursor()
             self.cursor.execute("SELECT * FROM Lines WHERE Name = ?",
-                            (self.species.upper(),))
+                                (self.species.upper(),))
             self.params = self.cursor.fetchall()[0]
             self.frequency = self.params[2]
             self.wavelenght = self.params[3]
@@ -114,7 +114,7 @@ class Map:
             pass
         try:
             self.connection = sqlite.connect(str(prefix.dataBase) +
-                                         'parameter.db')
+                                             'parameter.db')
             self.cursor = self.connection.cursor()
             self.cursor.execute("SELECT * FROM cal_error WHERE Telescope = "
                                 " ? AND Species = ?", (self.telescope.upper(),

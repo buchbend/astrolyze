@@ -40,13 +40,13 @@ class ClassSpectra(Map):
     def __init__(self, mapName, nameConvention=True):
         r"""Initializes a Class Spectral File."""
         astrolyze.maps.main.Map.__init__(self, mapName, nameConvention)
-        self._init_map_to_greg()
+        self._init_file_to_greg()
         if self.dataFormat not in self.class_formats:
             print ('Exiting: Not a CLASS format (AFAIK). Supported'
                    'Formats Can be extended.')
             sys.exit()
 
-    def _init_map_to_greg(self):
+    def _init_file_to_greg(self):
         r"""
         Initial setup, loading all the variables correponding to
         the cube.
@@ -77,6 +77,7 @@ class ClassSpectra(Map):
         Reset all selection criteria.
         """
         pyclass.comm('set def')
+        pyclass.comm('clear')
         pyclass.comm('set plot hist')
         pyclass.comm('set form long')
         pyclass.comm('set angle sec')

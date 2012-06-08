@@ -9,7 +9,7 @@ if not os.path.exists(os.path.expanduser('~/.astrolyze')):
     Creating a folder where custom setups can be stored.
     So far fized to .astrolyze in the home folder.
     """
-    # TODO: Allow custom paths!!!
+    # TODO: Allow custom paths!!! Or NOT, decide!!!
     os.system('mkdir ~/.astrolyze')
     os.system('mkdir ~/.astrolyze/setup')
     os.system('mkdir ~/.astrolyze/database')
@@ -40,15 +40,22 @@ def init_data_base():
     file_out.close()
 
 def change_permissions():
-    os.system('chmod 777 ' + os.path.expanduser('~/.astrolyze/setup/line_parameter.txt'))
-    os.system('chmod 777 ' + os.path.expanduser('~/.astrolyze/setup/galaxy_parameter.txt'))
-    os.system('chmod 777 ' + os.path.expanduser('~/.astrolyze/setup/calibration_error.txt'))
+    r"""
+    This asures that the user can modify the files to customize the database
+    entries.
+    """
+    os.system('chmod 777 ' +
+              os.path.expanduser('~/.astrolyze/setup/line_parameter.txt'))
+    os.system('chmod 777 ' +
+              os.path.expanduser('~/.astrolyze/setup/galaxy_parameter.txt'))
+    os.system('chmod 777 ' +
+              os.path.expanduser('~/.astrolyze/setup/calibration_error.txt'))
 
 init_data_base()
 extend_path('~/.astrolyze/setup/')
 
 setup(
-    name='AstroLyze',
+    name='astrolyze',
     version='0.1.0',
     author='Christof Buchbender',
     author_email='christof.buchbender@gmail.com',
@@ -56,11 +63,8 @@ setup(
               'astrolyze/maps',
               'astrolyze/spectra',
               'astrolyze/sed', 
-              'astrolyze/maptools',
               'astrolyze/lte', 
               'astrolyze/functions', 
-              'astrolyze/setup',
-              'astrolyze/setup/database'
              ],
     scripts=['bin/setup_astrolyze.py'],
     data_files=[(os.path.expanduser('~/.astrolyze/setup/'),

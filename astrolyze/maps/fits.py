@@ -1,5 +1,5 @@
 # Copyright (C) 2012, Christof Buchbender
-# BSD Licencse
+# BSD License (License.txt)
 import os
 import string
 import sys

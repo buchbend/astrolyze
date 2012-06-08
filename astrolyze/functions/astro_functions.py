@@ -434,7 +434,7 @@ def grey_body_fit(data, start_parameter, nu_or_lambda='nu', fit_beta=False,
         return p2, rawchisq
 
 
-def __grid_fit(data, beta, nu_or_lambda='nu', fit_beta=False, rawChiSq=False,
+def _grid_fit(data, beta, nu_or_lambda='nu', fit_beta=False, rawChiSq=False,
              kappa='Kruegel'):
     r"""
     Different approach to find the best fitting SED using certain ranges of
@@ -1236,6 +1236,7 @@ def rotation_2d(coordinate, angle):
     x_rotated = math.cos(angle) * x - math.sin(angle) * y
     y_rotated = math.sin(angle) * x + math.cos(angle) * y
     return [x_rotated, y_rotated]
+
 
 def _equatorial2DegFile(inputFile):
     '''
