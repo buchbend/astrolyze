@@ -24,9 +24,9 @@ class GildasMap(main.Map):
     r"""
     Wrapping GILDAS functions to use them inline with Python.
     """
-    def __init__(self, mapName, nameConvention=True):
+    def __init__(self, map_name, name_convention=True):
         r"""Initializes a Gildas map"""
-        main.Map.__init__(self, mapName, nameConvention)
+        main.Map.__init__(self, map_name, name_convention)
         self._init_map_to_greg()
         if self.dataFormat not in self.gildas_formats:
             print ('Exiting: Not a Gildas format (AFAIK). Supported'
@@ -34,9 +34,9 @@ class GildasMap(main.Map):
             sys.exit()
 
     def _init_map_to_greg(self):
-        pygreg.comm('image ' + self.mapName)
+        pygreg.comm('image ' + self.map_name)
         self._load_gildas_variables()
-        pygreg.comm('let name ' + self.mapName.replace('.' + self.dataFormat, ''))
+        pygreg.comm('let name ' + self.map_name.replace('.' + self.dataFormat, ''))
         pygreg.comm('let type ' + self.dataFormat)
 
     def _load_gildas_variables(self):
@@ -106,7 +106,7 @@ class GildasMap(main.Map):
         self.comments += ['IP1']
         __interpolate_init = open('interpolate.init', 'w')
         __init_string = ('TASK\FILE \"Input file\" Y_NAME$ ' +
-                     str(self.mapName) + '\n'
+                     str(self.map_name) + '\n'
                      'TASK\FILE \"Output file\" X_NAME$ ' +
                      str(self.returnName()) + '\n'
                      'TASK\INTEGER \"Number of pixels\" NX$ ' +
@@ -167,7 +167,7 @@ class GildasMap(main.Map):
             fileout = prefix + fileout
         __maskInit = open('spectrum.init', 'w')
         __init_string = ('! Spectrum.init\n'
-                      'TASK\FILE "Input file name" IN$ "' + self.mapName +
+                      'TASK\FILE "Input file name" IN$ "' + self.map_name +
                       '"\nTASK\FILE "Output table name" OUT$ "'
                       + fileout
                       + '"\n'
@@ -202,7 +202,7 @@ class GildasMap(main.Map):
 
         fileout: string
             The name of the class file to write the spectra to. Defaults to
-            the mapname with .30m ending.
+            the map_name with .30m ending.
 
         prefix: string
             The path were the class file will be stores. Defaults to
@@ -217,7 +217,7 @@ class GildasMap(main.Map):
         else:
             fileout = prefix + fileout
         string = ('file out ' + str(fileout) + ' single /overwrite\n'
-                  'lmv ' + str(self.mapName) + '\n'
+                  'lmv ' + str(self.map_name) + '\n'
                   'exit')
         classScript = open('temp.class', 'w')
         classScript.write(string)
@@ -257,7 +257,7 @@ class GildasMap(main.Map):
         __init_string = ('TASK\FILE "Polygon data file" POLYGON$ "' +
                      str(polygon) + '" \n'
                      'TASK\FILE "Input image" Y_NAME$ "' +
-                     str(self.mapName) + '"\n'
+                     str(self.map_name) + '"\n'
                      'TASK\FILE "Output image" X_NAME$ "'
                      + str(self.returnName(prefix=prefix,
                      comments=__comment)) + '"\n'
@@ -334,7 +334,7 @@ class GildasMap(main.Map):
         if template:
             comment = ['repro']
             __init_string = ('TASK\FILE "Input file" Z_NAME$ "' +
-                          str(self.mapName) + '"\n'
+                          str(self.map_name) + '"\n'
                          'TASK\FILE "Output file" X_NAME$ "' +
                           str(self.returnName(prefix=prefix, comments=comment))
                          + '"\n'
@@ -368,7 +368,7 @@ class GildasMap(main.Map):
         if coord:
             comment = ['repro']
             __init_string = ('TASK\FILE "Input file" Z_NAME$ "' +
-                         str(self.mapName) + '"\n'
+                         str(self.map_name) + '"\n'
                          'TASK\FILE "Output file" X_NAME$ "' +
                          str(self.returnName(prefix=prefix, comments=comment))
                          + '"\n'
@@ -455,7 +455,7 @@ class GildasMap(main.Map):
             The zeroth moment, i.e. the integrated intensity, is returned as a
             GildasMap object.
         """
-        print self.mapName
+        print self.map_name
         if comment is None:
             comment = []
         save_comments = self.comments
@@ -464,7 +464,7 @@ class GildasMap(main.Map):
             prefix = self.prefix
         __momentInit = open('moments.init', 'w')
         __init_string = ('TASK\FILE "Input file name" IN$ "' +
-                       str(self.mapName) + '"\n'
+                       str(self.map_name) + '"\n'
                        'TASK\FILE "Output files name (no extension)" OUT$ "' +
                        self.returnName(resolution='dummy', prefix=prefix,
                            comments=[]).replace('.' + self.dataFormat,
@@ -530,7 +530,7 @@ class GildasMap(main.Map):
         >>> map.goRot(45)
         """
         __rotate = open('rotateTemp.greg', 'w')
-        __rotate.write('let name ' + addOn.myStrip(str(self.mapName),
+        __rotate.write('let name ' + addOn.myStrip(str(self.map_name),
                           len(self.dataFormat) + 1) + '\n'
                           'let type ' + str(self.dataFormat) + '\n'
                           'let angle ' + str(angle) + '\n'
@@ -544,7 +544,7 @@ class GildasMap(main.Map):
         else:
             comments += ['rot' + str(angle) + 'deg']
 
-        os.system('mv ' + addOn.myStrip(str(self.mapName),
+        os.system('mv ' + addOn.myStrip(str(self.map_name),
                   len(self.dataFormat) + 1) + '-rot' + str(angle) + 'deg.'
                   + str(self.dataFormat) + ' '
                   + str(self.returnName(prefix=prefix, comments=comment)))
@@ -629,7 +629,7 @@ class GildasMap(main.Map):
                      * const.arcsecInRad)
         __gauss_smoothInit = open('gauss_smooth.init', 'w')
         __smooth_init_text = ('TASK\FILE "Input file" Y_NAME$ ' +
-                          str(self.mapName) + '\n'
+                          str(self.map_name) + '\n'
                          'TASK\FILE "Output smoothed image" X_NAME$ ' +
                          str(self.returnName(prefix=prefix,
                              resolution=new_resolution)) + '\n'
@@ -653,7 +653,7 @@ class GildasMap(main.Map):
 
     def custom_go_spectrum(self, coordinate=False, size=False, angle=0):
         r"""
-        This function used the ``go spectrum`` command from GREG to plot
+        This function uses the ``go spectrum`` command from GREG to plot
         the spectra in a region given by ``size`` around the cooridinate given 
         by ``coordinate``.
 
@@ -661,15 +661,18 @@ class GildasMap(main.Map):
         ----------
         coordinate: list
             A list with the coordinates in floats in units of Degrees, or in
-            string for equatorial coordinates. Default to ``False``, meaning
-            the center of the map, determined from the map header is used.
+            string for equatorial coordinates. Default to ``False`` which means
+            that the center of the map, determined from the map header, is
+            used.
         size: list
-            The region from that spectra are plotted in arcsec, e.g. size =
-            [50, 50] means a region of 50x50 arcsec around the given
-            cooridnate. Defaults to None, which translates to size = [0, 0] in
-            greg which in turn plots the full map size. 
+            The region around the ``coordinate`` from which spectra are plotted
+            in arcsec, e.g. size = [50, 50] means a region of 50x50 arcsec
+            around the given cooridnate. Defaults to None, which translates to
+            size = [0, 0] which in turn is interpreted as  the full map size 
+            by GREG. 
         angle: float [degrees]
-            Needed if map is rotated to get the correct offsets. Defaults to 0.
+            Needed if the map is rotated to get the correct offsets. Defaults
+            to 0.
         """
         # go spectrum reads the variable center which gives the coordinates
         # in offsets from the central coordinate in the header
@@ -681,11 +684,11 @@ class GildasMap(main.Map):
         print offset
         if not size:
             size = [0, 0]
-        self.comments += ['go-spectrum']
-        name = self.returnName(dataFormat='eps')
+        comment = ['go-spectrum']
+        name = self.returnName(comments=comment, dataFormat='eps')
         string = ('let center ' + str(offset[0]) + ' ' + str(offset[1]) + '\n'
                   'let size ' + str(size[0]) + ' ' + str(size[1]) + '\n'
-                  'let name ' + self.mapName.replace('.' + self.dataFormat, '') + '\n'
+                  'let name ' + self.map_name.replace('.' + self.dataFormat, '') + '\n'
                   'let type ' + self.dataFormat + '\n'
                   'go spectrum \n'
                   'ha ' + name + ' /dev eps color /over \n'
@@ -758,7 +761,7 @@ class GildasMap(main.Map):
         os.system('rm ' + self.returnName(dataFormat='fits', comments=comment))
         __convFile = open('temp.greg', 'w')
         __convFile.write('fits ' + self.returnName(dataFormat='fits',
-                         comments=comment) + ' from ' + str(self.mapName) +
+                         comments=comment) + ' from ' + str(self.map_name) +
                          '\nexit\n')
         __convFile.close()
         os.system('greg -nw @temp.greg')

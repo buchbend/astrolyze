@@ -53,4 +53,4 @@ from fits import *
 from gildas import *
 from miriad import *
 
-import tools
+import tools as mtools

@@ -5,7 +5,7 @@ import math
 from constants import *
 import astrolyze.functions.constants as const
 
-# constant conversion factors
+# Constant conversion factors
 #==============> Approved !!! <==========================
 WattToErgs    = 1e7  # 1W = 1e7 erg/s
 ErgsToWatt    = 1e-7  # 1W = 1e-7 erg/s
@@ -15,7 +15,8 @@ ErgsToJansky_cm  = 1e23  # 1erg/s =  1e23 Jy * cm2 * Hz * s
 JanskyToErgs_cm  = 1e-23  # 1 Jy = 1e-23 erg/s/cm2/Hz
 ErgsToJansky_m  = 1e19  # 1 Jy = 1e-23 erg/s/cm2/Hz
 JanskyToErgs_m  = 1e-19  # 1 Jy = 1e-23 erg/s/cm2/Hz
-# constant conversion factors
+#==============> Approved !!! <==========================
+
 
 def kelvin_to_jansky(x, major, minor, nu_or_lambda='nu'):
     """
@@ -72,7 +73,7 @@ def jansky_to_kelvin(x, major, minor, nu_or_lambda='nu'):
     Notes
     -----
 
-    Approved.
+     Same as :func:`kelvin_to_jansky`
     """
     if nu_or_lambda == 'lambda':
         def fcon(wavelengths, major, minor):
@@ -183,9 +184,9 @@ def Int2Lum(distance_in_pc, cm_or_m='cm'):
     Approved.
     """
     if cm_or_m == 'm':
-        return 4 * math.pi * (distance_in_pc * parsecInMeter) ** 2
+        return 4 * math.pi * (distance_in_pc * parsec_in_m) ** 2
     if cm_or_m == 'cm':
-        return 4 * math.pi * ( distance_in_pc * parsecInCentiMeter) ** 2
+        return 4 * math.pi * ( distance_in_pc * parsec_in_cm) ** 2
 
 
 def JyBToErgsB(input_flux, distance, wavelenght, invert=False):

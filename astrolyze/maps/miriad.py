@@ -20,8 +20,8 @@ import astrolyze.functions.constants as const
 
 class MiriadMap(main.Map):
 
-    def __init__(self, mapName, nameConvention=True):
-        main.Map.__init__(self, mapName, nameConvention)
+    def __init__(self, map_name, name_convention=True):
+        main.Map.__init__(self, map_name, name_convention)
         if self.dataFormat is not '':
             print 'Exiting: not the right format'
             print map.resolution
@@ -49,7 +49,7 @@ class MiriadMap(main.Map):
         """
         os.system('rm '+str(self.returnName(dataFormat='fits')))
         print 'rm '+str(self.returnName(dataFormat='fits'))
-        string = ('fits in=' + str(self.mapName) + ' out=' +
+        string = ('fits in=' + str(self.map_name) + ' out=' +
                   str(self.returnName(dataFormat='fits')) + ' op=xyout')
         print string
         os.system(string)
@@ -84,7 +84,7 @@ class MiriadMap(main.Map):
                             '\nexit\n')
         self.convFile.close()
         os.system('greg -nw @temp.greg')
-        self.gildasName = str(self.mapName)+'.gdf'
+        self.gildasName = str(self.map_name)+'.gdf'
         os.system('rm temp.greg')
         return gildas.GildasMap(self.gildasName)
 
@@ -109,9 +109,9 @@ class MiriadMap(main.Map):
         it is possible to continue working with the Miriad map, using
         :class:`maps.gildas.MiriadMap` class.
         """
-        os.system('cp -rf '+str(self.mapName)+' '+str(self.returnName()))
-        print 'cp -rf '+str(self.mapName)+' '+str(self.returnName())
-        self.mapName=self.returnName()
+        os.system('cp -rf '+str(self.map_name)+' '+str(self.returnName()))
+        print 'cp -rf '+str(self.map_name)+' '+str(self.returnName())
+        self.map_name=self.returnName()
         return self
 
     def smooth(self, new_resolution, old_resolution=None, scale='0.0'):
@@ -170,7 +170,7 @@ class MiriadMap(main.Map):
         os.system('rm -rf '+str(self.returnName(resolution=[
                   float(new_resolution), float(new_resolution), 0.0])))
         if scale != '':
-            executeString = ('smooth in='+str(self.mapName)+' '
+            executeString = ('smooth in='+str(self.map_name)+' '
         'out='+str(self.returnName(resolution=[float(new_resolution),
                    float(new_resolution), 0.0]))+' '
         'fwhm='+str('%.2f'%(fwhmMajor))+', '+str('%.2f'%(fwhmMinor))+' '
@@ -178,15 +178,15 @@ class MiriadMap(main.Map):
             print executeString
             os.system(executeString)
         else:
-            executeString =  ('smooth in='+str(self.mapName)+' '
+            executeString =  ('smooth in='+str(self.map_name)+' '
         'out='+str(self.returnName(resolution=[float(new_resolution),
                    float(new_resolution), 0.0]))+' '
         'fwhm='+str('%.2f'%(fwhmMajor))+', '+str('%.2f'%(fwhmMinor))+' '
         'pa='+str(pa)+' scale='+str(scale))
             print executeString
             os.system(executeString)
-        # set the mapName and the resolution to the new values<
-        self.mapName = self.returnName(resolution=[float(new_resolution), 
+        # set the map_name and the resolution to the new values<
+        self.map_name = self.returnName(resolution=[float(new_resolution), 
                                                    float(new_resolution), 0.0])
         self.resolution = [float(new_resolution), float(new_resolution), 0.0]
         return MiriadMap(self.returnName())
@@ -202,7 +202,7 @@ class MiriadMap(main.Map):
         fileout=open('miriad.out','a')
         string = 'moment '
         if iN == '':
-            iN= self.mapName
+            iN= self.map_name
         string += 'in='+str(iN)+' '
         if region != '':
             string += 'region='+str(region)+' '
@@ -237,7 +237,7 @@ class MiriadMap(main.Map):
         print string
         os.system(string)
         fileout.write(string+'\n')
-        self.mapName = out
+        self.map_name = out
         fileout.close()  
 
 
@@ -246,7 +246,7 @@ class MiriadMap(main.Map):
         fileout=open('miriad.out','a')
         string = 'regrid '
         if iN == '':
-            iN= self.mapName
+            iN= self.map_name
         string += 'in='+str(iN)+' '
         if out=='':
             self.comments += ['regrid']
@@ -271,7 +271,7 @@ class MiriadMap(main.Map):
         print string
         os.system(string)
         fileout.write(string+'\n')
-        self.mapName = out
+        self.map_name = out
         fileout.close()
 
 
@@ -289,7 +289,7 @@ class MiriadMap(main.Map):
         print '#################'
         sineCosArg = str(float(2*math.pi/360*(-90+float(self.pa)))) 
         inclinationRadian = str(2*math.pi/360*self.inclination)
-        os.system('maths \'exp=<'+self.mapName+'>\'  \'mask=sqrt((((x-'+x0+')*'
+        os.system('maths \'exp=<'+self.map_name+'>\'  \'mask=sqrt((((x-'+x0+')*'
                   'cos('+sineCosArg+'))-((y-'+y0+')*sin('+sineCosArg+')))**2+'
                   '(((x-'+x0+')*sin('+sineCosArg+'))+((y-'+y0+')*cos'
                   '('+sineCosArg+')))**2/(cos('+inclinationRadian+')**2)).'+
@@ -297,7 +297,7 @@ class MiriadMap(main.Map):
                   float(tempFitsMap.header['CDELT1'])/(1./60/60))**2))+'\' '
                   'out='+out+' xrange=0,'+str(tempFitsMap.header['NAXIS1'])+' '
                   'yrange=0,'+str(tempFitsMap.header['NAXIS2']))
-        self.mapName = out
+        self.map_name = out
 
 
     def _regridMiriadToArcsec(self, value, JyB_KkmS='KkmS'):
@@ -338,5 +338,5 @@ class MiriadMap(main.Map):
             os.system('rm -rf '+str(self.returnName())+'_norm')
             os.system('maths \'exp=<'+str(self.returnName())+'>/'+str(self.cdelt1arcs*self.cdelt2arcs)+'\' out='+str(self.returnName())+'_norm')
             self.comments += ['norm']
-            self.mapName = self.returnName()
+            self.map_name = self.returnName()
 

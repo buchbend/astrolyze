@@ -17,11 +17,22 @@ from astrolyze.functions import units
 
 
 class Map:
+    ''' 
+    ``Map`` is the parent Class for the ``maps``-package. It contains all
+    functions that are common to all the supported map-formats, i.e. Fits,
+    Gildas and Miriad. This class is only supposed to be called through 
+    the FitsMap, GildasMap, and MiriadMap classes.
+
+    Parameters
+    ----------
+
+    map_name: string
+        The name and path of the file that is to be intialized to the maps
+        package.
+    name_convention: True or False
+        Only files following the name_convention are supported.
     '''
-    Parent Class with functions common to all three data Formats fits, Gildas
-    and Miriad.
-    '''
-    def __init__(self, mapName, nameConvention=True):
+    def __init__(self, map_name, name_convention=True):
         '''
         Initialize a map to maps.
         '''
@@ -30,48 +41,48 @@ class Map:
         self.fits_formats = ['fits']
         self.miriad_formats = ['']
         self.class_formats = ['30m', 'apex']
-        self.nameConvention = nameConvention
-        self.mapName = mapName
+        self.name_convention = name_convention
+        self.map_name = map_name
         # Test if the file exists. Directory for Miriad.
         # File for fits or GILDAS.
-        if (not os.path.isdir(self.mapName)
-            and not os.path.isfile(self.mapName)):
-            print 'Exiting: ' + self.mapName + ' does not exist'
+        if (not os.path.isdir(self.map_name)
+            and not os.path.isfile(self.map_name)):
+            print 'Exiting: ' + self.map_name + ' does not exist'
             sys.exit()
         # Get Informations from the Name Convention
-        if nameConvention:
-            self.mapNameList = mapName.split('_')
+        if name_convention:
+            self.map_nameList = map_name.split('_')
             self.comments = []
-            self.source = self.mapNameList[0].split('/')[-1]
-            self.prefix = self.mapNameList[0].replace(self.source, '')
-            self.telescope = self.mapNameList[1]
-            self.species = self.__resolveSpecies()
-            self.fluxUnit = self.mapNameList[3]
+            self.source = self.map_nameList[0].split('/')[-1]
+            self.prefix = self.map_nameList[0].replace(self.source, '')
+            self.telescope = self.map_nameList[1]
+            self.species = self._resolveSpecies()
+            self.fluxUnit = self.map_nameList[3]
             # Test for dataFormat.
-            if self.mapName.endswith('.fits'):
+            if self.map_name.endswith('.fits'):
                 self.dataFormat = 'fits'
-                self.mapNameList[-1] = self.mapNameList[-1].replace('.fits',
+                self.map_nameList[-1] = self.map_nameList[-1].replace('.fits',
                                                                     '')
             for i in self.gildas_formats:
-                if self.mapName.endswith('.' + i):
+                if self.map_name.endswith('.' + i):
                     self.dataFormat = i
-                    self.mapNameList[-1] = self.mapNameList[-1].replace('.' +
+                    self.map_nameList[-1] = self.map_nameList[-1].replace('.' +
                                                                         i, '')
             for i in self.class_formats:
-                if self.mapName.endswith('.' + i):
+                if self.map_name.endswith('.' + i):
                     self.dataFormat = i
-                    self.mapNameList[-1] = self.mapNameList[-1].replace('.' +
+                    self.map_nameList[-1] = self.map_nameList[-1].replace('.' +
                                                                         i, '')
-            if os.path.isdir(self.mapName):
+            if os.path.isdir(self.map_name):
                 # Miriad Data Format uses directories
                 self.dataFormat = ''
-            self.resolution = self.__resolveResolution()
-            if len(self.mapNameList) > 5:
-                for i in range(len(self.mapNameList) - 6):
-                    self.comments += [self.mapNameList[i + 5]]
-                self.comments += [self.mapNameList[-1]]
+            self.resolution = self._resolveResolution()
+            if len(self.map_nameList) > 5:
+                for i in range(len(self.map_nameList) - 6):
+                    self.comments += [self.map_nameList[i + 5]]
+                self.comments += [self.map_nameList[-1]]
         # Only load the File if no Name Convention is given
-        if not nameConvention:
+        if not name_convention:
             print 'Only Files with correct naming are supported!!!'
             sys.exit()
         try:
@@ -127,11 +138,11 @@ class Map:
             self.calibrationError = np.nan
         self.get_beam_size()
 
-    def __resolveSpecies(self):
+    def _resolveSpecies(self):
         '''
         Gets the frequency from the map name if possible.
         '''
-        species = self.mapNameList[2]
+        species = self.map_nameList[2]
         if 'mum' in species:
             try:
                 self.wavelenght = float(species.replace('mum', '')) * 1e-6
@@ -158,16 +169,16 @@ class Map:
             self.wavelenght = np.nan
         return species
 
-    def __resolveResolution(self):
+    def _resolveResolution(self):
         '''
-        Read the the resolution string from the map name.
+        Reads the resolution string from the map name.
         '''
         # TODO: include handling of 'uk'
-        string = self.mapNameList[4]
+        string = self.map_nameList[4]
         # Test if there is a digit after the last point.
         # To exclude file endings like .fits.gdf.
         # In this the dataFormat would be 'gdf'.
-        # but self.mapNameList[4] storing the resolution
+        # but self.map_nameList[4] storing the resolution
         # Still does contain points only due to numbers.
         test = string.split('.')
         x = True
@@ -256,6 +267,7 @@ class Map:
         .. math:
 
             \Omega = 1.133 * FWHM(rad)^2 \cdot (Distance(m)^2)
+
         """
         if self.resolution != 'uk':
             if self.distance == None:
@@ -268,7 +280,7 @@ class Map:
         else:
             self.beamSize = np.nan
 
-    def changeMapName(self, source=None, telescope=None, species=None,
+    def changemap_name(self, source=None, telescope=None, species=None,
                       fluxUnit=None, resolution=None, comments=None,
                       dataFormat=None, prefix=None):
         '''
@@ -295,36 +307,36 @@ class Map:
             comments = self.comments + comments
             self.comments = self.comments + comments
         if len(self.comments) == 0:
-            if  str(self.mapName) != (str(prefix) + str(source) + '_' +
+            if  str(self.map_name) != (str(prefix) + str(source) + '_' +
                                       str(telescope) + '_' + str(species) + '_'
                                       + str(fluxUnit) + '_' + str(resolution) +
                                       '.' + str(dataFormat)):
-                os.system('cp ' + str(self.mapName) + ' ' +
+                os.system('cp ' + str(self.map_name) + ' ' +
                           str(prefix) + str(source) + '_' + str(telescope) +
                           '_' + str(species) + '_' + str(fluxUnit) + '_' +
                           self.resolutionToString(self.resolution) + '.' +
                           str(dataFormat))
-                self.mapName = (str(prefix) + str(source) + '_' +
+                self.map_name = (str(prefix) + str(source) + '_' +
                                 str(telescope) + '_' + str(species) + '_' +
                                 str(fluxUnit) + '_' +
                                 self.resolutionToString(self.resolution) +
                                 '.' + str(dataFormat))
 
         if len(self.comments) != 0:
-            if (str(self.mapName) != str(prefix) + str(source) + '_' +
+            if (str(self.map_name) != str(prefix) + str(source) + '_' +
                                      str(telescope) + '_' + str(species) +
                                      '_' + str(fluxUnit) + '_' +
                                      str(resolution) + '_' +
                                     '_'.join(self.comments) + '.' +
                                      str(dataFormat)):
 
-                os.system('cp ' + str(self.mapName) + ' ' + str(prefix) +
+                os.system('cp ' + str(self.map_name) + ' ' + str(prefix) +
                           str(source) + '_' + str(telescope) + '_' +
                           str(species) + '_' + str(fluxUnit) + '_' +
                           self.resolutionToString(self.resolution) + '_' +
                           '_'.join(self.comments) + '.' + str(dataFormat))
 
-                self.mapName = (str(prefix) + str(source) + '_' +
+                self.map_name = (str(prefix) + str(source) + '_' +
                                 str(telescope) + '_' + str(species) + '_' +
                                 str(fluxUnit) + '_' +
                                 self.resolutionToString(self.resolution) +
@@ -337,6 +349,14 @@ class Map:
         '''
         Returns the Name corresponding to the Name convention. Single keywords
         can be changed.
+
+        This function is useful to generate a writeout name for a changed file
+        without overwriting the current ``self.map_name``.
+
+        Parameters
+        ----------
+
+        All Parameters from the "Naming Convention" plus the new prefix.
         '''
         source = source or self.source
         telescope = telescope or self.telescope
@@ -371,7 +391,8 @@ class Map:
         Calulates conversion between K.km/s and Jy/beam and vise versa.
 
         Parameters
-        ---------
+        ----------
+
         x: float [GHz]
             Wavelenght/frequency. Defaults to the frequency of the loaded map,
             i.e. self.frequency
@@ -385,9 +406,6 @@ class Map:
         direction: string
             choose conversion direction ``'kelvin_to_jansky'``
             means Kelvin to Jansky; ``'jansky_to_kelvin'`` Jansky to Kelvin.
-
-        See Also
-        --------
 
         Notes
         -----

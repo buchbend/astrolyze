@@ -57,20 +57,25 @@ def black_body(x, T, nu_or_lambda='nu'):
     evaluated at many points at the same time. Using matplotlib it can 
     also be plotted:
 
-    >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
-    >>> import astrolyze.functions.astro_functions as astFunc
-    >>> frequency_range = np.arange(1e4, 1e7, 1e4)
-    >>> temperature_1 = 6000
-    >>> temperature_2 = 12000  # Kelvin
-    >>> blackbody_1 = astFunc.black_body(frequency_range, temperature_1)
-    >>> blackbody_2 = astFunc.black_body(frequency_range, temperature_2)
-    >>> figure = plt.figure()
-    >>> axis = figure.add_subplot(111)
-    >>> pl = axis.loglog(frequency_range, blackbody_1, label='T = 6000 K')
-    >>> pl = axis.loglog(frequency_range, blackbody_2, label='T = 12000 K')
-    >>> pl = axis.legend()
-    >>> plt.savefig('black_body.eps')
+    .. plot:: 
+       :include-source:
+
+       import numpy as np
+       import matplotlib.pyplot as plt
+       import astrolyze.functions.astro_functions as astFunc
+
+       frequency_range = np.arange(1e4, 1e7, 1e4)
+       temperature_1 = 6000
+       temperature_2 = 12000  # Kelvin
+       blackbody_1 = astFunc.black_body(frequency_range, temperature_1)
+       blackbody_2 = astFunc.black_body(frequency_range, temperature_2)
+       figure = plt.figure()
+       axis = figure.add_subplot(111)
+       pl = axis.loglog(frequency_range, blackbody_1, label='T = 6000 K')
+       pl = axis.loglog(frequency_range, blackbody_2, label='T = 12000 K')
+       pl = axis.legend()
+       plt.savefig('black_body.eps')
+
     """
     if nu_or_lambda == 'nu':
         return ((2 * const.h * ((x * 1e9) ** 3) / (const.c ** 2)) *
@@ -88,7 +93,7 @@ def grey_body(p, x, nu_or_lambda='nu', kappa='Kruegel', distance=840e3):
     Calculation of the flux density in Jansky of a grey_body under assumption
     of optically thin emission.
 
-    Please see Notes below for an detailed desciption assumptions and equations
+    Please see Notes_ below for an detailed desciption assumptions and equations
     used.
 
     Parameters
@@ -171,18 +176,18 @@ def grey_body(p, x, nu_or_lambda='nu', kappa='Kruegel', distance=840e3):
     T, N, beta = p
     # Switch to choose kappa
     if kappa == 'easy':
-        # here N is an arbitrary fitParameter with no direct physical meaning
+        # Here N is an arbitrary fitParameter with no direct physical meaning.
         kappa = (x * 1e9) ** beta
         tau = kappa * N
     if kappa == 'Kruegel':
         # Be careful, for kappa='Kruegel' the start Parameter N is actually
         # the Mass of the specific component in sun masses.
         kappa = 0.04 * ((x * 1e9 / 250e9) ** beta)  # [KS]
-        distanceInMeter = distance * const.pcInM  # M33.distance is 840e3 in
+        distance_in_m = distance * const.parsec_in_m  # M33.distance is 840e3 in
                                                          # parsec. pcInM from
                                                          # constants
-        D2 = distanceInMeter ** 2  # calculate the Distance squared [m^2]
-        M = N * const.mSun  # Convert the Mass which is given as a start
+        D2 = distance_in_m ** 2  # calculate the Distance squared [m^2]
+        M = N * const.m_sun  # Convert the Mass which is given as a start
                           # Parameter in Msun to kg
         tau = kappa * (M / D2)
     if nu_or_lambda == 'lambda':
@@ -195,9 +200,6 @@ def grey_body(p, x, nu_or_lambda='nu', kappa='Kruegel', distance=840e3):
 #        # Not used anymore
 #        print 'Warning: This part of the script is not up to date'
 #        return N * ((c/(x * 1e-6))**beta) * black_body(x,T,nu_or_lambda)
-
-def testIt(c=3):
-    print c
 
 def multi_component_grey_body(pMulti, x, nu_or_lambda='nu', kappa='Kruegel'):
     r"""
@@ -838,8 +840,8 @@ def line_fit(p, x, y, y_error, x_error=False, iterations=10000):
 
 def linear_fit(x, y, x_error, y_error):
     r"""
-    This function resembled the analytical solution following chaper 8 from
-    [TA]/
+    This function resembles the analytical solution following chaper 8 from
+    [TA].
 
     Parameters
     ----------
@@ -857,19 +859,23 @@ def linear_fit(x, y, x_error, y_error):
     Notes
     -----
 
-    Without errors the following holds for
+    Without errors the following holds:
 
-    y=A+BX
+    .. math::
+        y = A + B x
 
-    A = sum(x^2)*sum(y)-sum(x)*sum(x*y)/Delta
-    B = N*sum(x*y)-sum(x)*sum(y)/Delta
-    Delta = N*sum(x^2)-(sum(x))**2
+        A = \frac{\Sigma(x^2) \cdot \Sigma(y) - \Sigma(x) \cdot 
+        \Sigma(x \cdot y)}{\Delta}
 
-    This has to be checked.
+        B = N \frac{\Sigma(x \cdot y) - \Sigma (x) \cdot \Sigma(y)}{\Delta}
+
+        \Delta = N \cdot \Sigma(x^2) - (\Sigma(x))^2
+
+    .. warning:: This has to be checked.
 
     References
     ----------
-    .. [TA] "An introduction to the study of uncertainties in physicak
+    .. [TA] "An introduction to the study of uncertainties in physical
         measurement" by John R. Taylor.
     """
     # first calculate a least squares fit ignoring the errors since B is
@@ -1159,7 +1165,7 @@ def equatorial_to_degrees(equatorial):
 
 
 def calc_offset(central_coordinate, offset_coordinate, angle = 0,
-                output_unit='arcsec'):
+                output_unit='farcsec'):
     r"""
     Calculates the offset between two coordinates. 
 

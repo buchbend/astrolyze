@@ -24,7 +24,7 @@ class FileStack:
         self.get_list()
         self.stack = []
         for i in self.list:
-            
+            pass
 
     def get_list(self, data_format=None, depth=False):
         r"""
@@ -220,7 +220,7 @@ class FileStack:
                     i.smooth(resolution, i.resolution[0], scale=scaling)
                     os.system('rm -rf ' + str(i.returnName(resolution=sm)))
                     i = i.toFits()
-                    os.system('rm -rf ' + str(addOn.myStrip(i.mapName, 5)))
+                    os.system('rm -rf ' + str(addOn.myStrip(i.map_name, 5)))
 
 
 def unifyProjection(list, coordinate, angle=None, prefix='repro'):
@@ -277,7 +277,7 @@ def unifyUnits(list, folder='units'):
     for i in maps:
         if i.fluxUnit == 'JyB':
             if finalUnit == 'JyB':
-                os.system('cp -r ' + str(i.mapName) + ' ' + folder + '/')
+                os.system('cp -r ' + str(i.map_name) + ' ' + folder + '/')
                 pass
             if finalUnit == 'Tmb':
                 i = i.toFits()
@@ -324,13 +324,13 @@ def unifyMaps(list, tinMap, folder='reg'):
     for i in maps:
         i.prefix = str(folder) + '/'
         mirMap = i.toMiriad()
-        old = mirMap.mapName
-        mirMap.regrid(tin=tinMap1.mapName)
+        old = mirMap.map_name
+        mirMap.regrid(tin=tinMap1.map_name)
         os.system('rm -rf ' + str(old))
-        old = mirMap.mapName
+        old = mirMap.map_name
         mirMap = mirMap.toFits()
-        os.system('rm -rf ' + str(addOn.myStrip(mirMap.mapName, 5)))
-    os.system('rm -rf ' + tinMap1.mapName)
+        os.system('rm -rf ' + str(addOn.myStrip(mirMap.map_name, 5)))
+    os.system('rm -rf ' + tinMap1.map_name)
 
 
 def scatterPlot(list):
@@ -423,7 +423,7 @@ def unifyResolution(liste, resolution=False, folder='smooth', scaling=''):
                 i.smooth(resolution, i.resolution[0], scale=scaling)
                 os.system('rm -rf ' + str(i.returnName(resolution=sm)))
                 i = i.toFits()
-                os.system('rm -rf ' + str(addOn.myStrip(i.mapName, 5)))
+                os.system('rm -rf ' + str(addOn.myStrip(i.map_name, 5)))
 
 
 def unifyPixelSize(pixSize, liste, folder):

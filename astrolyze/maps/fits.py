@@ -26,8 +26,8 @@ class FitsMap(main.Map):
     Fits Map manipulation making extensive use of the
     pyfits package.
     """
-    def __init__(self, mapName, nameConvention=True):
-        main.Map.__init__(self, mapName, nameConvention)
+    def __init__(self, map_name, name_convention=True):
+        main.Map.__init__(self, map_name, name_convention)
         if self.dataFormat not in self.fits_formats:
             print 'Exiting: not the right format'
             sys.exit()
@@ -50,7 +50,7 @@ class FitsMap(main.Map):
         try:
             self.data = self.hdulist[0].data
         except:
-            self.hdulist = pyfits.open(self.mapName)
+            self.hdulist = pyfits.open(self.map_name)
             self.data = self.hdulist[0].data
 
     def __get_header(self):
@@ -62,7 +62,7 @@ class FitsMap(main.Map):
         try:
             self.header = self.hdulist[0].header
         except:
-            self.hdulist = pyfits.open(self.mapName)
+            self.hdulist = pyfits.open(self.map_name)
             self.header = self.hdulist[0].header
 
     def update_file(self, backup=False):
@@ -89,24 +89,24 @@ class FitsMap(main.Map):
         Examples
         --------
         """
-        mapName = self.returnName()
+        map_name = self.returnName()
         
         if backup == True:
-            os.system('cp ' + str(mapName) + ' ' + str(mapName) + '_old')
-        os.system('rm ' + str(mapName))
+            os.system('cp ' + str(map_name) + ' ' + str(map_name) + '_old')
+        os.system('rm ' + str(map_name))
         try:
-            pyfits.writeto(mapName, self.data, self.header)
+            pyfits.writeto(map_name, self.data, self.header)
         except:
             print 'Problem with the header or data format. -> Exit!'
             raise SystemExit
-        return FitsMap(mapName)
+        return FitsMap(map_name)
 
     def updateHeader(self):
         try:
             self.header
         except:
             self.get_header()
-        self.changeMapName()
+        self.changemap_name()
         # Print source
         updateCheck = 0
         for i in self.headerKeyWords['source']:
@@ -162,9 +162,9 @@ class FitsMap(main.Map):
         except:
             self.header.update('DATAMAX', self.data.max() + 0.1 *
                                self.data.max())
-        os.system('cp ' + str(self.mapName) + ' ' + str(self.mapName) + '_old')
-        os.system('rm ' + str(self.mapName))
-        pyfits.writeto(self.mapName, self.data, self.header)
+        os.system('cp ' + str(self.map_name) + ' ' + str(self.map_name) + '_old')
+        os.system('rm ' + str(self.map_name))
+        pyfits.writeto(self.map_name, self.data, self.header)
 
     def get_pixel_size(self):
         r"""
@@ -205,8 +205,8 @@ class FitsMap(main.Map):
         while len(self.data) == 1:
             self.data = self.data[0]
         self.data = gaussian_filter(self.data, fwhm)
-        # set the mapName and the resolution to the new values<
-        self.mapName = self.returnName(resolution=str(newRes))
+        # set the map_name and the resolution to the new values<
+        self.map_name = self.returnName(resolution=str(newRes))
         self.resolution = newRes
 
     def _cut_map(self, x1y1, x2y2, pix_or_coord='coord'):
@@ -802,7 +802,7 @@ class FitsMap(main.Map):
         if prefix == None:
             prefix = self.prefix
         self.convFile = open('temp.greg', 'w')
-        self.convFile.write('fits ' + str(self.mapName) + ' to ' +
+        self.convFile.write('fits ' + str(self.map_name) + ' to ' +
                             str(self.returnName(prefix=prefix,
                             dataFormat='gdf')) + '\n'
                             'exit\n')
@@ -839,18 +839,18 @@ class FitsMap(main.Map):
             prefix = self.prefix
         fileout = open('miriad.out', 'a')
         os.system('rm -rf ' + self.returnName(prefix=prefix, dataFormat=''))
-        fileout.write('fits in=' + str(self.mapName) + ' out=' +
+        fileout.write('fits in=' + str(self.map_name) + ' out=' +
                       self.returnName(prefix=prefix, dataFormat='') +
                       ' op=xyin\n')
-        os.system('fits in=' + str(self.mapName) + ' out=' +
+        os.system('fits in=' + str(self.map_name) + ' out=' +
                   self.returnName(prefix=prefix, dataFormat='') + ' op=xyin')
         self.miriadName = self.returnName(prefix=prefix, dataFormat='')
         self.dataFormat = ''
         return miriad.MiriadMap(self.miriadName)
 
     def toFits(self):
-        if self.mapName != self.returnName():
-            os.system('cp -rf ' + self.mapName + ' ' + self.returnName())
+        if self.map_name != self.returnName():
+            os.system('cp -rf ' + self.map_name + ' ' + self.returnName())
             return mapClassFits.fitsMap(self.returnName())
         else:
             return self
