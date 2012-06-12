@@ -21,6 +21,10 @@ import astrolyze.functions.constants as const
 class MiriadMap(main.Map):
 
     def __init__(self, map_name, name_convention=True):
+        r""" 
+        Calling the Map parent class and check that the file is really a
+        miriad map.
+        """
         main.Map.__init__(self, map_name, name_convention)
         if self.dataFormat is not '':
             print 'Exiting: not the right format'
