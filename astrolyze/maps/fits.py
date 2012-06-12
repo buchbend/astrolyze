@@ -1,4 +1,4 @@
-# Copyright (C) 2012, Christof Buchbender
+# Copyright (C) 2009-2012, Christof Buchbender
 # BSD License (License.txt)
 import os
 import string
@@ -90,7 +90,6 @@ class FitsMap(main.Map):
         --------
         """
         map_name = self.returnName()
-        
         if backup == True:
             os.system('cp ' + str(map_name) + ' ' + str(map_name) + '_old')
         os.system('rm ' + str(map_name))
@@ -363,16 +362,15 @@ class FitsMap(main.Map):
         return self.data[y][x]
 
     def read_aperture(self, position, apertureSize=0, backgroundSize=0,
-                     output=False, annotation=False, newAnnotation=False):
-        # TODO: needs better scheme for the header keywords. Migth not
-        # work with all maps.
-        r"""
-        Extract the sum and mean flux inside an aperture of a given size and
-        at a given position..
+                      output=False, annotation=False, newAnnotation=False):
+        # TODO: needs better scheme for the header keywords. Migth not work
+        # with all maps.
+        r""" 
+        Extract the sum and mean flux inside an aperture of a given size
+        and at a given position..
 
-        This function can be used to read the flux in the area of a
-        circular aperture, as well as to correct for the
-        background flux.
+        This function can be used to read the flux in the area of a circular
+        aperture, as well as to correct for the background flux.
 
         Parameters
         ----------
@@ -389,12 +387,11 @@ class FitsMap(main.Map):
             The diameter of the aperture to be applied.
 
         backgroundSize: float [arcsec]
-            The Size of the Anulli in which the background is
-            to be estimated. The number to be given here
-            correspond to the diameter of the circle in [arcsec ] descibing
-            the outer border of the annuli, measured from
-            the position given in position. Thus, the background
-            is measurd in the ring described by apertureSize and
+            The Size of the Anulli in which the background is to be
+            estimated. The number to be given here correspond to the diameter
+            of the circle in [arcsec ] descibing the outer border of the
+            annuli, measured from the position given in position. Thus, the
+            background is measurd in the ring described by apertureSize and
             backgroundSize. Default is 0 and thus **no background substaction**
             is applied.
 
@@ -410,7 +407,7 @@ class FitsMap(main.Map):
         newAnnotation: logical
             If True ``"apertures.ann"`` is overwritten. If False an old
             ``"apertures.ann"`` is used to append the new apertures. If it not
-            exists a new one is created. The latter is the default. 
+            exists a new one is created. The latter is the default.
 
         Returns
         -------
@@ -623,8 +620,7 @@ class FitsMap(main.Map):
         # Define cosine and Sinus of the position Angles of the
         # Gaussians
         bmaj2, bmin2, bpa2 = beamConv
-        bmaj2, bmin2, bpa2 = (bmaj2 * const.arcsecInGrad,
-                              bmin2 * const.arcsecInGrad,
+        bmaj2, bmin2, bpa2 = (bmaj2 * const.arcsecInGrad, bmin2 * const.arcsecInGrad, 
                               bpa2 * const.arcsecInGrad)
         if beamOrig == None:
             bmaj1, bmin1, bpa1 = self.resolution
