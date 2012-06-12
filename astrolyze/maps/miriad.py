@@ -21,7 +21,7 @@ import astrolyze.functions.constants as const
 class MiriadMap(main.Map):
 
     def __init__(self, map_name, name_convention=True):
-        r""" 
+        r"""
         Calling the Map parent class and check that the file is really a
         miriad map.
         """
@@ -127,17 +127,17 @@ class MiriadMap(main.Map):
         ----------
 
         new_resolution: float or list
-            The resolution in of the smoothed image. 
+            The resolution in of the smoothed image.
             Can be a:
                 * float: Output beam has same major and minor axis [arcsec] and
                          the position angle (PA) [degrees] is 0.
                 * A list with two entries:
-                        The major and minor axis. PA is 0. 
+                        The major and minor axis. PA is 0.
                         E.g. [major_axis, minor_axis ]
                 * A list with three entries:
-                        [major_axis, minor_axis, PA] 
+                        [major_axis, minor_axis, PA]
         old_resolutio: float
-            If None the self.resolution information is taken into account. 
+            If None the self.resolution information is taken into account.
         scale:string
 
         Returns
@@ -167,7 +167,7 @@ class MiriadMap(main.Map):
         if (float(oldMajor) > float(new_resolution) or float(oldMinor) >
            float(new_resolution)):
             print 'Error: Old Resolution bigger than new one!'
-        # calculate the fwhm for the convolving gaussian    
+        # calculate the fwhm for the convolving gaussian
         fwhmMajor = math.sqrt(float(new_resolution)**2-float(oldMajor)**2)
         fwhmMinor = math.sqrt(float(new_resolution)**2-float(oldMinor)**2)
         print fwhmMajor, fwhmMinor
@@ -190,16 +190,16 @@ class MiriadMap(main.Map):
             print executeString
             os.system(executeString)
         # set the map_name and the resolution to the new values<
-        self.map_name = self.returnName(resolution=[float(new_resolution), 
+        self.map_name = self.returnName(resolution=[float(new_resolution),
                                                    float(new_resolution), 0.0])
         self.resolution = [float(new_resolution), float(new_resolution), 0.0]
         return MiriadMap(self.returnName())
 
-    def _moment(self, iN='', region='', out='', mom='0', axis='', 
+    def _moment(self, iN='', region='', out='', mom='0', axis='',
                clip='', rngmsk='', raw=''):
         '''
-        Wrap around MIRIADs moment task. 
-        keywords are as in miriad. 
+        Wrap around MIRIADs moment task.
+        keywords are as in miriad.
         By default (-> if you give no arguments to the function)
         it creates the zeroth moment of the map
         '''
@@ -215,7 +215,7 @@ class MiriadMap(main.Map):
             if 'cube' in self.comments:
                 print 'yes1'
                 for i in self.comments:
-            
+
                     if str(i) == 'cube':
                         print 'yes1'
                         self.newComments += ['mom'+str(mom)]
@@ -228,13 +228,13 @@ class MiriadMap(main.Map):
             out = self.returnName()
         string += 'out='+str(out)+' '
         string += 'mom='+str(mom)+' '
-        if axis != '':   
+        if axis != '':
             string += 'axis='+str(axis)+' '
-        if clip != '':   
+        if clip != '':
             string += 'clip='+str(clip)+' '
-        if rngmsk != '':   
+        if rngmsk != '':
             string += 'rngmsk='+str(rngmsk)+' '
-        if raw != '':   
+        if raw != '':
             string += 'raw='+str(raw)+' '
 
         os.system('rm -rf '+str(self.returnName()))
@@ -242,10 +242,10 @@ class MiriadMap(main.Map):
         os.system(string)
         fileout.write(string+'\n')
         self.map_name = out
-        fileout.close()  
+        fileout.close()
 
 
-    def regrid(self, iN='', out='', axes='1,2', tin='', desc='', 
+    def regrid(self, iN='', out='', axes='1,2', tin='', desc='',
                options='', project='', rotate='', tol=''):
         fileout=open('miriad.out','a')
         string = 'regrid '
@@ -260,15 +260,15 @@ class MiriadMap(main.Map):
             string += 'axes='+str(axes)+' '
         if tin != '':
             string += 'tin='+str(tin)+' '
-        if desc != '':   
+        if desc != '':
             string += 'desc='+str(desc)+' '
-        if options != '':   
+        if options != '':
             string += 'options='+str(options)+' '
-        if project != '':   
+        if project != '':
             string += 'project='+str(project)+' '
-        if  rotate != '':   
+        if  rotate != '':
             string += 'rotate='+str(rotate)+' '
-        if tol != '':   
+        if tol != '':
             string += 'tol='+str(tol)+' '
 
         os.system('rm -rf '+str(self.returnName()))
@@ -280,18 +280,18 @@ class MiriadMap(main.Map):
 
 
 
-    def ellipseMask(self, pa, incline, radius, coord, out, 
+    def ellipseMask(self, pa, incline, radius, coord, out,
                     pix_or_coord='coord', logic='lt'):
         tempFitsMap = self.toFits()
         xy = tempFitsMap.sky2xy(coord)
         x0 = str(int(floor(float(xy[0]))))
         y0 = str(int(floor(float(xy[1]))))
-        os.system('rm -rf '+out) 
+        os.system('rm -rf '+out)
         print '#################'
         print self.inclination
         print self.pa
         print '#################'
-        sineCosArg = str(float(2*math.pi/360*(-90+float(self.pa)))) 
+        sineCosArg = str(float(2*math.pi/360*(-90+float(self.pa))))
         inclinationRadian = str(2*math.pi/360*self.inclination)
         os.system('maths \'exp=<'+self.map_name+'>\'  \'mask=sqrt((((x-'+x0+')*'
                   'cos('+sineCosArg+'))-((y-'+y0+')*sin('+sineCosArg+')))**2+'
@@ -314,8 +314,8 @@ class MiriadMap(main.Map):
         self.crval2 = float(fitsFile.header['CRVAL2'])
         self.crpix1 = float(fitsFile.header['CRPIX1'])
         self.crpix2 = float(fitsFile.header['CRPIX2'])
-        
-        print (self.naxis1, self.naxis2, self.cdelt1, self.cdelt2, self.crval1, 
+
+        print (self.naxis1, self.naxis2, self.cdelt1, self.cdelt2, self.crval1,
                self.crval2, self.crpix1, self.crpix2)
 
         self.cdelt1arcs = float(self.cdelt1)/(value*(1./60/60))
@@ -324,12 +324,12 @@ class MiriadMap(main.Map):
         self.crpix1New = self.naxis1New/(self.naxis1/self.crpix1)
         self.naxis2New = self.naxis2*math.sqrt(self.cdelt2arcs**2)
         self.crpix2New = self.naxis2New/(self.naxis2/self.crpix2)
-    
+
         self.newPix = float(value)/60/60
         print 'oldPixel',self.cdelt1*60*60,self.cdelt2*60*60
         print 'axis1',self.naxis1,'->',self.naxis1New
         print 'axis2',self.naxis2,'->',self.naxis2New
-        
+
         self.regrid(desc=str(self.crval1*2*math.pi/360)+','+
                     str(self.crpix1New)+','+
                     str(float(value)*-2*math.pi/360/60/60)+','+
@@ -340,7 +340,8 @@ class MiriadMap(main.Map):
 
         if JyB_KkmS == 'KkmS':
             os.system('rm -rf '+str(self.returnName())+'_norm')
-            os.system('maths \'exp=<'+str(self.returnName())+'>/'+str(self.cdelt1arcs*self.cdelt2arcs)+'\' out='+str(self.returnName())+'_norm')
+            os.system('maths \'exp=<' + str(self.returnName()) + '>/' +
+                      str(self.cdelt1arcs * self.cdelt2arcs) + '\'out=' +
+                      str(self.returnName()) + '_norm')
             self.comments += ['norm']
             self.map_name = self.returnName()
-
