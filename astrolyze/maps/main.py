@@ -75,7 +75,7 @@ class Map:
                                                                         i, '')
             if os.path.isdir(self.map_name):
                 # Miriad Data Format uses directories
-                self.dataFormat = ''
+                self.dataFormat = None
             self.resolution = self._resolveResolution()
             if len(self.map_nameList) > 5:
                 for i in range(len(self.map_nameList) - 6):
@@ -280,9 +280,9 @@ class Map:
         else:
             self.beamSize = np.nan
 
-    def changemap_name(self, source=None, telescope=None, species=None,
+    def change_map_name(self, source=None, telescope=None, species=None,
                       fluxUnit=None, resolution=None, comments=None,
-                      dataFormat=None, prefix=None):
+                      dataFormat=False, prefix=None):
         '''
         This function can be used to change the names of the maps and make a
         copy of the file to the new name and/or location.
@@ -292,7 +292,8 @@ class Map:
         species = species or self.species
         fluxUnit = fluxUnit or self.fluxUnit
         resolution = resolution or self.resolution
-        dataFormat = dataFormat or self.dataFormat
+        if dataFormat is False:
+            dataFormat = self.dataFormat
         prefix = prefix or self.prefix
         if comments is None:
             comments = comments or self.comments
@@ -301,7 +302,8 @@ class Map:
         self.species = species or self.species
         self.fluxUnit = fluxUnit or self.fluxUnit
         self.resolution = resolution or self.resolution
-        self.dataFormat = dataFormat or self.dataFormat
+        if dataFormat is not False:
+            self.dataFormat = dataFormat
         self.prefix = prefix or self.prefix
         if comments is not None:
             comments = self.comments + comments
@@ -345,7 +347,7 @@ class Map:
 
     def returnName(self, source=None, telescope=None, species=None,
                    fluxUnit=None, resolution=None, comments=None,
-                   dataFormat=None, prefix=None):
+                   dataFormat=False, prefix=None):
         '''
         Returns the Name corresponding to the Name convention. Single keywords
         can be changed.
@@ -363,27 +365,34 @@ class Map:
         species = species or self.species
         fluxUnit = fluxUnit or self.fluxUnit
         resolution = resolution or self.resolution
-        dataFormat = dataFormat or self.dataFormat
         prefix = prefix or self.prefix
+        if dataFormat is False:
+            dataFormat = self.dataFormat
         if comments is None:
             comments = self.comments
         elif comments is not None:
             comments = self.comments + comments
         if len(comments) == 0:
-            if dataFormat:
+            if dataFormat is not None:
                 return (str(prefix) + str(source) + '_' + str(telescope) +
                         '_' + str(species) + '_' + str(fluxUnit) + '_' +
                         self.resolutionToString(resolution) + '.' +
                         str(dataFormat))
-            else:
+            if dataFormat is None:
                 return (str(prefix) + str(source) + '_' + str(telescope) +
                         '_' + str(species) + '_' + str(fluxUnit) + '_' +
                         self.resolutionToString(resolution))
         if len(comments) != 0:
-            return (str(prefix) + str(source) + '_' + str(telescope) + '_' +
-                    str(species) + '_' + str(fluxUnit) + '_' +
-                    self.resolutionToString(resolution) + '_' +
-                    '_'.join(comments) + '.' + str(dataFormat))
+            if dataFormat is not None:
+                return (str(prefix) + str(source) + '_' + str(telescope) + '_' +
+                        str(species) + '_' + str(fluxUnit) + '_' +
+                        self.resolutionToString(resolution) + '_' +
+                        '_'.join(comments) + '.' + str(dataFormat))
+            if dataFormat is None:
+                return (str(prefix) + str(source) + '_' + str(telescope) +
+                        '_' + str(species) + '_' + str(fluxUnit) + '_' +
+                        self.resolutionToString(resolution) + '_' +
+                        '_'.join(comments))
 
     def flux_conversion(self, x=None, major=None, minor=None,
                  nu_or_lambda='nu', direction=None):
