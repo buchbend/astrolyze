@@ -26,7 +26,7 @@ class MiriadMap(main.Map):
         miriad map.
         """
         main.Map.__init__(self, map_name, name_convention)
-        if self.dataFormat is not '':
+        if self.dataFormat is not None:
             print 'Exiting: not the right format'
             print map.resolution
             sys.exit()
@@ -146,54 +146,51 @@ class MiriadMap(main.Map):
         MiriadMap Object:
             The smoothed image.
         """
+        # Parsing the resolution string.
         if old_resolution == None:
-            oldMajor = self.resolution[0]
-            oldMinor = self.resolution[1]
+            _old_major = self.resolution[0]
+            _old_minor = self.resolution[1]
             pa = self.resolution[2]
         if old_resolution != None:
             if old_resolution is list:
                 if len(old_resolution) == 2:
-                    oldMajor = old_resolution[0]
-                    oldMinor = old_resolution[1]
+                    _old_major = old_resolution[0]
+                    _old_minor = old_resolution[1]
                     pa = 0
                 if len(old_resolution) == 3:
-                    oldMajor = old_resolution[0]
-                    oldMinor = old_resolution[1]
+                    _old_major = old_resolution[0]
+                    _old_minor = old_resolution[1]
                     pa = old_resolution[2]
             if old_resolution is not list:
-                oldMajor = old_resolution
-                oldMinor = old_resolution
+                _old_major = old_resolution
+                _old_minor = old_resolution
                 pa = 0
-        if (float(oldMajor) > float(new_resolution) or float(oldMinor) >
+        if (float(_old_major) > float(new_resolution) or float(_old_minor) >
            float(new_resolution)):
             print 'Error: Old Resolution bigger than new one!'
-        # calculate the fwhm for the convolving gaussian
-        fwhmMajor = math.sqrt(float(new_resolution)**2-float(oldMajor)**2)
-        fwhmMinor = math.sqrt(float(new_resolution)**2-float(oldMinor)**2)
-        print fwhmMajor, fwhmMinor
-        os.system('rm -rf '+str(self.returnName(resolution=[
-                  float(new_resolution), float(new_resolution), 0.0])))
+        # calculate the fwhm for the convolving gaussian.
+        _fwhm_major = math.sqrt(float(new_resolution) ** 2 - 
+                                float(_old_major) ** 2)
+        _fwhm_minor = math.sqrt(float(new_resolution) ** 2 - 
+                                float(_old_minor) ** 2)
+        _smoothed_map_name = self.returnName(resolution=[float(new_resolution),
+                                                   float(new_resolution), 0.0])
+        os.system('rm -rf ' + _smoothed_map_name)
         if scale != '':
             executeString = ('smooth in='+str(self.map_name)+' '
-        'out='+str(self.returnName(resolution=[float(new_resolution),
-                   float(new_resolution), 0.0]))+' '
-        'fwhm='+str('%.2f'%(fwhmMajor))+', '+str('%.2f'%(fwhmMinor))+' '
-        'pa='+str(pa)+' scale='+str(scale))
-            print executeString
-            os.system(executeString)
+                             'out=' + _smoothed_map_name + ' '
+                             'fwhm=' + str('%.2f'%(_fwhm_major)) + ', ' +
+                             str('%.2f'%(_fwhm_minor)) + ' pa=' + str(pa) + '
+                             scale=' + str(scale))
         else:
-            executeString =  ('smooth in='+str(self.map_name)+' '
-        'out='+str(self.returnName(resolution=[float(new_resolution),
-                   float(new_resolution), 0.0]))+' '
-        'fwhm='+str('%.2f'%(fwhmMajor))+', '+str('%.2f'%(fwhmMinor))+' '
-        'pa='+str(pa)+' scale='+str(scale))
-            print executeString
-            os.system(executeString)
-        # set the map_name and the resolution to the new values<
-        self.map_name = self.returnName(resolution=[float(new_resolution),
-                                                   float(new_resolution), 0.0])
-        self.resolution = [float(new_resolution), float(new_resolution), 0.0]
-        return MiriadMap(self.returnName())
+            executeString = ('smooth in='+str(self.map_name)+' '
+                              'out=' + _smoothed_map_name + ' '
+                             'fwhm=' + str('%.2f' % (_fwhm_major)) + ', ' +
+                             str('%.2f' % (_fwhm_minor)) + ' pa=' + str(pa) + '
+                             scale=' + str(scale))
+        print executeString
+        os.system(executeString)
+        return MiriadMap(smoothed_map_name)
 
     def _moment(self, iN='', region='', out='', mom='0', axis='',
                clip='', rngmsk='', raw=''):
