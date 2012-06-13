@@ -54,10 +54,10 @@ def black_body(x, T, nu_or_lambda='nu'):
     --------
 
     The function works with linear numpy arrays. Thus the black_body can be
-    evaluated at many points at the same time. Using matplotlib it can 
+    evaluated at many points at the same time. Using matplotlib it can
     also be plotted:
 
-    .. plot:: 
+    .. plot::
        :include-source:
 
        import numpy as np
@@ -864,7 +864,7 @@ def linear_fit(x, y, x_error, y_error):
     .. math::
         y = A + B x
 
-        A = \frac{\Sigma(x^2) \cdot \Sigma(y) - \Sigma(x) \cdot 
+        A = \frac{\Sigma(x^2) \cdot \Sigma(y) - \Sigma(x) \cdot
         \Sigma(x \cdot y)}{\Delta}
 
         B = N \frac{\Sigma(x \cdot y) - \Sigma (x) \cdot \Sigma(y)}{\Delta}
@@ -1113,7 +1113,7 @@ def degrees_to_equatorial(degrees):
     -------
 
     equatorial: list
-        The coordinates in equatorial notation, e.g. 
+        The coordinates in equatorial notation, e.g.
         corresponding [1:33:55.80, +30:43:2.00'].
     """
     coordinate = []
@@ -1126,7 +1126,7 @@ def degrees_to_equatorial(degrees):
               60)))) + ':' + "%1.2f" %
               (math.fabs(float(str(float(((float(degrees[1]) - int(degrees[1]))
               * 60) - int((float(degrees[1]) - int(degrees[1])) * 60)) *
-              60)))))] 
+              60)))))]
     return coordinate
 
 
@@ -1138,15 +1138,30 @@ def equatorial_to_degrees(equatorial):
     ----------
 
     equatorial: list
-        The coordinates in degress in equatorial notation, e.g. 
-        [1:33:55.80, +30:43:2.00']
+        The coordinates in degress in equatorial notation, e.g.
+        ['1:33:55.80', '+30:43:2.00']
 
     Returns
     -------
 
     degrees: list
         The coordinates in degreees, e.g. [23.4825, 30.717222].
+
+    Raises
+    ------
+
+    ValueError
+        If the input is not a list of strings of length 2.
     """
+    if isinstance(equatorial, list) and len(equatorial) == 2:
+        if (isinstance(equatorial[0], basestring) and isinstance(equatorial[1],
+                                                                 basestring)):
+            pass
+        else:
+            raise ValueError('The input coordinates must be strings of the'
+                             'equatorial coordinates.')
+    else:
+        raise ValueError('The input must be a list of lenght 2.')
     CoordsplitRA = equatorial[0].split(':')
     CoordsplitDec = equatorial[1].split(':')
     if float(CoordsplitDec[0]) > 0:
@@ -1167,7 +1182,7 @@ def equatorial_to_degrees(equatorial):
 def calc_offset(central_coordinate, offset_coordinate, angle = 0,
                 output_unit='farcsec'):
     r"""
-    Calculates the offset between two coordinates. 
+    Calculates the offset between two coordinates.
 
     Parameters
     ----------
@@ -1246,10 +1261,10 @@ def rotation_2d(coordinate, angle):
 
 def _equatorial2DegFile(inputFile):
     '''
-    Old Functions if needed can be made public... 
+    Old Functions if needed can be made public...
     converts equatorial coordinates to degrees
     format of input File must be:
-    sourcName Ra Dec 
+    sourcName Ra Dec
     with Space/tab between the entries
     '''
     filein = open('positions.txt').readlines()
