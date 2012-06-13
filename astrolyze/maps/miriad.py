@@ -118,7 +118,7 @@ class MiriadMap(main.Map):
         self.map_name=self.returnName()
         return self
 
-    def smooth(self, new_resolution, old_resolution=None, scale='0.0'):
+    def smooth(self, new_resolution, old_resolution=None, scale=''):
         r"""
         Smooths a miriad map to the new resolution. TODO Update to
         new reoslution scheme!!!!!
@@ -169,9 +169,9 @@ class MiriadMap(main.Map):
            float(new_resolution)):
             print 'Error: Old Resolution bigger than new one!'
         # calculate the fwhm for the convolving gaussian.
-        _fwhm_major = math.sqrt(float(new_resolution) ** 2 - 
+        _fwhm_major = math.sqrt(float(new_resolution) ** 2 -
                                 float(_old_major) ** 2)
-        _fwhm_minor = math.sqrt(float(new_resolution) ** 2 - 
+        _fwhm_minor = math.sqrt(float(new_resolution) ** 2 -
                                 float(_old_minor) ** 2)
         _smoothed_map_name = self.returnName(resolution=[float(new_resolution),
                                                    float(new_resolution), 0.0])
@@ -180,17 +180,17 @@ class MiriadMap(main.Map):
             executeString = ('smooth in='+str(self.map_name)+' '
                              'out=' + _smoothed_map_name + ' '
                              'fwhm=' + str('%.2f'%(_fwhm_major)) + ', ' +
-                             str('%.2f'%(_fwhm_minor)) + ' pa=' + str(pa) + '
-                             scale=' + str(scale))
+                             str('%.2f'%(_fwhm_minor)) + ' pa=' + str(pa) +
+                             ' scale=' + str(scale))
         else:
             executeString = ('smooth in='+str(self.map_name)+' '
                               'out=' + _smoothed_map_name + ' '
                              'fwhm=' + str('%.2f' % (_fwhm_major)) + ', ' +
-                             str('%.2f' % (_fwhm_minor)) + ' pa=' + str(pa) + '
-                             scale=' + str(scale))
+                             str('%.2f' % (_fwhm_minor)) + ' pa=' + str(pa) +
+                             ' scale=' + str(scale))
         print executeString
         os.system(executeString)
-        return MiriadMap(smoothed_map_name)
+        return MiriadMap(_smoothed_map_name)
 
     def _moment(self, iN='', region='', out='', mom='0', axis='',
                clip='', rngmsk='', raw=''):

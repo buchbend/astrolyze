@@ -10,6 +10,7 @@ if not os.path.exists(os.path.expanduser('~/.astrolyze')):
     So far fized to .astrolyze in the home folder.
     """
     # TODO: Allow custom paths!!! Or NOT, decide!!!
+    jskjd
     os.system('mkdir ~/.astrolyze')
     os.system('mkdir ~/.astrolyze/setup')
     os.system('mkdir ~/.astrolyze/database')
@@ -42,7 +43,7 @@ def init_data_base():
 def change_permissions():
     r"""
     This asures that the user can modify the files to customize the database
-    entries.
+    entries and create the database itself.
     """
     os.system('chmod 777 ' +
               os.path.expanduser('~/.astrolyze/setup/line_parameter.txt'))
@@ -50,6 +51,8 @@ def change_permissions():
               os.path.expanduser('~/.astrolyze/setup/galaxy_parameter.txt'))
     os.system('chmod 777 ' +
               os.path.expanduser('~/.astrolyze/setup/calibration_error.txt'))
+    os.system('chmod 777 ' +
+              os.path.expanduser('~/.astrolyze/database/'))
 
 init_data_base()
 extend_path('~/.astrolyze/setup/')

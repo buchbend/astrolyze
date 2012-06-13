@@ -365,7 +365,7 @@ class FitsMap(main.Map):
                       output=False, annotation=False, newAnnotation=False):
         # TODO: needs better scheme for the header keywords. Migth not work
         # with all maps.
-        r""" 
+        r"""
         Extract the sum and mean flux inside an aperture of a given size
         and at a given position..
 
@@ -402,7 +402,7 @@ class FitsMap(main.Map):
         annotion: logical
             If True a kvis annotation file ``"apertures.ann"`` containing the
             aperture used to integrate the flux is created. Default is False,
-            i.e. not to create the aperture. 
+            i.e. not to create the aperture.
 
         newAnnotation: logical
             If True ``"apertures.ann"`` is overwritten. If False an old
@@ -536,15 +536,16 @@ class FitsMap(main.Map):
         Parameters
         -----------
         coordinate: list
-            Either ['RA','DEC'] in equatorial coordinates or [RA, DEC] in GRAD.
+            Either ['RA','DEC'], e.g. ['1:34:7.00', '+30:47:52.00'] in
+            equatorial coordinates or [RA, DEC] in GRAD.
 
         Returns
         --------
         pixel: List
             [x, y]; the pixel coordinates of the map.
         """
-        # equatorial_to_degrees is only possible to execute if 
-        # coordinate is in RA DEC
+        # Equatorial_to_degrees is only possible to execute if coordinate is in
+        # the correct form for RA DEC.
         try:
             coordinate = astFunc.equatorial_to_degrees(coordinate)
         except:
@@ -574,7 +575,7 @@ class FitsMap(main.Map):
             Equatorial coordinates, depending on the parameter
             *degrees_or_equatorial*.
         """
-        # equatorial_to_degrees is only possible to execute if coordinate 
+        # equatorial_to_degrees is only possible to execute if coordinate
         # is in RA DEC
         coordinate = self.wcs.wcs_pix2sky([[float(pixel[0]),
                                             float(pixel[1])]], 1)[0]
@@ -620,7 +621,7 @@ class FitsMap(main.Map):
         # Define cosine and Sinus of the position Angles of the
         # Gaussians
         bmaj2, bmin2, bpa2 = beamConv
-        bmaj2, bmin2, bpa2 = (bmaj2 * const.arcsecInGrad, bmin2 * const.arcsecInGrad, 
+        bmaj2, bmin2, bpa2 = (bmaj2 * const.arcsecInGrad, bmin2 * const.arcsecInGrad,
                               bpa2 * const.arcsecInGrad)
         if beamOrig == None:
             bmaj1, bmin1, bpa1 = self.resolution
@@ -795,27 +796,23 @@ class FitsMap(main.Map):
 
         Here map is an Instance of the FitsMap class.
         """
-        if prefix == None:
-            prefix = self.prefix
-        self.convFile = open('temp.greg', 'w')
-        self.convFile.write('fits ' + str(self.map_name) + ' to ' +
-                            str(self.returnName(prefix=prefix,
-                            dataFormat='gdf')) + '\n'
-                            'exit\n')
-        self.convFile.close()
+        prefix = prefix or self.prefix
+        gildas_name = self.returnName(prefix=prefix, dataFormat='gdf')
+        _conv_file = open('temp.greg', 'w')
+        _conv_file.write('fits ' + self.map_name + ' to ' + gildas_name + '\n'
+                         'exit\n')
+        _conv_file.close()
         os.system('greg -nw @temp.greg')
-        self.gildasName = self.returnName(prefix=prefix, dataFormat='gdf')
         os.system('rm temp.greg')
-        return gildas.GildasMap(self.returnName(prefix=prefix,
-                            dataFormat='gdf'))
+        return gildas.GildasMap(gildas_name)
 
     def toMiriad(self, prefix=None):
         r"""
         Changes the current map to the Miriad Format.
 
-        The function takes changes to the map_name variables
-        made outside of functions into account via
-        :py:func:`maps.main.Map.returnName` into account.
+        The function takes changes to the map_name variables made outside of
+        functions into account via :py:func:`maps.main.Map.returnName` into
+        account.
 
         Parameters
         ----------
@@ -831,22 +828,19 @@ class FitsMap(main.Map):
         Examples apply.
 
         """
-        if prefix == None:
-            prefix = self.prefix
-        fileout = open('miriad.out', 'a')
-        os.system('rm -rf ' + self.returnName(prefix=prefix, dataFormat=''))
-        fileout.write('fits in=' + str(self.map_name) + ' out=' +
-                      self.returnName(prefix=prefix, dataFormat='') +
-                      ' op=xyin\n')
+        _prefix = prefix or self.prefix
+        _fileout = open('miriad.out', 'a')
+        _miriad_name = self.returnName(prefix=_prefix, dataFormat=None)
+        os.system('rm -rf ' + _miriad_name)
+        _fileout.write('fits in=' + str(self.map_name) + ' out=' +
+                      _miriad_name + ' op=xyin\n')
         os.system('fits in=' + str(self.map_name) + ' out=' +
-                  self.returnName(prefix=prefix, dataFormat='') + ' op=xyin')
-        self.miriadName = self.returnName(prefix=prefix, dataFormat='')
-        self.dataFormat = ''
-        return miriad.MiriadMap(self.miriadName)
+                  _miriad_name + ' op=xyin')
+        return miriad.MiriadMap(_miriad_name)
 
     def toFits(self):
         if self.map_name != self.returnName():
             os.system('cp -rf ' + self.map_name + ' ' + self.returnName())
-            return mapClassFits.fitsMap(self.returnName())
+            return fits.FitsMap(self.returnName())
         else:
             return self

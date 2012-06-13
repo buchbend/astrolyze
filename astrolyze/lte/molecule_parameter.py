@@ -48,7 +48,7 @@ class Molecule:
         self.name = name
         self.mu = mu
 
-molDict = {}
+molecule_dictionary = {}
 
 # HCO+ (1-0)
 nu  =  89.1885247e9   # Hz
@@ -61,7 +61,7 @@ Aul =  10 ** (-2.2608)
 gu  = 3.
 mu  = 3.9*const.debye_to_EsuCm
 HCO = Molecule(nu, Q, T, Eu, Aul, gu, mu, 'HCO+(1-0)')
-molDict['HCO'] = HCO 
+molecule_dictionary['HCO'] = HCO 
 
 # HOC+ (1-0)
 nu  =  89.4874140e9  # Hz
@@ -73,7 +73,7 @@ Aul = 10 ** (-2.7467)
 gu  = 3.
 mu  = 2.77*const.debye_to_EsuCm
 HOC = Molecule(nu, Q, T, Eu, Aul, gu, mu, 'HOC+(1-0)')
-molDict['HOC']=HOC 
+molecule_dictionary['HOC']=HOC 
 
 # HCN (1-0)
 nu  = 88.6316022e9  # Hz
@@ -85,7 +85,7 @@ Aul = 10 ** (-2.5140)
 gu  = 9.
 mu  = 2.985*const.debye_to_EsuCm
 HCN = Molecule(nu, Q, T, Eu, Aul, gu, mu, 'HCN(1-0)')
-molDict['HCN'] = HCN 
+molecule_dictionary['HCN'] = HCN 
 
 # HNC (1-0)
 nu  = 90.6635680e9  # Hz
@@ -97,7 +97,7 @@ Aul = 10 ** (-2.5218)
 gu  = 3.
 mu  = 3.05*const.debye_to_EsuCm
 HNC = Molecule(nu, Q, T, Eu, Aul, gu, mu, 'HNC(1-0)')
-molDict['HNC'] = HNC 
+molecule_dictionary['HNC'] = HNC 
 
 # 12CO (1-0)
 nu  =  115.271e9  # Hz
@@ -109,7 +109,7 @@ Aul = 10 ** (-5.0105)
 gu  = 3.
 mu  = 0.11011*const.debye_to_EsuCm
 CO1210 = Molecule(nu, Q, T, Eu, Aul, gu, mu, '12(1-0)')
-molDict['CO1210'] = CO1210 
+molecule_dictionary['CO1210'] = CO1210 
 
 # 13CO (1-0)
 nu = 110.2013543e9   # Hz
@@ -121,8 +121,8 @@ Aul = 10 ** (-5.0662)
 gu = 6
 mu = 0.11046*const.debye_to_EsuCm
 CO1310 = Molecule(nu, Q, T, Eu, Aul, gu, mu, '13CO(1-0)')
-molDict['CO1310'] = CO1310
-molDict['13CO'] = CO1310
+molecule_dictionary['CO1310'] = CO1310
+molecule_dictionary['13CO'] = CO1310
 
 # 12CO (2-1)
 nu = 230.537990e9   # Hz
@@ -134,8 +134,8 @@ Aul = 10 ** (-4.1197)
 gu = 5.
 mu = 0.11011 * const.debye_to_EsuCm 
 CO1221 = Molecule(nu, Q, T, Eu, Aul, gu, mu, '12CO(2-1)')
-molDict['CO1221'] = CO1221 
-molDict['12CO'] = CO1221 
+molecule_dictionary['CO1221'] = CO1221 
+molecule_dictionary['12CO'] = CO1221 
 
 # CN 
 nu = 112.1016560e9   # Hz
@@ -147,7 +147,7 @@ Aul = 10 ** (-8.0612)
 gu = 2.
 mu = 1.45 * const.debye_to_EsuCm 
 CN = Molecule(nu, Q, T, Eu, Aul, gu, mu, '12CO(2-1)')
-molDict['CN'] = CN
+molecule_dictionary['CN'] = CN
 
 # CCH 
 # CCH has six hyperfine transitions, the values given here correspond to the
@@ -161,7 +161,7 @@ Aul = 10 ** (-5.2060)
 gu = 5.
 mu = 0.77 * const.debye_to_EsuCm 
 CCH = Molecule(nu, Q, T, Eu, Aul, gu, mu, 'CCH(1-0)')
-molDict['CCH'] = CCH  
+molecule_dictionary['CCH'] = CCH  
 
 
 

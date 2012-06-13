@@ -204,9 +204,9 @@ def JyBToErgsB(input_flux, distance, wavelenght, invert=False):
         Wavelenght :math:`\lambda` in :math:`\mu m`.
     r"""
     # change from Jansky to erg s-1 cm-2 Hz-1
-    conversion = JanskyToErgs
+    conversion = JanskyToErgs_cm
     # integrate over sky ergs s-1 Hz-1
-    conversion = conversion * Int2Lum(distance, cmORm='cm')
+    conversion = conversion * Int2Lum(distance, cm_or_m='cm')
     # multiply by frequency 
     conversion = conversion * c / (wavelenght * 1e-6) 
     if invert == False:

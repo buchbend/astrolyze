@@ -1,35 +1,33 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2012, Christof Buchbender
+# Copyright (C) 2009-2012, Christof Buchbender
 # BSD Licencse
-r"""
-This function sets up the optional astrolyze databases for the maps classes
-and also the dictionary containing the Information on individual molecules
-for the lte package.
+r""" This function sets up the optional astrolyze databases for the maps
+classes and *MAYBE* also the dictionary containing the Information on
+individual molecules for the ``lte`` package.
 """
 from pysqlite2 import dbapi2 as sqlite
 import os
-import  astrolyze.functions.constants as const
-from astrolyze.setup.paths import prefix
+import astrolyze.functions.constants as const
+
 
 def get_line_parameter(filein, database):
-    r"""
-    Reads in the line names and frequencies from ``filein`` and creates a table
-    Lines in the ``database``.
+    r""" Reads in the line names and frequencies from ``filein`` and creates a
+    table Lines in the ``database``.
     """
     filein = open(filein).readlines()
     lines = []
     for row in filein[1:]:
         line_name, frequency = row.split()
-        lines += [[line_name, float(frequency)*1e9,
-                   float(const.c/float(frequency)/1e9)]]
+        lines += [[line_name, float(frequency) * 1e9,
+                   float(const.c / float(frequency) / 1e9)]]
     print database
     connection = sqlite.connect(database)
     cursor = connection.cursor()
     cursor.execute('CREATE TABLE Lines (id INTEGER PRIMARY KEY,'
-                                       'Name VARCHAR(50), '
-                                        'Frequency FLOAT, '
-                                        'Wavelenght Float)')
+                   'Name VARCHAR(50), '
+                   'Frequency FLOAT, '
+                   'Wavelenght Float)')
     for i in lines:
         cursor.execute('INSERT INTO Lines VALUES (null, ?, ?, ?)', (i[0], i[1],
                        i[2]))
@@ -37,7 +35,10 @@ def get_line_parameter(filein, database):
     cursor.close()
     connection.close()
 
+
 def get_galaxy_parameter(filein, database):
+    r"""
+    """
     filein = open(filein).readlines()
     galaxies = []
     for row in filein[1:]:
@@ -60,7 +61,10 @@ def get_galaxy_parameter(filein, database):
     cursor.close()
     connection.close()
 
+
 def get_calibration_error(filein, database):
+    r"""
+    """
     filein = open(filein).readlines()
     calibration_error_list = []
     for row in filein[1:]:
@@ -85,7 +89,10 @@ def get_calibration_error(filein, database):
     cursor.close()
     connection.close()
 
+
 def create_database(database):
+    r""" 
+    """
     if os.path.isfile(database):
         os.system('rm -rf ' + database)
     filein = os.path.expanduser('~/.astrolyze/setup/line_parameter.txt')
@@ -97,5 +104,6 @@ def create_database(database):
 
 
 if __name__ == "__main__":
+    print os.path.expanduser('~/.astrolyze/database/parameter.db')
+    os.system('ls ' + os.path.expanduser('~/.astrolyze/database/parameter.db'))
     create_database(os.path.expanduser('~/.astrolyze/database/parameter.db'))
-    

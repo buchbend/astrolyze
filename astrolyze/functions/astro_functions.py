@@ -1114,7 +1114,7 @@ def degrees_to_equatorial(degrees):
 
     equatorial: list
         The coordinates in equatorial notation, e.g.
-        corresponding [1:33:55.80, +30:43:2.00'].
+        corresponding ['1:33:55.80', '+30:43:2.00'].
     """
     coordinate = []
     coordinate += [str(int(degrees[0] / 15)) + ':' + str(int(((degrees[0] / 15)
@@ -1132,7 +1132,7 @@ def degrees_to_equatorial(degrees):
 
 def equatorial_to_degrees(equatorial):
     r"""
-    Converst RA, DEC coordinates in equatorial notation to degrees.
+    Converts RA, DEC coordinates in equatorial notation to degrees.
 
     Parameters
     ----------

@@ -13,7 +13,6 @@ import astrolyze.maps.fits
 import astrolyze.maps.gildas
 import astrolyze.maps.miriad
 
-from astrolyze.setup.paths import prefix
 import astrolyze.functions.constants as const
 
 

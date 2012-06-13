@@ -3,7 +3,7 @@
 r"""
 Functions to calculate LTE column densities.
 
-Add Documentation.
+TODO: Add Documentation.
 """
 from numpy import interp
 import astrolyze.functions.constants as const
@@ -54,18 +54,20 @@ def calc_N(molecule, excitation_temperature, J, W):
     !!! LOOK into the remaining Code and merge!!!
     """
     T=[]
-    # reverse the Arrays T and Q of the molecules for the interpolating function
+    # reverse the Arrays T and Q of the molecules for the interpolating
+    # function
     for i in range(len(molecule.T)):
         T+=[molecule.T[len(molecule.T)-i-1]]
     Q=[]
     for i in range(len(molecule.Q)):
         Q+=[molecule.Q[len(molecule.Q)-i-1]]
-    # interpolate the partition function for excitation_temperature from the values provided 
-    # by CDMS   
+    # interpolate the partition function for excitation_temperature from the
+    # values provided by CDMS
     Z = interp(excitation_temperature, T, Q)
     print Z
-    Z = 10**Z            # change from log Z to Z
-    return lte_column_density(molecule.nu, W, excitation_temperature, J, Z, molecule.mu)
+    Z = 10 ** Z            # change from log Z to Z
+    return lte_column_density(molecule.nu, W, excitation_temperature, J, Z,
+                              molecule.mu)
 
 def calc_excitation_temperature(Tb, nu):
     """
@@ -78,7 +80,8 @@ def calc_excitation_temperature(Tb, nu):
     Tb:
     """
     excitation_temperature = (const.h_CGS * nu)/const.k_CGS
-    excitation_temperature *= ((log( 1 + (((const.k_CGS * Tb / const.h_CGS / nu) + (1 /
-           (exp((const.h_CGS * nu)/(const.k_CGS*const.tBG)) - 1))) ** (-1))))
-           ** (-1))
+    excitation_temperature *= ((log( 1 + (((const.k_CGS * Tb / const.h_CGS /
+                                            nu) + (1 / (exp((const.h_CGS *
+                                            nu)/(const.k_CGS*const.tBG)) - 1)))
+                                            ** (-1)))) ** (-1))
     return excitation_temperature
