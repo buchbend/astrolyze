@@ -1117,8 +1117,8 @@ def degrees_to_equatorial(degrees):
         corresponding [1:33:55.80, +30:43:2.00'].
     """
     coordinate = []
-    coordinate += [str(int(degrees[0] / 15)) + ':' + str(int(((degrees[0] / 15) -
-              int(degrees[0] / 15)) * 60)) + ':' + "%1.2f" %
+    coordinate += [str(int(degrees[0] / 15)) + ':' + str(int(((degrees[0] / 15)
+              - int(degrees[0] / 15)) * 60)) + ':' + "%1.2f" %
               (float(str((((degrees[0] / 15 - int(degrees[0] / 15)) * 60) -
               int((degrees[0] / 15 - int(degrees[0] / 15)) * 60)) * 60)))]
     coordinate += [(str(int(degrees[1])) + ':' +
@@ -1150,20 +1150,14 @@ def equatorial_to_degrees(equatorial):
     Raises
     ------
 
-    ValueError
-        If the input is not a list of strings of length 2.
+    SystemExit
+        If ``equatorial`` is not a list of strings in the above format.
     """
-    if isinstance(equatorial, list) and len(equatorial) == 2:
-        if (isinstance(equatorial[0], basestring) and isinstance(equatorial[1],
-                                                                 basestring)):
-            pass
-        else:
-            raise ValueError('The input coordinates must be strings of the'
-                             'equatorial coordinates.')
-    else:
-        raise ValueError('The input must be a list of lenght 2.')
-    CoordsplitRA = equatorial[0].split(':')
-    CoordsplitDec = equatorial[1].split(':')
+    try:
+        CoordsplitRA = equatorial[0].split(':')
+        CoordsplitDec = equatorial[1].split(':')
+    except AttributeError:
+        raise SystemExit('Input has to be equatorial coordinates.')
     if float(CoordsplitDec[0]) > 0:
         degrees = [(float(CoordsplitRA[0]) * (360. / 24) +
                   float(CoordsplitRA[1]) * (360. / 24 / 60) +
