@@ -198,7 +198,6 @@ class FitsMap(main.Map):
         oldRes = oldRes * 4.848e-6
         fwhmMajor = math.sqrt(float(newRes) ** 2 - float(oldMajor) ** 2)
         fwhmMinor = math.sqrt(float(newRes) ** 2 - float(oldMinor) ** 2)
-        print fwhm
         os.system('rm -rf ' + str(self.returnName(resolution=str(newRes))))
         # Have to check for Scaling!!!!!!
         while len(self.data) == 1:
@@ -529,7 +528,7 @@ class FitsMap(main.Map):
             fileout.close()
         return result
 
-    def sky2pix(self, coordinate):
+    def sky2pix(self, coordinate, origin=0):
         r"""
         Calculates the Pixel corresponding to a given coordinate.
 
@@ -538,6 +537,10 @@ class FitsMap(main.Map):
         coordinate: list
             Either ['RA','DEC'], e.g. ['1:34:7.00', '+30:47:52.00'] in
             equatorial coordinates or [RA, DEC] in GRAD.
+        origin: int
+           ``0`` or ``1``; this steers how the first pixel is counted
+           ``0`` is for usage with python as it starts to count from zero.
+           ``1`` is the fits standart. 
 
         Returns
         --------
@@ -550,9 +553,11 @@ class FitsMap(main.Map):
             coordinate = astFunc.equatorial_to_degrees(coordinate)
         except:
             pass
-        pixel = self.wcs.wcs_sky2pix([coordinate], 1)[0]
-        pixel = [int(round(float(pixel[0]))) - 1, int(round(float(pixel[1]))) -
-                 1]
+        pixel = self.wcs.wcs_sky2pix([coordinate], origin)[0]
+        # The pixels are floats. To get integers we get the floor value
+        # of the floats 
+        pixel = [int(math.floor(float(pixel[0]))), 
+                 int(math.floor(float(pixel[1])))]
         return pixel
 
     def pix2sky(self, pixel, degrees_or_equatorial='degrees'):

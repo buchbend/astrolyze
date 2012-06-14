@@ -183,7 +183,6 @@ class Map:
         test = string.split('.')
         x = True
         while x:
-            print string
             if 'uk' in string:
                 break
             try:

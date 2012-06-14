@@ -801,12 +801,11 @@ def linear_error_function(p, x, y, y_error, x_error):
     y_error: float or list
         The y measurment errors.
     """
-    if x_error:
+    if x_error.all():
         return sqrt(((line(p, x) - y) / y_error) ** 2 + ((anti_line(p, y) - x)
                     / x_error) ** 2)
-    if not x_error:
+    if not x_error.all():
         return sqrt(((line(p, x) - y) / y_error) ** 2)
-
 
 def line_fit(p, x, y, y_error, x_error=False, iterations=10000):
     """
@@ -838,7 +837,7 @@ def line_fit(p, x, y, y_error, x_error=False, iterations=10000):
     return p1, chisq, Error
 
 
-def linear_fit(x, y, x_error, y_error):
+def analytic_linear_fit(x, y, x_error, y_error):
     r"""
     This function resembles the analytical solution following chaper 8 from
     [TA].
