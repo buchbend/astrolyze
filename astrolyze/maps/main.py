@@ -140,7 +140,7 @@ class Map:
 
     def _resolveSpecies(self):
         '''
-        Gets the frequency from the map name if possible.
+        Gets the frequency from the map name if possible. test
         '''
         species = self.map_nameList[2]
         if 'mum' in species:
