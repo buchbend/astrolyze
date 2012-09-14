@@ -6,7 +6,7 @@ plot.
 
 Limits are trated as follows:
 
-When noted in the original measurement:
+When noted in the original measurement or in Text:
 
 Lower Limit = '<'
 Upper Limit = '>'
@@ -20,6 +20,9 @@ On the X axis the convention is:
 
 Lower Limit = '<'
 Upper Limit = '>'
+
+In case it is not clear if the limit is upper or lower. The string ``"^v"``
+is used for both 
 """
 
 def changeLimitXY(limits, direction='yToX'):
@@ -110,9 +113,9 @@ def addSubLimits(first, second):
     return limits
 
 
-def ratioLimits(numerator, denominator):
+def ratioLimits(numerator, denominator, mode='yaxis'):
     r"""
-    Evalutation of upper/lower limits when building the ratio
+    Evaluation of upper/lower limits when building the ratio
     of two values with limits.
 
     Parameters
@@ -124,36 +127,71 @@ def ratioLimits(numerator, denominator):
     denominator: list
         List of arbitrary lenght of limits for the values in the denominator of
         the ratio. *MUST* be the same length as numerator, though.
+    mode: string
+        Maybe ``yaxis``(Default) or ``text`` to control the type of notation.
+        See module description.
     """
     limits = []
     for i in range(len(numerator)):
 
-        if numerator[i] == 'v' and denominator[i] == 'v':
-            limits += ['^v']
-        if numerator[i] == '^' and denominator[i] == '^':
-            limits += ['^v']
+        # In "Y-Axis" notation
+        if mode == 'yaxis':
+            if numerator[i] == '^v' or denominator[i] == '^v':
+                limits += ['^v']
 
-        if numerator[i] == '^' and denominator[i] == 'v':
-             limits += ['^']
-        if numerator[i] == 'v' and denominator[i] == '^':
-             limits += ['v']
+            if numerator[i] == 'v' and denominator[i] == 'v':
+                limits += ['^v']
+            if numerator[i] == '^' and denominator[i] == '^':
+                limits += ['^v']
 
-        if numerator[i] == '^' and denominator[i] == 'o':
-            limits += ['^']
-        if numerator[i] == 'o' and denominator[i] == '^':
-            limits += ['v']
+            if numerator[i] == '^' and denominator[i] == 'v':
+                 limits += ['^']
+            if numerator[i] == 'v' and denominator[i] == '^':
+                 limits += ['v']
 
-        if numerator[i] == 'v' and denominator[i] == 'o':
-            limits += ['v']
-        if numerator[i] == 'o' and denominator[i] == 'v':
-            limits += ['^']
-        if numerator[i] == 'o' and denominator[i] == 'o':
-            limits += ['o']
+            if numerator[i] == '^' and denominator[i] == 'o':
+                limits += ['^']
+            if numerator[i] == 'o' and denominator[i] == '^':
+                limits += ['v']
+
+            if numerator[i] == 'v' and denominator[i] == 'o':
+                limits += ['v']
+            if numerator[i] == 'o' and denominator[i] == 'v':
+                limits += ['^']
+            if numerator[i] == 'o' and denominator[i] == 'o':
+                limits += ['o']
+
+        if mode == 'text':
+            if numerator[i] == '^v' or denominator[i] == '^v':
+                limits += ['^v']
+
+            if numerator[i] == '<' and denominator[i] == '<':
+                limits += ['^v']
+            if numerator[i] == '>' and denominator[i] == '>':
+                limits += ['^v']
+
+            if numerator[i] == '>' and denominator[i] == '<':
+                 limits += ['>']
+            if numerator[i] == '<' and denominator[i] == '>':
+                 limits += ['<']
+
+            if numerator[i] == '>' and denominator[i] == 'o':
+                limits += ['>']
+            if numerator[i] == 'o' and denominator[i] == '>':
+                limits += ['<']
+
+            if numerator[i] == '<' and denominator[i] == 'o':
+                limits += ['<']
+            if numerator[i] == 'o' and denominator[i] == '<':
+                limits += ['>']
+
+            if numerator[i] == 'o' and denominator[i] == 'o':
+                limits += ['o']
     return limits
 
 
 def limCheck(xAxisLimits, yAxisLimits):
-    r""" This function determines which upper/lower limist have to be set on
+    r""" This function determines which upper/lower limits have to be set on
     the x and y Axis. This is helpful when working with matplotlib.
 
     TODO: Extend documentation.

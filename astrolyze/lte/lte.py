@@ -12,7 +12,6 @@ import astrolyze.functions.constants as const
 def calc_jnu(nu, T):
     r"""
     Calculates :math:`J_{\nu}` needed for lte_column_density.
-    !!! CGS Units!!! Extend Documentations!!!
 
     Parameters
     ----------
@@ -25,12 +24,12 @@ def calc_jnu(nu, T):
     Notes
     -----
 
-    The formula implemented here is:
+    The formula (in cgs units) implemented here is:
 
     .. math::
-    
+
        \mathcal{J}_{\nu}(T) = \frac{h\nu}{k} \frac{1}{e^{h\nu/kT_{ex}}-1}
-    
+
     where:
 
        * k: the Boltzman constant in CGS
@@ -38,12 +37,16 @@ def calc_jnu(nu, T):
        * :math:`\nu`: the frequency
        * T: exitation temperature
 
+    References
+    ----------
+
+    Doktorarbeit_
     """
     return (const.h_CGS * nu / const.k_CGS / (exp(const.h_CGS * nu /
                                                 const.k_CGS / T) - 1))
 
 def lte_column_density(nu, Tmb, excitation_temperature, J, Z, mu):
-    """
+    r"""
     This function calculates the Column densities of linear molecules
 
     Units are all to be given in cgs
@@ -53,22 +56,32 @@ def lte_column_density(nu, Tmb, excitation_temperature, J, Z, mu):
     Notes
     -----
 
+    The implemented formula, taken from Doktorarbeit_ is:
+
     .. math::
 
-            N = \frac{Z}{gu} * \frac{8 \pi k \nu^2}{h c^3 Aul} * 
-            e^{-Eu/k/T}  *  W
+       N = \frac{3h}{8 \pi^3 \mu^2} \frac{Z}{J} \frac{exp(\frac{h \nu}{k
+       T_{ex}})}{[1 - exp(-\frac{h \nu}{k T_{ex}})]} (\mathcal{J}_{\nu}(T_{ex})
+       - \mathcal{J}_{\nu}(T_{BG}))^{-1} \int{T_{mb} d \nu} ,
 
-    Where:
+    where:
         * k: the Boltzman constant in CGS
         * h: the PLanck constant in CGS
         * W: integrated Intensity in Kelvin cm/s
         * Aul: the Einstein coeffiecient of the transition
-        * gu: the statistical Weight of the upper level 
+        * gu: the statistical Weight of the upper level
         * Eu: the Energy of the upper level
         * exitation_temperature
         * Z: the partition Function
 
-    Extend documentation!!!!
+    References
+    ----------
+
+    .. [Doktorarbeit] add reference
+
+    .. warning:: 
+
+       Extend documentation!!!!
     """
     print 'excitation_temperature', excitation_temperature
     print 'Tmb', Tmb
@@ -77,7 +90,7 @@ def lte_column_density(nu, Tmb, excitation_temperature, J, Z, mu):
     colDens *= Z / J
     colDens *= exp(hNuKT)
     colDens *= 1 / (1 - exp( - 1 * hNuKT))
-    colDens *= (1 / (calc_jnu(nu,excitation_temperature) - 
+    colDens *= (1 / (calc_jnu(nu,excitation_temperature) -
                      calc_jnu(nu, const.tBG)))
     colDens *= Tmb * const.km_in_cm  # Tmb given in K km/s, converted to K cm/s
     return colDens

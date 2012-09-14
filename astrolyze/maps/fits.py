@@ -161,22 +161,24 @@ class FitsMap(main.Map):
         except:
             self.header.update('DATAMAX', self.data.max() + 0.1 *
                                self.data.max())
-        os.system('cp ' + str(self.map_name) + ' ' + str(self.map_name) + '_old')
+        os.system('cp ' + str(self.map_name) + ' ' +
+                  str(self.map_name) + '_old')
         os.system('rm ' + str(self.map_name))
         pyfits.writeto(self.map_name, self.data, self.header)
 
     def get_pixel_size(self):
-        r"""
-        Calulates the Area of a pixel in m^2 if distance is given
-        if not given the PixelSize is in sterradian.
+        r""" Calculates the Area of a pixel in m^2 and steradians if distance
+        is given. If not only  steradians are calculated.
         """
         _pixSize = np.asarray([float(math.fabs(self.header['CDELT1']) *
                              const.d2r), float(math.fabs(self.header['CDELT2'])
                              * const.d2r)])
+        _pixSizeSterad = _pixSize[0] * _pixSize[1]
+        self.pixelSizeSterad = math.sqrt((float(_pixSizeSterad)) ** 2)
         if self.distance is not None:
             _pixSize = _pixSize * self.distance * const.pcInM
-        _pixSize = _pixSize[0] * _pixSize[1]
-        self.pixelSize = math.sqrt((float(_pixSize)) ** 2)
+            _pixSize = _pixSize[0] * _pixSize[1]
+            self.pixelSizeM2 = math.sqrt((float(_pixSize)) ** 2)
 
     def __smooth(self, newRes, oldRes=None, scale='0.0'):
         # TODO: In Development. It's not sure if it ever will be finished.
@@ -540,7 +542,7 @@ class FitsMap(main.Map):
         origin: int
            ``0`` or ``1``; this steers how the first pixel is counted
            ``0`` is for usage with python as it starts to count from zero.
-           ``1`` is the fits standart. 
+           ``1`` is the fits standart.
 
         Returns
         --------
@@ -555,8 +557,8 @@ class FitsMap(main.Map):
             pass
         pixel = self.wcs.wcs_sky2pix([coordinate], origin)[0]
         # The pixels are floats. To get integers we get the floor value
-        # of the floats 
-        pixel = [int(math.floor(float(pixel[0]))), 
+        # of the floats
+        pixel = [int(math.floor(float(pixel[0]))),
                  int(math.floor(float(pixel[1])))]
         return pixel
 
@@ -626,8 +628,8 @@ class FitsMap(main.Map):
         # Define cosine and Sinus of the position Angles of the
         # Gaussians
         bmaj2, bmin2, bpa2 = beamConv
-        bmaj2, bmin2, bpa2 = (bmaj2 * const.arcsecInGrad, bmin2 * const.arcsecInGrad,
-                              bpa2 * const.arcsecInGrad)
+        bmaj2, bmin2, bpa2 = (bmaj2 * const.arcsecInGrad, bmin2 *
+                              const.arcsecInGrad, bpa2 * const.arcsecInGrad)
         if beamOrig == None:
             bmaj1, bmin1, bpa1 = self.resolution
             bmaj1, bmin1, bpa1 = (bmaj1 * const.arcsecInGrad,
@@ -668,7 +670,7 @@ class FitsMap(main.Map):
         #print fac
         return fac, amp, bmaj * 60 * 60, bmin * 60 * 60, bpa
 
-    def change_unit(self, final_unit, frequency=None):
+    def change_unit(self, final_unit, frequency=None, debug=False):
         r"""
         Changes the unit of a map in an automated way.
 
@@ -679,7 +681,8 @@ class FitsMap(main.Map):
                 1. Jy/beam: ``"JyB"``, ``"Jy/Beam"``
                 2. Jy/pixel: ``"JyP"``, ``"JyPix"``, ``"JyPix"``
                 3. MJy/sterad: ``"MJyPsr"``, ``"MJy/sr"``
-                4. Temperature: ``"Tmb"``, ``"T"``, ``"Kkms"``
+                4. Main Beam Temperature: ``"Tmb"``, ``"T"``, ``"Kkms"``
+                6. erg/s/pixel: ``"ergs"``
         frequency: float
             Can be used if self.frequency is NaN. The frequency (in GHz) is
             needed for conversions between temperature and Jansky/Erg scale.
@@ -690,27 +693,50 @@ class FitsMap(main.Map):
 
         .. warning::
 
-            This function is still in developement and not all
+            This function is still in development and not all
             conversions may work properly.
         """
+        # Definition of the unit nomenclatures.
+        _jansky_beam_names = ['JYB']
+        _jansky_pixel_names = ['JYPIX', 'JYP', 'JY/PIXEL']
+        _tmb_names = ['TMB', 'T', 'KKMS']
+        _MJy_per_sterad_names = ['MJPSR', 'MJY/SR']
+        _erg_sec_pixel_names = ['ERGPSECPPIX', 'ERGPSECPPIXEL',
+                                'ERG-S-1-Pixel', 'ERG-S-1']
+        _erg_sec_beam_names = ['ERGPSECPBEAM']
+        _erg_sec_sterad_names = ['ERGPERSTER']
+        _known_units = (_jansky_beam_names + _jansky_pixel_names +
+                        _tmb_names + _MJy_per_sterad_names)
+
+        # If original and final unit are the same no conversion is needed.
         if final_unit.upper() == self.fluxUnit.upper():
-            pass
-        if final_unit.upper() in ['JYB', 'JY/BEAM']:
-            if self.fluxUnit.upper() in ['JYPIX', 'JYP', 'JY/PIXEL']:
-                factor = self.beamSize / self.pixelSize
+                self.update_file()
+
+        # Jy/Pixel to Jy/B.
+        def JyPix_JyBeam(invert=False):
+            '''
+            This function converts between Jy/Pixel and Jy/Beam.
+
+            Parameters
+            ----------
+
+            invert: logic
+                If ``"True"`` the conversion is done from ``Jy/Beam``
+                to `` Jy/Pixel``. If ``"False"`` vice-versa.
+            '''
+            if not invert:
+                factor = self.beamSizeSterad / self.pixelSizeSterad
                 self.data = self.data * factor
                 self.fluxUnit = 'JyB'
                 self.header.update('BUNIT', 'Jy/Beam')
-                self.update_file()
-        if final_unit.upper() in ['JYPIX', 'JYP', 'JY/PIXEL']:
-            if self.fluxUnit.upper() in ['JYB', 'JY/BEAM']:
+            if invert:
                 factor = self.pixelSize / self.beamSize
                 self.data = self.data * factor
                 self.fluxUnit = 'JyPix'
                 self.header.update('BUNIT', 'Jy/Pixel')
-                self.update_file()
-        if final_unit.upper() in ['JYB', 'JY/BEAM']:
-            if self.fluxUnit.upper() in ['MJPSR', 'MJY/SR']:
+
+        def MJyPSr_JyBeam(invert=False):
+            if not invert:
                 # Working
                 # fwhm 24micron - 6", 70micron - 18", 160micron - 40"
                 # MJy/sterad = 10^6 /(4.25*10^10/(1.133*fwhm[arcsec]^2)) J/beam
@@ -722,55 +748,263 @@ class FitsMap(main.Map):
                 self.data = self.data * factor
                 self.fluxUnit = 'JyB'
                 self.header.update('BUNIT', 'Jy/Beam')
-                self.update_file()
-        if final_unit.upper() in ['TMB', 'T', 'KKMS']:
-            if self.fluxUnit.upper() in ['JYB', 'JY/BBEAM']:
+            if invert:
+                # Working
+                # fwhm 24micron - 6", 70micron - 18", 160micron - 40"
+                # MJy/sterad = 10^6 /(4.25*10^10/(1.133*fwhm[arcsec]^2)) J/beam
+                # with 4.25 = 1/(4.848e-6)^2 -> 1'' = 4.848e-6 rad
+                # - > Jy/beam = 2.6629e-5 * fwhm[arcsec]^2 MJy/sr
+                factor = (2.6629e-5
+                          * self.resolution[0]
+                          * self.resolution[1])
+                factor = 1 / factor
+                self.data = self.data * factor
+                self.fluxUnit = 'MJpSr'
+                self.header.update('BUNIT', 'MJy/sterad')
+
+        def Tmb_JyBeam(invert=False):
+            if not invert:
                 if self.frequency is not np.nan:
                     self.data = self.data * self.flux_conversion()
-                    self.fluxUnit = 'Tmb'
-                    self.header.update('BUNIT', 'Tmb')
-                    self.update_file()
+                    self.fluxUnit = 'JyB'
+                    self.header.update('BUNIT', 'Jy/Beam')
                 elif frequency is not None:
                     factor = self.flux_conversion(frequency=frequency)
                     self.data = self.data * factor
-                    self.fluxUnit = 'Tmb'
-                    self.header.update('BUNIT', 'Tmb')
-                    self.update_file()
+                    self.fluxUnit = 'JyB'
+                    self.header.update('BUNIT', 'Jy/Beam')
                 else:
-                    print ('Wavelenght needed to convert between Jy and K.'
+                    print ('Wavelength needed to convert between Jy and K.'
                            '\nCannot continue -> Exit!')
                     sys.exit()
-        if final_unit.upper() in ['JYB', 'JY/BEAM']:
-            if self.fluxUnit.upper() in ['TMB', 'T', 'KKMS']:
-                print 'Caution not tested yet!!!'
+            if invert:
                 if self.frequency is not np.nan:
                     factor = self.flux_conversion()
                     self.data = self.data * factor
-                    self.fluxUnit = 'JyB'
-                    self.header.update('BUNIT', 'Jy/beam')
-                    self.update_file()
+                    self.fluxUnit = 'Tmb'
+                    self.header.update('BUNIT', 'K km/s')
                 elif frequency is not None:
                     factor = self.flux_conversion(frequency=frequency)
                     self.data = self.data * factor
-                    self.fluxUnit = 'JyB'
-                    self.header.update('BUNIT', 'Jy/beam')
-                    self.update_file()
+                    self.fluxUnit = 'Tmb'
+                    self.header.update('BUNIT', 'K km/s')
                 else:
-                    print ('I need the wavelenght to Convert between Jy and K.'
+                    print ('Wavelength needed to convert between Jy and K.'
                           '\nCannot continue -> Exit!')
                     sys.exit()
-        if final_unit.upper() in ['ERGPSECPPIX', 'ERGPSECPPIXEL']:
-            print 'not usable yet!!!!!!!'
-            if self.fluxUnit.upper() in ['JYB', 'JY/BEAM']:
-                pixelsizeInSterad = (((map.header['CDELT1'] * const.d2a) ** 2)
-                                    / const.squareArcsecInSterad)
-                factor = self.frequency
-        if final_unit.upper() in ['ERGPSECPPIX', 'ERGPSECPPIXEL']:
-            print 'not usable yet!!!!!!!'
-            if self.fluxUnit.upper() in ['MJPSR', 'MJY/SR']:
-                pixelsizeInSterad = (((map.header['CDELT1'] * const.d2a) ** 2)
-                                    / const.squareArcsecInSterad)
-                factor = (self.frequency)
+
+        def ErgSecBeam_JyBeam(invert=False):
+            if not invert:
+                factor = units.JyBToErgsB(None, self.distance, self.wavelength,
+                                    invert=True, map_use=True)
+                self.data = self.data * factor
+                self.fluxUnit = 'JyB'
+                self.header.update('BUNIT', 'Jy/beam')
+            if invert:
+                factor = units.JyBToErgsB(None, self.distance, self.wavelength,
+                                    invert=False, map_use=True)
+                self.data = self.data * factor
+                self.fluxUnit = 'ErgPSecPBeam'
+                self.header.update('BUNIT', 'ergs s^-1 beam^-1')
+
+        def ErgSecBeam_ErgSecPixel(invert=False):
+            if not invert:
+                factor = self.beamSizeSterad / self.pixelSizeSterad
+                self.data = self.data * factor
+                self.fluxUnit = 'ErgPSecPPixel'
+                self.header.update('BUNIT', 'ergs s^-1 pixel^-1')
+            if invert:
+                factor = self.pixelSizeSterad / self.beamSizeSterad
+                self.data = self.data * factor
+                self.fluxUnit = 'ErgPSecPBeam'
+                self.header.update('BUNIT', 'ergs s^-1 beam^-1')
+
+        # Conversions
+        # Jy/pixel <-> Jy/beam
+        if final_unit.upper() in _jansky_beam_names:
+            if self.fluxUnit.upper() in _jansky_pixel_names:
+                JyPix_JyBeam()
+                self.update_file()
+
+        if final_unit.upper() in _jansky_pixel_names:
+            if self.fluxUnit.upper() in _jansky_beam_names:
+                JyPix_JyBeam(invert=True)
+                self.update_file()
+
+        # Jy/beam <-> MJy/sterad.
+        if final_unit.upper() in _jansky_beam_names:
+            if self.fluxUnit.upper() in _MJy_per_sterad_names:
+                MJyPSr_JyBeam()
+                self.update_file()
+        if final_unit.upper() in _MJy_per_sterad_names:
+            if self.fluxUnit.upper() in _jansky_beam_names:
+                MJyPSr_JyBeam(invert=True)
+                self.update_file()
+
+        # Jy/pixel <-> MJy/sterad.
+        if final_unit.upper() in _jansky_pixel_names:
+            if self.fluxUnit.upper() in _MJy_per_sterad_names:
+                MJyPSr_JyBeam()
+                JyPix_JyBeam(invert=True)
+                self.update_file()
+        if final_unit.upper() in _MJy_per_sterad_names:
+            if self.fluxUnit.upper() in _jansky_pixel_names:
+                JyPix_JyBeam()
+                MJyPSr_JyBeam(invert=True)
+                self.update_file()
+
+        # MJy/sterad <-> Tmb
+        if final_unit.upper() in _tmb_names:
+            if self.fluxUnit.upper() in _MJy_per_sterad_names:
+                MJyPSr_JyBeam()
+                Tmb_JyBeam(invert=True)
+                self.update_file()
+        if final_unit.upper() in _MJy_per_sterad_names:
+            if self.fluxUnit.upper() in _tmb_names:
+                Tmb_JyBeam()
+                MJyPSr_JyBeam(inver=True)
+                self.update_file()
+
+        # Jy/Beam <-> Tmb (Main beam temperature).
+        if final_unit.upper() in _tmb_names:
+            if self.fluxUnit.upper() in _jansky_beam_names:
+                Tmb_JyBeam(invert=True)
+                self.update_file()
+        if final_unit.upper() in _jansky_beam_names:
+            if self.fluxUnit.upper() in _tmb_names:
+                Tmb_JyBeam()
+                self.update_file()
+
+        # Tmb <-> Jy/pixel
+        if final_unit.upper() in _tmb_names:
+            if self.fluxUnit.upper() in _jansky_pixel_names:
+                JyPix_JyBeam()
+                Tmb_JyBeam(invert=True)
+                self.update_file()
+        if final_unit.upper() in _jansky_pixel_names:
+            if self.fluxUnit.upper() in _tmb_names:
+                Tmb_JyBeam()
+                JyPix_JyBeam(invert=True)
+                self.update_file()
+
+        # Jy/beam <-> Erg/s/beam
+        if final_unit.upper() in _erg_sec_beam_names:
+            if self.fluxUnit.upper() in _jansky_beam_names:
+                ErgSecBeam_JyBeam(invert=True)
+                self.update_file()
+        if final_unit.upper() in _jansky_beam_names:
+            if self.fluxUnit.upper() in _erg_sec_beam_names:
+                ErgSecBeam_JyBeam()
+                self.update_file()
+
+       # Jy/beam <-> Erg/s/pixel
+        if final_unit.upper() in _erg_sec_pixel_names:
+            if self.fluxUnit.upper() in _jansky_beam_names:
+                ErgSecBeam_JyBeam(invert=True)
+                ErgSecBeam_ErgSecPixel()
+                self.update_file()
+        if final_unit.upper() in _jansky_beam_names:
+            if self.fluxUnit.upper() in _erg_sec_pixel_names:
+                ErgSecBeam_ErgSecPixel(invert=True)
+                ErgSecBeam_JyBeam()
+                self.update_file()
+
+       # Jy/pixel <-> Erg/s/pixel
+        if final_unit.upper() in _erg_sec_pixel_names:
+            if self.fluxUnit.upper() in _jansky_pixel_names:
+                JyPix_JyBeam()
+                ErgSecBeam_JyBeam(invert=True)
+                ErgSecBeam_ErgSecPixel()
+                self.update_file()
+        if final_unit.upper() in _jansky_pixel_names:
+            if self.fluxUnit.upper() in _erg_sec_pixel_names:
+                ErgSecBeam_ErgSecPixel(invert=True)
+                ErgSecBeam_JyBeam()
+                JyPix_JyBeam(invert=True)
+                self.update_file()
+
+       # Jy/pixel <-> Erg/s/beam
+        if final_unit.upper() in _erg_sec_beam_names:
+            if self.fluxUnit.upper() in _jansky_pixel_names:
+                JyPix_JyBeam()
+                ErgSecBeam_JyBeam(invert=True)
+                self.update_file()
+        if final_unit.upper() in _jansky_pixel_names:
+            if self.fluxUnit.upper() in _erg_sec_beam_names:
+                ErgSecBeam_JyBeam()
+                JyPix_JyBeam(invert=True)
+                self.update_file()
+
+        # MJy/sterad <-> Erg/s/pixel
+        if final_unit.upper() in _erg_sec_pixel_names:
+            if self.fluxUnit.upper() in _MJy_per_sterad_names:
+                MJyPSr_JyBeam()
+                ErgSecBeam_JyBeam(invert=True)
+                ErgSecBeam_ErgSecPixel()
+                self.update_file()
+        if final_unit.upper() in _MJy_per_sterad_names:
+            if self.fluxUnit.upper() in _erg_sec_pixel_names:
+                ErgSecBeam_ErgSecPixel(invert=True)
+                ErgSecBeam_JyBeam()
+                MJyPSr_JyBeam(invert=True)
+                self.update_file()
+
+        # MJy/sterad <-> Erg/s/beam
+        if final_unit.upper() in _erg_sec_beam_names:
+            if self.fluxUnit.upper() in _MJy_per_sterad_names:
+                MJyPSr_JyBeam()
+                ErgSecBeam_JyBeam(invert=True)
+                self.update_file()
+        if final_unit.upper() in _MJy_per_sterad_names:
+            if self.fluxUnit.upper() in _erg_sec_beam_names:
+                ErgSecBeam_JyBeam()
+                MJyPSr_JyBeam(invert=True)
+                self.update_file()
+
+        # MJy/sterad <-> Erg/s/beam
+        if final_unit.upper() in _erg_sec_pixel_names:
+            if self.fluxUnit.upper() in _erg_sec_beam_names:
+                ErgSecBeam_ErgSecPixel()
+                self.update_file()
+        if final_unit.upper() in _erg_sec_beam_names:
+            if self.fluxUnit.upper() in _erg_sec_pixel_names:
+                ErgSecBeam_ErgSecPixel(invert=True)
+                self.update_file()
+
+       # Tmb <-> Erg/s/pixel
+        if final_unit.upper() in _erg_sec_pixel_names:
+            if self.fluxUnit.upper() in _tmb_names:
+                Tmb_JyBeam()
+                ErgSecBeam_JyBeam(invert=True)
+                ErgSecBeam_ErgSecPixel()
+                self.update_file()
+        if final_unit.upper() in _tmb_names:
+            if self.fluxUnit.upper() in _erg_sec_pixel_names:
+                ErgSecBeam_ErgSecPixel(invert=True)
+                ErgSecBeam_JyBeam()
+                Tmb_JyBeam(invert=True)
+                self.update_file()
+
+       # Tmb <-> Erg/s/beam
+        if final_unit.upper() in _erg_sec_beam_names:
+            if self.fluxUnit.upper() in _tmb_names:
+                Tmb_JyBeam()
+                ErgSecBeam_JyBeam(invert=True)
+                self.update_file()
+        if final_unit.upper() in _tmb_names:
+            if self.fluxUnit.upper() in _erg_sec_beam_names:
+                ErgSecBeam_JyBeam()
+                Tmb_JyBeam(invert=True)
+                self.update_file()
+
+        # If the original flux unit is not known.
+        elif self.fluxUnit.upper() not in _known_units:
+            print ('Flux unit not known to astrolyze - '
+                   'Can not continue')
+            if debug == True:
+                pass
+            elif debug == False:
+                sys.exit()
         return FitsMap(self.returnName())
 
     def toGildas(self, prefix=None):

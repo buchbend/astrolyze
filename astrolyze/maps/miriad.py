@@ -147,6 +147,20 @@ class MiriadMap(main.Map):
             The smoothed image.
         """
         # Parsing the resolution string.
+        try:
+            new_major = new_resolution[0]
+            new_minor = new_resolution[1]
+            new_pa = new_resolution[2]
+        except:
+            try:
+                new_major = new_resolution[0]
+                new_minor = new_resolution[1]
+                new_pa = 0
+            except:
+                new_major = new_resolution
+                new_minor = new_resolution
+                new_pa = 0
+
         if old_resolution == None:
             _old_major = self.resolution[0]
             _old_minor = self.resolution[1]
@@ -165,16 +179,17 @@ class MiriadMap(main.Map):
                 _old_major = old_resolution
                 _old_minor = old_resolution
                 pa = 0
-        if (float(_old_major) > float(new_resolution) or float(_old_minor) >
-           float(new_resolution)):
+        if (float(_old_major) > float(new_major) or float(_old_minor) >
+           float(new_minor)):
             print 'Error: Old Resolution bigger than new one!'
         # calculate the fwhm for the convolving gaussian.
-        _fwhm_major = math.sqrt(float(new_resolution) ** 2 -
+        _fwhm_major = math.sqrt(float(new_major) ** 2 -
                                 float(_old_major) ** 2)
-        _fwhm_minor = math.sqrt(float(new_resolution) ** 2 -
+        _fwhm_minor = math.sqrt(float(new_minor) ** 2 -
                                 float(_old_minor) ** 2)
-        _smoothed_map_name = self.returnName(resolution=[float(new_resolution),
-                                                   float(new_resolution), 0.0])
+        _smoothed_map_name = self.returnName(resolution=[float(new_major),
+                                                         float(new_minor),
+                                                         new_pa])
         os.system('rm -rf ' + _smoothed_map_name)
         if scale != '':
             executeString = ('smooth in='+str(self.map_name)+' '

@@ -101,6 +101,8 @@ def create_database(database):
     get_galaxy_parameter(filein, database)
     filein = os.path.expanduser('~/.astrolyze/setup/calibration_error.txt')
     get_calibration_error(filein, database)
+    filein = os.path.expanduser('~/.astrolyze/setup/telescope.txt')
+    get_calibration_error(filein, database)
 
 
 if __name__ == "__main__":

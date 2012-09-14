@@ -1,4 +1,4 @@
-# Copyright (C) 2012, Christof Buchbender
+ # Copyright (C) 2012, Christof Buchbender
 # BSD License (License.txt)
 import math
 import os
@@ -17,17 +17,17 @@ from astrolyze.functions import units
 
 
 class Map:
-    ''' 
+    '''
     ``Map`` is the parent Class for the ``maps``-package. It contains all
-    functions that are common to all the supported map-formats, i.e. Fits,
-    Gildas and Miriad. This class is only supposed to be called through 
+    functions that are common to all supported map-formats, i.e. Fits,
+    GILDAS and Miriad. This class is only supposed to be called through
     the FitsMap, GildasMap, and MiriadMap classes.
 
     Parameters
     ----------
 
     map_name: string
-        The name and path of the file that is to be intialized to the maps
+        The name and path of the file that is to be initialized to the maps
         package.
     name_convention: True or False
         Only files following the name_convention are supported.
@@ -36,20 +36,37 @@ class Map:
         '''
         Initialize a map to maps.
         '''
+        # Definition of the unit nomenclatures.
+        self.jansky_beam_names = ['JYB']
+        self.jansky_pixel_names = ['JYPIX', 'JYP', 'JY/PIXEL']
+        self.tmb_names = ['TMB', 'T', 'KKMS']
+        self.MJy_per_sterad_names = ['MJPSR', 'MJY/SR']
+        self.erg_sec_pixel_names = ['ERGPSECPPIX', 'ERGPSECPPIXEL',
+                                'ERG-S-1-Pixel', 'ERG-S-1']
+        self.erg_sec_beam_names = ['ERGPSECPBEAM']
+        self.erg_sec_sterad_names = ['ERGPERSTER']
+        self.known_units = (self.jansky_beam_names + self.jansky_pixel_names +
+                            self.tmb_names + self.MJy_per_sterad_names +
+                            self.erg_sec_beam_names +
+                            self.erg_sec_sterad_names +
+                            self.erg_sec_pixel_names)
+        # Definition of possible data format endings for the different programs.
         self.gildas_formats = ['gdf', 'mean', 'velo', 'width', 'lmv',
                                'lmv-clean']
         self.fits_formats = ['fits']
-        self.miriad_formats = ['']
+        self.miriad_formats = ['', None]
         self.class_formats = ['30m', 'apex']
+        # name_convention is not needed anymore. Only kept for backward
+        # compatibality.
         self.name_convention = name_convention
         self.map_name = map_name
         # Test if the file exists. Directory for Miriad.
-        # File for fits or GILDAS.
+        # File for Fits and GILDAS.
         if (not os.path.isdir(self.map_name)
             and not os.path.isfile(self.map_name)):
             print 'Exiting: ' + self.map_name + ' does not exist'
             sys.exit()
-        # Get Informations from the Name Convention
+        # Get Informations from the file name.
         if name_convention:
             self.map_nameList = map_name.split('_')
             self.comments = []
@@ -58,7 +75,7 @@ class Map:
             self.telescope = self.map_nameList[1]
             self.species = self._resolveSpecies()
             self.fluxUnit = self.map_nameList[3]
-            # Test for dataFormat.
+            # Check dataFormat.
             if self.map_name.endswith('.fits'):
                 self.dataFormat = 'fits'
                 self.map_nameList[-1] = self.map_nameList[-1].replace('.fits',
@@ -77,6 +94,7 @@ class Map:
                 # Miriad Data Format uses directories
                 self.dataFormat = None
             self.resolution = self._resolveResolution()
+            # Entries after the fifth are considered comments.
             if len(self.map_nameList) > 5:
                 for i in range(len(self.map_nameList) - 6):
                     self.comments += [self.map_nameList[i + 5]]
@@ -85,6 +103,9 @@ class Map:
         if not name_convention:
             print 'Only Files with correct naming are supported!!!'
             sys.exit()
+        # Getting information from the databases.
+        #!!!!!  TODO: Bas implementation. Try should only contain very short
+        # parts of the program otherwise errors in the program are camouflaged.
         try:
             self.connection = sqlite.connect(str(prefix.dataBase) +
                                          'parameter.db')
@@ -118,7 +139,7 @@ class Map:
                                 (self.species.upper(),))
             self.params = self.cursor.fetchall()[0]
             self.frequency = self.params[2]
-            self.wavelenght = self.params[3]
+            self.wavelength = self.params[3]
             self.cursor.close()
             self.connection.close()
         except:
@@ -140,33 +161,34 @@ class Map:
 
     def _resolveSpecies(self):
         '''
-        Gets the frequency from the map name if possible. test
+        Gets the frequency from a database on basis of the map name if
+        possible.
         '''
         species = self.map_nameList[2]
         if 'mum' in species:
             try:
-                self.wavelenght = float(species.replace('mum', '')) * 1e-6
-                self.frequency = 299792356 / self.wavelenght
+                self.wavelength = float(species.replace('mum', '')) * 1e-6
+                self.frequency = 299792356 / self.wavelength
             except:
                 self.frequency = np.nan
-                self.wavelenght = np.nan
+                self.wavelength = np.nan
         elif 'mm' in species:
             try:
-                self.wavelenght = float(species.replace('mm', '')) * 1e-3
-                self.frequency = 299792356 / self.wavelenght
+                self.wavelength = float(species.replace('mm', '')) * 1e-3
+                self.frequency = 299792356 / self.wavelength
             except:
                 self.frequency = np.nan
-                self.wavelenght = np.nan
+                self.wavelength = np.nan
         elif 'GHz' in species:
             try:
                 self.frequency = float(species.replace('GHz', '')) * 1e9
-                self.wavelenght = 299792356 / self.frequency
+                self.wavelength = 299792356 / self.frequency
             except:
                 self.frequency = np.nan
-                self.wavelenght = np.nan
+                self.wavelength = np.nan
         else:
             self.frequency = np.nan
-            self.wavelenght = np.nan
+            self.wavelength = np.nan
         return species
 
     def _resolveResolution(self):
@@ -218,6 +240,9 @@ class Map:
         return [major, minor, pa]
 
     def resolutionToString(self, resolution=None):
+        r""" Converts the resolution list to a string to be printed and
+        included in the file names.
+        """
         if resolution is None:
             if float(self.resolution[2]) == 0.0:
                 if float(self.resolution[0]) == float(self.resolution[1]):
@@ -254,9 +279,14 @@ class Map:
         return string
 
     def get_beam_size(self):
-        r"""
-        Calulates the Beamsize in m^2 if the distance to the source is given
-        if not given the PixelSize is in sterradian.
+        r""" Calculates the beam-size in steradians and in m^2. Fot the latter
+        the distance to the source has to be given.
+
+        Returns
+        -------
+
+        Initialization if the variables:
+        self.beamSizeSterad and self.beamSizeM2
 
         Notes
         -----
@@ -269,13 +299,12 @@ class Map:
 
         """
         if self.resolution != 'uk':
-            if self.distance == None:
-                self.beamSize = (1.133 * const.a2r ** 2 * self.resolution[0] *
-                                 self.resolution[1])
-            else:
-                self.beamSize = (1.133 * (self.distance * const.a2r *
-                                 const.pcInM) ** 2 * self.resolution[0] *
-                                 self.resolution[1])
+            self.beamSizeSterad = (1.133 * const.a2r ** 2 * self.resolution[0] *
+                             self.resolution[1])
+            if self.distance is not None:
+                self.beamSizeM2 = (1.133 * (self.distance * const.a2r *
+                                            const.pcInM) ** 2 *
+                                   self.resolution[0] * self.resolution[1])
         else:
             self.beamSize = np.nan
 
@@ -357,7 +386,8 @@ class Map:
         Parameters
         ----------
 
-        All Parameters from the "Naming Convention" plus the new prefix.
+        All possible parameters from the "Naming Convention" plus the new
+        prefix.
         '''
         source = source or self.source
         telescope = telescope or self.telescope
@@ -402,14 +432,14 @@ class Map:
         ----------
 
         x: float [GHz]
-            Wavelenght/frequency. Defaults to the frequency of the loaded map,
+            Wavelength/frequency. Defaults to the frequency of the loaded map,
             i.e. self.frequency
         major: float
             Major Axis Beam (arcsec). Default None, i.e. using self.resolution.
         minor: float
             Minor Axis Beam(arcsec). Default None, i.e. using self.resolution.
         nu_or_lambda: string
-            Choose type of x: frequency = ``'nu'`` or wavelenght =
+            Choose type of x: frequency = ``'nu'`` or wavelength =
             ``'lambda'``.
         direction: string
             choose conversion direction ``'kelvin_to_jansky'``
@@ -418,8 +448,8 @@ class Map:
         Notes
         -----
 
-        Please note that if self.frequency and self.resolution are correctly
-        set, this functions does not need any input.
+        If self.frequency and self.resolution are correctly set, this functions
+        does not need any input. Otherwise this has to be given explicitly.
         """
         if direction is not None and (direction != 'kelvin_to_jansky'
            or direction != 'jansky_to_kelvin'):

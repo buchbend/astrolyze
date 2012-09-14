@@ -36,7 +36,8 @@ class GildasMap(main.Map):
     def _init_map_to_greg(self):
         pygreg.comm('image ' + self.map_name)
         self._load_gildas_variables()
-        pygreg.comm('let name ' + self.map_name.replace('.' + self.dataFormat, ''))
+        pygreg.comm('let name ' +
+                    self.map_name.replace('.' + self.dataFormat, ''))
         pygreg.comm('let type ' + self.dataFormat)
 
     def _load_gildas_variables(self):
@@ -48,7 +49,7 @@ class GildasMap(main.Map):
         extended while adding functionality to the GildasMap mehtods.
         """
         self.vars = pygreg.gdict
-        # load the map dimensions stored in g_dim 
+        # load the map dimensions stored in g_dim
         self.dimensions = self.vars.g_dim.__sicdata__
         self.naxis_1 = self.dimensions[0]
         self.naxis_2 = self.dimensions[1]
@@ -322,7 +323,6 @@ class GildasMap(main.Map):
         .. [1] www.iram.fr/GILDAS/
 
         """
-        
         if template is not None and coord is not None:
             print "Please use either template OR coord."
             raise SystemExit
@@ -332,6 +332,8 @@ class GildasMap(main.Map):
         if prefix is None:
             prefix = self.prefix
         if template:
+            os.system('cp {} template.gdf'.format(template))
+            template = 'template.gdf'
             comment = ['repro']
             __init_string = ('TASK\FILE "Input file" Z_NAME$ "' +
                           str(self.map_name) + '"\n'
@@ -415,15 +417,16 @@ class GildasMap(main.Map):
                               'TASK\GO\n')
             __reproInit.write(__init_string)
         __reproInit.close()
-        os.system('more temp.greg')
         # write the Greg Script
         __convFile = open('temp.greg', 'w')
         __convFile.write('run reproject reproject.init /nowindow\nexit\n')
         __convFile.close()
+        os.system('more reproject.init')
         # execute the Greg Script and then delete it
         os.system('greg -nw @temp.greg')
-        #os.system('rm temp.greg')
+        os.system('rm temp.greg')
         os.system('rm reproject.init')
+        os.system('rm template.gdf')
         return GildasMap(self.returnName(prefix=prefix, comments=comment))
 
     def moments(self, velo_range=[0, 0], threshold=0,
@@ -440,8 +443,8 @@ class GildasMap(main.Map):
             Value under which pixels are blanked.
         smooth: string
             One of Either ``"NO"`` or ``"YES"``. Controls
-            if the map is smoothed before applying the cut threshold. Getting
-            rid of noise peaks over the threshold.
+            if the map is smoothed in velocity before applying the cut 
+            threshold. Getting rid of noise peaks over the threshold.
             Defaults to ``'YES'``
         prefix: string
             The path where the output is to be stored if different
@@ -494,7 +497,7 @@ class GildasMap(main.Map):
                   prefix=prefix, comments=[], dataFormat='width') + ' ' +
                   self.returnName(prefix=prefix, comments=save_comments,
                   dataFormat='width'))
-        #os.system('rm moments.init')
+        os.system('rm moments.init')
         print self.returnName(prefix=prefix,
                                          comments=save_comments,
                                          dataFormat='mean')
@@ -549,6 +552,56 @@ class GildasMap(main.Map):
                   + str(self.dataFormat) + ' '
                   + str(self.returnName(prefix=prefix, comments=comment)))
         os.system('rm -rf rotateTemp.greg')
+        return GildasMap(self.returnName(prefix=prefix, comments=comment))
+
+    def slice(self, coordinate1, coordinate2, prefix=None, comment=None):
+        r""" Wrapper for the GREG task slice. Producing Position velocity cuts
+        trough a map between coordinate1 and coordinate2.
+
+        Parameters
+        ----------
+
+        coordinate1: string
+            The coordinate where the cut trough the map starts.
+        coordinate2: string
+            The coordinate where the cut trough the map ends.
+
+        Returns
+        -------
+
+        A GildasMap object containing the slice.
+
+        Note
+        ----
+
+        This only works with cubes.
+        """
+        if prefix is None:
+            prefix = self.prefix
+        if comment is None:
+            comment = ['sliced']
+        elif comment is not None and '[' not in comment:
+            comment = [comment]
+        __sliceInit = open('slice.init', 'w')
+        __init_string = ('!\n! slice.init\n' +
+                         'TASK\FILE "Input file name" INPUT_MAP$ "' +
+                         str(self.map_name) + '"\n' +
+                         'TASK\FILE "Output file name" OUTPUT_MAP$ "' +
+                         str(self.returnName(prefix=prefix,
+                                             comments=comment)) + '"\n' +
+                         'TASK\CHAR "Starting point" START$ "' +
+                         str(coordinate1) + '"\n' +
+                         'TASK\CHAR "Ending point" END$ "' + 
+                         str(coordinate2) + '"\n' +
+                         'TASK\GO')
+        __sliceInit.write(__init_string)
+        __sliceInit.close()
+        __convFile = open('temp.greg', 'w')
+        __convFile.write('run slice slice.init /nowindow\nexit\n')
+        __convFile.close()
+        os.system('greg -nw @temp.greg')
+        os.system('rm temp.greg')
+        os.system('rm slice.init')
         return GildasMap(self.returnName(prefix=prefix, comments=comment))
 
     def smooth(self, new_resolution, old_resolution=None, prefix=None):
@@ -649,6 +702,7 @@ class GildasMap(main.Map):
         __convFile.close()
         os.system('greg -nw @temp.greg')
         os.system('rm temp.greg')
+        os.system('rm gauss_smooth.init')
         return GildasMap(self.returnName(resolution=new_resolution))
 
     def custom_go_spectrum(self, coordinate=False, size=False, angle=0):

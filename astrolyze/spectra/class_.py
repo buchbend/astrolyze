@@ -37,9 +37,9 @@ class ClassSpectra(Map):
     >>> cube.get_spectra_from_cube(coordinate)
     Generates a 30m file with comment extract in the actual cube.prefix path.
     """
-    def __init__(self, mapName, nameConvention=True):
+    def __init__(self, map_name, nameConvention=True):
         r"""Initializes a Class Spectral File."""
-        astrolyze.maps.main.Map.__init__(self, mapName, nameConvention)
+        astrolyze.maps.main.Map.__init__(self, map_name, nameConvention)
         self._init_file_to_greg()
         if self.dataFormat not in self.class_formats:
             print ('Exiting: Not a CLASS format (AFAIK). Supported'
@@ -52,7 +52,7 @@ class ClassSpectra(Map):
         the cube.
         """
         self.set_defaults()
-        pyclass.comm('file in ' + self.mapName)
+        pyclass.comm('file in ' + self.map_name)
         pyclass.comm('find')
         pyclass.comm('get first')
         self._load_class_variables()
@@ -122,7 +122,7 @@ class ClassSpectra(Map):
         self.set_defaults()
         print self.central_coordinate_equatorial
         print offset
-        pyclass.comm('file in ' + self.mapName)
+        pyclass.comm('file in ' + self.map_name)
         pyclass.comm('set offset ' + str(offset[0]) + ' ' + str(offset[1]))
         while True:
             pyclass.comm('set match ' + str(accuracy))
@@ -183,7 +183,7 @@ class ClassSpectra(Map):
         """
         _prefix =  prefix or self.prefix
         self.set_defaults()
-        pyclass.comm('file in ' + self.mapName)
+        pyclass.comm('file in ' + self.map_name)
         pyclass.comm('find')
         pyclass.comm('get f')
         pyclass.comm('set no match')
@@ -206,7 +206,7 @@ class ClassSpectra(Map):
         file. 
         """
         # TODO: make more usefull.
-        pyclass.comm('file in ' + self.mapName)
+        pyclass.comm('file in ' + self.map_name)
         pyclass.comm('find')
         pyclass.comm('get f')
         pyclass.comm('pl')

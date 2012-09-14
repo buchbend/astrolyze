@@ -93,21 +93,21 @@ def grey_body(p, x, nu_or_lambda='nu', kappa='Kruegel', distance=840e3):
     Calculation of the flux density in Jansky of a grey_body under assumption
     of optically thin emission.
 
-    Please see Notes_ below for an detailed desciption assumptions and equations
-    used.
+    Please see Notes_ below for an detailed description assumptions and
+    equations used.
 
     Parameters
     -----------
     p: list
         List of the parameters defining a grey_body, being Temperature [K],
-        column density or mass (dependend on the kappa used) and the grey_body
+        column density or mass (dependent on the kappa used) and the grey_body
         slope index beta, respectively (refer to notes for more information):
             p = [T, N, beta]
     x: float or numpy array
         Wavelength [GHz] or frequency [micron];
         specify type in nu_or_lambda
     kappa: string
-        Chooses the dust extinction coeficient to use:
+        Chooses the dust extinction coefficient to use:
             * ``"easy"`` -> kappa = nu^beta; tau = N * kappa
             * ``"Kruegel"`` -> kappa = 0.04*(nu/250Ghz)^beta;
               tau = M/D^2 * kappa
@@ -119,7 +119,7 @@ def grey_body(p, x, nu_or_lambda='nu', kappa='Kruegel', distance=840e3):
     Other Parameters
     ----------------
     nu_or_lambda: string
-        Specify whether x is a frequency :math:`\nu` ``'nu'`` or a wavelenght
+        Specify whether x is a frequency :math:`\nu` ``'nu'`` or a wavelength
         :math:`\lambda` ``'lambda'``; default is ``'nu'``. if lambda the input
         converted to a frequency in [GHz].
 
@@ -132,14 +132,14 @@ def grey_body(p, x, nu_or_lambda='nu', kappa='Kruegel', distance=840e3):
         S(x, \tau) = (black_body(x, T)) * [1 - e^\tau] \Omega
 
     describing the flux coming from an solid angle
-    :math:`\Omega` and where :math:`\tau` is:
+    :math:`\Omega` while :math:`\tau` is:
 
     .. math::
 
         \tau_{\nu} = \frac{ \kappa_d(\nu) * M_{dust}}{D^2 \Omega} .
 
     Here we assume optically thin emission and a source filling factor of
-    unity. This simplyfies the equation of the grey_body to:
+    unity. This simplifies the equation of the grey_body to:
 
     .. math::
 
@@ -1017,22 +1017,22 @@ def gauss1D(x, fwhm, offset=0, amplitude=1):
     Parameters
     ----------
     x: float or numpy.ndarray
-        the x-axis value/values where the gaussian is to be caluclated.
+        the x-axis value/values where the Gaussian is to be caluclated.
     fwhm: float
-        The width of the gaussian.
+        The width of the Gaussian.
     offset:
         The offset in x direction from 0. Default is 0.
     amplitude:
-        The height of the gaussian. Default is 1.
+        The height of the Gaussian. Default is 1.
 
     Returns
     -------
     gauss: float or np.ndarray
-        The y value for the specified gaussian distribution evaluated at x.
+        The y value for the specified Gaussian distribution evaluated at x.
 
     Notes
     -----
-    The function used to describe the gaussian is:
+    The function used to describe the Gaussian is:
 
     .. math::
 
@@ -1046,32 +1046,32 @@ def gauss1D(x, fwhm, offset=0, amplitude=1):
 
 def gauss2D(x, y, major, minor, pa=0, xOffset=0, yOffset=0, amplitude=1):
     r"""
-    Calulcates a 2D Gaussian at position x y.
+    Calculates a 2D Gaussian at position x y.
 
     Parameters
     ----------
     x: float or numpy.ndarray
-        the x-axis value/values where the gaussian is to be caluclated.
+        the x-axis value/values where the Gaussian is to be caluclated.
     y: float or numpy.ndarray
-        the y-axis value/values where the gaussian is to be caluclated.
+        the y-axis value/values where the Gaussian is to be calculated.
 
     major, minor: float
-        The fwhm of the gaussian in x and y direction.
+        The fwhm of the Gaussian in x and y direction.
     pa: float
-        The position angle of the gaussian in degrees. Default is 0.
+        The position angle of the Gaussian in degrees. Default is 0.
     xOffset, yOffset:
         The offset in x and y direction from 0. Default is 0.
     amplitude:
-        The height of the gaussian. Default is 1.
+        The height of the Gaussian. Default is 1.
 
     Returns
     -------
     gauss: float or np.ndarray
-        The y value for the specified gaussian distribution evaluated at x.
+        The y value for the specified Gaussian distribution evaluated at x.
 
     Notes
     -----
-    The function used to describe the gaussian is :
+    The function used to describe the Gaussian is :
 
     .. math::
 
@@ -1100,13 +1100,13 @@ def gauss2D(x, y, major, minor, pa=0, xOffset=0, yOffset=0, amplitude=1):
 
 def degrees_to_equatorial(degrees):
     r"""
-    Converst RA, DEC coordinates in degrees to equatorial notation.
+    Converts RA, DEC coordinates in degrees to equatorial notation.
 
     Parameters
     ----------
 
     degrees: list
-        The coordinates in degress in the format of: [23.4825, 30.717222]
+        The coordinates in degrees in the format of: [23.4825, 30.717222]
 
     Returns
     -------
@@ -1213,7 +1213,7 @@ def calc_offset(central_coordinate, offset_coordinate, angle = 0,
     offset_in_degrees = equatorial_to_degrees(offset_coordinate)
     offset = [offset_in_degrees[0] - central_in_degrees[0] ,
               offset_in_degrees[1] - central_in_degrees[1]]
-    #correction for declination
+    # correction for declination
     offset = [offset[0] * math.cos(math.radians(offset_in_degrees[1])),
               offset[1]]
     # Rotate the offsets.
@@ -1250,6 +1250,166 @@ def rotation_2d(coordinate, angle):
     x_rotated = math.cos(angle) * x - math.sin(angle) * y
     y_rotated = math.sin(angle) * x + math.cos(angle) * y
     return [x_rotated, y_rotated]
+
+
+def vel_to_freq_resolution(center_frequency, velocity_resolution):
+    r""" Converts a velocity resolution to frequency resolution for a given
+    center frequency.
+
+    Parameters
+    ----------
+
+    center_frequency: float
+        Center frequency in GHz.
+    velocity_resolution:
+        Velocity resolution in km/s.
+
+    Returns
+    -------
+
+    frequency_resolution: float
+        The corresponding frequency resolution in Mhz
+
+    Notes
+    -----
+
+    Approved!
+
+    """
+    # Conversion from km/s to m/s
+    velocity_resolution = velocity_resolution * 1e3
+    # Conversion from GHz to Hz
+    center_frequency = center_frequency * 1e9
+    # Calculation of the frequency_resolution in Hz
+    frequency_resolution =  (-1 * velocity_resolution *
+                              center_frequency / const.c)
+    # Conversion to MHz
+    frequency_resolution = frequency_resolution / 1e6
+    return frequency_resolution
+
+def freq_to_vel_resolution(center_frequency, frequency_resolution):
+    r""" Function to convert a frequency resolution to a velocity resolution
+    for a given center frequency.
+
+    Parameters
+    ----------
+
+    center_frequency: float
+        Center frequency in GHz.
+    frequency_resolution: float
+        The frequency resolution in MHz.
+
+    Returns
+    -------
+
+    velocity_resolution in km/s.
+
+    Notes
+    -----
+
+    Uses the formula TODO v_LSR = c((nu0-nuObs)/nu0)
+
+    Approved!
+    """
+    center_frequency = center_frequency * 1e9
+    frequency_resolution = frequency_resolution * 1e6
+    observation_frequency = center_frequency + frequency_resolution
+    velocity_resolution = v_lsr(center_frequency,
+                                          observation_frequency)
+    # Difference between nu0 and nuObs is the velocity resolution
+    return velocity_resolution
+
+def v_lsr(center_frequency, observation_frequency):
+    r""" Calculates the velocity that corresponds to a certain frequency shift
+    between two frequencies.
+
+    Parameters
+    ----------
+
+    center_frequency: float
+        center_frequency in GHz
+    observation_frequency: float
+        The observation frequency in GHz.
+
+    Returns
+    -------
+
+    v_lsr: float
+        The velocity corresponding to the frequency shift in km/s
+
+    Notes
+    -----
+
+    Approved!
+    """
+    center_frequency = center_frequency * 1e9
+    observation_frequency = observation_frequency * 1e9
+    v_lsr = (const.c * ((center_frequency - observation_frequency) /
+                        center_frequency) / 1e3)
+    return v_lsr
+
+def redshifted_frequency(rest_frequency, v_lsr):
+    r""" Calculates the sky frequency corresponding to a rest frequency for a
+    source with a velocity v_lsr.
+
+    Parameters
+    ----------
+
+    rest_frequency: float
+        The frequency of the line at rest in Ghz (More often state the obvious
+        :)).
+
+    v_lsr: float
+        The velocity of the source in km/s.
+
+    Returns
+    -------
+
+    redshifted_frequency: float
+       The sky frequency in GHz.
+
+    Notes
+    -----
+
+    The formula used is:
+
+    .. math::
+
+        \nu_{sky} = \nu_{rest} * \frac{-1 v_{lsr}}{c + 1}
+
+    Approved!
+    """
+    # Convert frequency to Hz,
+    rest_frequency =  rest_frequency * 1e9
+    # Convert velocity to m/s,
+    v_lsr = v_lsr * 1e3
+    # Calculate the sky frequency,
+    redshifted_frequency = (-1. * v_lsr / const.c + 1) * rest_frequency
+    # Convert to GHz.
+    redshifted_frequency = redshifted_frequency / 1e9
+    return redshifted_frequency
+
+
+def frequency_to_wavelenght(frequency):
+    r"""
+    Converting frequency to wavelength.
+
+    Parameters
+    ----------
+
+    frequency: float [GHZ]
+
+    Returns
+    -------
+
+    wavelenght: float [micron]
+    """
+    # Conversion from GHz to Hz
+    frequency = frequency * 1e9
+    wavelenght = const.c / frequency
+    # Conversion from m to micron (mum).
+    wavelenght = wavelenght / 1e-6
+    return wavelength
 
 
 def _equatorial2DegFile(inputFile):
