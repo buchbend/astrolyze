@@ -84,7 +84,7 @@ class GildasMap(main.Map):
 
         Parameters
         ----------
-        value: float
+        value : float
             The new pixel size in arcsecs.
 
         Notes
@@ -107,18 +107,18 @@ class GildasMap(main.Map):
         self.comments += ['IP1']
         __interpolate_init = open('interpolate.init', 'w')
         __init_string = ('TASK\FILE \"Input file\" Y_NAME$ ' +
-                     str(self.map_name) + '\n'
-                     'TASK\FILE \"Output file\" X_NAME$ ' +
-                     str(self.returnName()) + '\n'
-                     'TASK\INTEGER \"Number of pixels\" NX$ ' +
-                     str(int(self.naxis1New)) + '\n'
-                     'TASK\REAL \"New reference pixel\" REFERENCE$ ' +
-                     str(int(self.crpix1New)) + '\n'
-                     'TASK\REAL \"New value at reference pixel\" VALUE$ ' +
-                     str(self.crval_1) + '\n'
-                     'TASK\REAL \"New increment\" INCREMENT$ ' +
-                     str(self.cdelt1arcs) + ' \n'
-                     'TASK\GO\n')
+                         str(self.map_name) + '\n'
+                         'TASK\FILE \"Output file\" X_NAME$ ' +
+                         str(self.returnName()) + '\n'
+                         'TASK\INTEGER \"Number of pixels\" NX$ ' +
+                         str(int(self.naxis1New)) + '\n'
+                         'TASK\REAL \"New reference pixel\" REFERENCE$ ' +
+                         str(int(self.crpix1New)) + '\n'
+                         'TASK\REAL \"New value at reference pixel\" VALUE$ ' +
+                         str(self.crval_1) + '\n'
+                         'TASK\REAL \"New increment\" INCREMENT$ ' +
+                         str(self.cdelt1arcs) + ' \n'
+                         'TASK\GO\n')
         __interpolate_init.write(__init_string)
         __fileout.close()
         __fileout = open('interpolate.greg', 'w')
@@ -127,7 +127,7 @@ class GildasMap(main.Map):
         os.system('greg -nw @interpolate.greg')
 
     def spectrum(self, coordinate, fileout=None, prefix=None,
-                 create_spectrum=True): 
+                 create_spectrum=True):
         r"""
         Wrapper to the spectrum command from greg that extracts
         a spectrum from a cube at a given positions. By default it also creates
@@ -135,16 +135,16 @@ class GildasMap(main.Map):
 
         Parameters
         ----------
-        coordinate: list
+        coordinate : list
             A list with the coordinates in floats in units of Degrees,
             or in string for equatorial coordinate.
-        fileout: string
+        fileout : string
             The name of the table where the spectrum will be stored.
             Default is the same name as the map with ``".tab"`` as ending.
-        prefix:
+        prefix :
             The path to the folder where the newly created file will be
             stored.  Defaults to the prefix currently stored in self.prefix.
-        create_spectrum: True or False
+        create_spectrum : True or False
             Turn the creation of a 30m with the spectrum of ``False`` or on
             ``True``.
 
@@ -168,13 +168,13 @@ class GildasMap(main.Map):
             fileout = prefix + fileout
         __maskInit = open('spectrum.init', 'w')
         __init_string = ('! Spectrum.init\n'
-                      'TASK\FILE "Input file name" IN$ "' + self.map_name +
-                      '"\nTASK\FILE "Output table name" OUT$ "'
-                      + fileout
-                      + '"\n'
-                      'TASK\CHARACTER "Absolute coordinate" COORD$ "'
-                      + coordinate[0] + ' ' + coordinate[1] + '"\n'
-                      'TASK\GO')
+                         'TASK\FILE "Input file name" IN$ "' + self.map_name +
+                         '"\nTASK\FILE "Output table name" OUT$ "'
+                         + fileout
+                         + '"\n'
+                         'TASK\CHARACTER "Absolute coordinate" COORD$ "'
+                         + coordinate[0] + ' ' + coordinate[1] + '"\n'
+                         'TASK\GO')
         __maskInit.write(__init_string)
         __maskInit.close()
         __convFile = open('temp.greg', 'w')
@@ -201,11 +201,11 @@ class GildasMap(main.Map):
         Parameters
         ----------
 
-        fileout: string
+        fileout : string
             The name of the class file to write the spectra to. Defaults to
             the map_name with .30m ending.
 
-        prefix: string
+        prefix : string
             The path were the class file will be stores. Defaults to
             the current path.
 
@@ -234,17 +234,17 @@ class GildasMap(main.Map):
         Parameters
         ----------
 
-        polygon: string
+        polygon : string
             path to a GILDAS polygon file with ending ``".pol"``
 
-        prefix: string
+        prefix : string
             The path where the output is to be stored if different
             from the current prefix of the map.
 
         Returns
         -------
 
-        mapObject: The masked map object.
+        mapObject : The masked map object.
 
         Examples
         --------
@@ -256,18 +256,18 @@ class GildasMap(main.Map):
         __maskInit = open('mask.init', 'w')
         __comment = [polygon.split('/')[-1].replace('.pol', '')]
         __init_string = ('TASK\FILE "Polygon data file" POLYGON$ "' +
-                     str(polygon) + '" \n'
-                     'TASK\FILE "Input image" Y_NAME$ "' +
-                     str(self.map_name) + '"\n'
-                     'TASK\FILE "Output image" X_NAME$ "'
-                     + str(self.returnName(prefix=prefix,
-                     comments=__comment)) + '"\n'
-                     'TASK\LOGICAL "Mask inside (.true.) or outside '
-                     '(.false.)" MASK_IN$ NO\n'
-                     'TASK\LOGICAL "Modify blanking value" MODIFY$ NO\n'
-                     'SAY "If YES, Fill information Below"\n'
-                     'TASK\REAL "New blanking value" BLANKING$ 0 \n'
-                     'TASK\GO')
+                         str(polygon) + '" \n'
+                         'TASK\FILE "Input image" Y_NAME$ "' +
+                         str(self.map_name) + '"\n'
+                         'TASK\FILE "Output image" X_NAME$ "'
+                         + str(self.returnName(prefix=prefix,
+                                               comments=__comment)) + '"\n'
+                         'TASK\LOGICAL "Mask inside (.true.) or outside '
+                         '(.false.)" MASK_IN$ NO\n'
+                         'TASK\LOGICAL "Modify blanking value" MODIFY$ NO\n'
+                         'SAY "If YES, Fill information Below"\n'
+                         'TASK\REAL "New blanking value" BLANKING$ 0 \n'
+                         'TASK\GO')
         __maskInit.write(__init_string)
         __maskInit.close()
         os.system('more mask.init')
@@ -286,24 +286,24 @@ class GildasMap(main.Map):
 
         Parameters
         ----------
-        template: string
+        template : string
             Full path to a map in GDF Format whose central
             coordinate and pixel size will serve as a template.
-        coord: list
+        coord : list
             List of coordinate strings in RA DEC (J2000) that
             will become the new centre of the map.
-        prefix: string
+        prefix : string
             The path where the output is to be stored if different
             from the current prefix of the map. If None the current
             self.prefix of the GildasMap instance is used.
-        keep_pixsize: bool
+        keep_pixsize : bool
             If False reproject guesses the new pixel sizes after reprojection
             these are normally smaller than the original ones.
             If True the old pixel sizes are enforced.
 
         Returns
         -------
-        GildasMap Object: Instance for the reprojected map.
+        GildasMap Object : Instance for the reprojected map.
 
         Raises
         ------
@@ -336,73 +336,80 @@ class GildasMap(main.Map):
             template = 'template.gdf'
             comment = ['repro']
             __init_string = ('TASK\FILE "Input file" Z_NAME$ "' +
-                          str(self.map_name) + '"\n'
-                         'TASK\FILE "Output file" X_NAME$ "' +
-                          str(self.returnName(prefix=prefix, comments=comment))
-                         + '"\n'
-                         'TASK\LOGICAL "Reproject on a third file\'s '
-                         'projection [YES|NO]" TEMPLATE$ YES\n'
-                         'TASK\FILE "This Template File Name" Y_NAME$ "' +
-                         str(template) + '"\n'
-                         'TASK\CHARACTER "Projection type" PROJECTION$ '
-                         '"RADIO" /CHOICE     NONE GNOMONIC ORTHOGRAPHIC  '
-                         'AZIMUTHAL STEREOGRAPHIC LAMBERT AITOFF RADIO\n'
-                         'TASK\CHARACTER "Coord.System [EQUATORIAL [epoch]|'
-                         'GALACTIC]" SYSTEM$ "EQUATORIAL 2000"\n'
-                         'TASK\CHARACTER "Coord. 1 of projection center. '
-                         'Could be UNCHANGED"     CENTER_1$ "01:34:11.8" '
-                         '/CHOICE UNCHANGED *\n'
-                         'TASK\CHARACTER "Coord. 2 of projection '
-                         'center" CENTER_2$ "+30:50:23.4" /CHOICE UNCHANGED '
-                         '*\n'
-                         'TASK\REAL "Position angle of projection" ANGLE$ '
-                         '0.000000000000000 /RANGE 0 360\n'
-                         'TASK\INTEGER "Dimensions of output image '
-                         '[0 0 mean guess]" DIMENSIONS$[2]  0 0\n'
-                         'TASK\REAL "First axis conversion formula [0 0 0 '
-                         'mean guess]" AXIS_1$[3]  0 0 0\nTASK\REAL "Second '
-                         'axis conversion formula [0 0 0 mean guess]" '
-                         'AXIS_2$[3] 0 0 0\n'
-                         'TASK\LOGICAL "Change blanking value" CHANGE$ NO\n'
-                         'TASK\REAL "New blanking value and tolerance" '
-                         'BLANKING$[2]  0 0\nTASK\GO\n')
+                             str(self.map_name) + '"\n'
+                             'TASK\FILE "Output file" X_NAME$ "' +
+                             str(self.returnName(prefix=prefix,
+                                                 comments=comment))
+                             + '"\n'
+                             'TASK\LOGICAL "Reproject on a third file\'s '
+                             'projection [YES|NO]" TEMPLATE$ YES\n'
+                             'TASK\FILE "This Template File Name" Y_NAME$ "' +
+                             str(template) + '"\n'
+                             'TASK\CHARACTER "Projection type" PROJECTION$ '
+                             '"RADIO" /CHOICE     NONE GNOMONIC ORTHOGRAPHIC  '
+                             'AZIMUTHAL STEREOGRAPHIC LAMBERT AITOFF RADIO\n'
+                             'TASK\CHARACTER "Coord.System '
+                             '[EQUATORIAL [epoch]|'
+                             'GALACTIC]" SYSTEM$ "EQUATORIAL 2000"\n'
+                             'TASK\CHARACTER "Coord. 1 of projection center. '
+                             'Could be UNCHANGED"     CENTER_1$ "01:34:11.8" '
+                             '/CHOICE UNCHANGED *\n'
+                             'TASK\CHARACTER "Coord. 2 of projection '
+                             'center" CENTER_2$ "+30:50:23.4" '
+                             '/CHOICE UNCHANGED '
+                             '*\n'
+                             'TASK\REAL "Position angle of projection" ANGLE$ '
+                             '0.000000000000000 /RANGE 0 360\n'
+                             'TASK\INTEGER "Dimensions of output image '
+                             '[0 0 mean guess]" DIMENSIONS$[2]  0 0\n'
+                             'TASK\REAL "First axis conversion formula [0 0 0 '
+                             'mean guess]" AXIS_1$[3]  0 0 0\nTASK'
+                             '\REAL "Second '
+                             'axis conversion formula [0 0 0 mean guess]" '
+                             'AXIS_2$[3] 0 0 0\n'
+                             'TASK\LOGICAL "Change blanking value" '
+                             'CHANGE$ NO\n'
+                             'TASK\REAL "New blanking value and tolerance" '
+                             'BLANKING$[2]  0 0\nTASK\GO\n')
             __reproInit.write(__init_string)
         if coord:
             comment = ['repro']
             __init_string = ('TASK\FILE "Input file" Z_NAME$ "' +
-                         str(self.map_name) + '"\n'
-                         'TASK\FILE "Output file" X_NAME$ "' +
-                         str(self.returnName(prefix=prefix, comments=comment))
-                         + '"\n'
-                         'TASK\LOGICAL "Reproject on a third file\'s '
-                         'projection [YES|NO]" TEMPLATE$ NO\n'
-                         'TASK\FILE "This Template File Name" Y_NAME$ ""\n'
-                         'TASK\CHARACTER "Projection type" PROJECTION$ '
-                         '"RADIO" /CHOICE     NONE GNOMONIC ORTHOGRAPHIC  '
-                         'AZIMUTHAL STEREOGRAPHIC LAMBERT AITOFF RADIO\n'
-                         'TASK\CHARACTER "Coord.System [EQUATORIAL [epoch]|'
-                         'GALACTIC]" SYSTEM$ "EQUATORIAL 2000"\n'
-                         'TASK\CHARACTER "Coord. 1 of projection center. '
-                         'Could be UNCHANGED"     CENTER_1$ "' +
-                          str(coord[0]) + '" /CHOICE UNCHANGED *\n'
-                          'TASK\CHARACTER "Coord. 2 of projection center" '
-                          'CENTER_2$ "' +
-                          str(coord[1]) + '" /CHOICE UNCHANGED *\n'
-                          'TASK\REAL "Position angle of projection" ANGLE$ '
-                          '0.000000000000000 /RANGE 0 360\n')
+                             str(self.map_name) + '"\n'
+                             'TASK\FILE "Output file" X_NAME$ "' +
+                             str(self.returnName(prefix=prefix,
+                                                 comments=comment))
+                             + '"\n'
+                             'TASK\LOGICAL "Reproject on a third file\'s '
+                             'projection [YES|NO]" TEMPLATE$ NO\n'
+                             'TASK\FILE "This Template File Name" Y_NAME$ ""\n'
+                             'TASK\CHARACTER "Projection type" PROJECTION$ '
+                             '"RADIO" /CHOICE     NONE GNOMONIC ORTHOGRAPHIC  '
+                             'AZIMUTHAL STEREOGRAPHIC LAMBERT AITOFF RADIO\n'
+                             'TASK\CHARACTER "Coord.System '
+                             '[EQUATORIAL [epoch]|'
+                             'GALACTIC]" SYSTEM$ "EQUATORIAL 2000"\n'
+                             'TASK\CHARACTER "Coord. 1 of projection center. '
+                             'Could be UNCHANGED"     CENTER_1$ "' +
+                             str(coord[0]) + '" /CHOICE UNCHANGED *\n'
+                             'TASK\CHARACTER "Coord. 2 of projection center" '
+                             'CENTER_2$ "' +
+                             str(coord[1]) + '" /CHOICE UNCHANGED *\n'
+                             'TASK\REAL "Position angle of projection" ANGLE$ '
+                             '0.000000000000000 /RANGE 0 360\n')
             if keep_pixsize:
                 __init_string += ('TASK\INTEGER "Dimensions of output image [0'
                                   '0 mean guess]" DIMENSIONS$[2] ' +
                                   str(self.naxis_1) + ' ' + str(self.naxis_1) +
                                   '\n' 'TASK\REAL "First axis conversion'
-                                  'formula [0 0 0 ' 'mean guess]" AXIS_1$[3] ' 
-                                  + str(self.crpix_1) + ' ' 
-                                  + str(self.crval_1) +  ' ' 
+                                  'formula [0 0 0 ' 'mean guess]" AXIS_1$[3] '
+                                  + str(self.crpix_1) + ' '
+                                  + str(self.crval_1) + ' '
                                   + str(self.cdelt_1) + '\n' 'TASK\REAL'
                                   '"Second axis conversion formula [0 0 0 '
                                   'mean guess]" AXIS_2$[3] ' +
                                   str(self.crpix_2) + ' ' +
-                                  str(self.crval_2) + ' ' + 
+                                  str(self.crval_2) + ' ' +
                                   str(self.cdelt_2) + '\n')
             if not keep_pixsize:
                 __init_string += ('TASK\INTEGER "Dimensions of output image [0'
@@ -430,26 +437,26 @@ class GildasMap(main.Map):
         return GildasMap(self.returnName(prefix=prefix, comments=comment))
 
     def moments(self, velo_range=[0, 0], threshold=0,
-               smooth='YES', prefix=None, comment=None):
+                smooth='YES', prefix=None, comment=None):
         r"""
         Wraps the GREG task moments creating the first three moments
         of the map.
 
         Parameters
         ----------
-        velo_range: list
+        velo_range : list
             Velocity range for the integration.
-        threshold: float
+        threshold : float
             Value under which pixels are blanked.
-        smooth: string
+        smooth : string
             One of Either ``"NO"`` or ``"YES"``. Controls
-            if the map is smoothed in velocity before applying the cut 
+            if the map is smoothed in velocity before applying the cut
             threshold. Getting rid of noise peaks over the threshold.
             Defaults to ``'YES'``
-        prefix: string
+        prefix : string
             The path where the output is to be stored if different
             from the current prefix of the map.
-        comment: string
+        comment : string
             Optional comments to be added to the new map name.
 
         Returns
@@ -467,18 +474,20 @@ class GildasMap(main.Map):
             prefix = self.prefix
         __momentInit = open('moments.init', 'w')
         __init_string = ('TASK\FILE "Input file name" IN$ "' +
-                       str(self.map_name) + '"\n'
-                       'TASK\FILE "Output files name (no extension)" OUT$ "' +
-                       self.returnName(resolution='dummy', prefix=prefix,
-                           comments=[]).replace('.' + self.dataFormat,
-                                                     '') + '"\n'
-                       'TASK\REAL "Velocity range" VELOCITY$[2]  ' +
-                        str(velo_range[0]) + ' ' + str(velo_range[1]) + '\n'
-                       'TASK\REAL "Detection threshold" THRESHOLD$ ' +
-                        str(threshold) + ' \n'
-                       'TASK\LOGICAL "Smooth before detetction ?" SMOOTH$ ' +
-                        str(smooth) + ' \n'
-                       'TASK\GO\n')
+                         str(self.map_name) + '"\n'
+                         'TASK\FILE "Output files name (no extension)" '
+                         'OUT$ "' +
+                         self.returnName(resolution='dummy', prefix=prefix,
+                                         comments=[]).replace('.' +
+                                                              self.dataFormat,
+                                                              '') + '"\n'
+                         'TASK\REAL "Velocity range" VELOCITY$[2]  ' +
+                         str(velo_range[0]) + ' ' + str(velo_range[1]) + '\n'
+                         'TASK\REAL "Detection threshold" THRESHOLD$ ' +
+                         str(threshold) + ' \n'
+                         'TASK\LOGICAL "Smooth before detetction ?" SMOOTH$ ' +
+                         str(smooth) + ' \n'
+                         'TASK\GO\n')
         __momentInit.write(__init_string)
         __momentInit.close()
         __convFile = open('temp.greg', 'w')
@@ -499,8 +508,8 @@ class GildasMap(main.Map):
                   dataFormat='width'))
         os.system('rm moments.init')
         print self.returnName(prefix=prefix,
-                                         comments=save_comments,
-                                         dataFormat='mean')
+                              comments=save_comments,
+                              dataFormat='mean')
         return GildasMap(self.returnName(prefix=prefix,
                                          comments=save_comments,
                                          dataFormat='mean'))
@@ -512,15 +521,15 @@ class GildasMap(main.Map):
 
         Parameters
         ----------
-        angle: float [deg]
+        angle : float [deg]
             Rotation angle.
-        prefix: string
+        prefix : string
             The path where the output is to be stored if different
             from the current prefix of the map.
 
         Returns
         -------
-        GildasMap Object: Instance for the reprojected map.
+        GildasMap Object : Instance for the reprojected map.
 
         Examples
         --------
@@ -534,16 +543,16 @@ class GildasMap(main.Map):
         """
         __rotate = open('rotateTemp.greg', 'w')
         __rotate.write('let name ' + addOn.myStrip(str(self.map_name),
-                          len(self.dataFormat) + 1) + '\n'
-                          'let type ' + str(self.dataFormat) + '\n'
-                          'let angle ' + str(angle) + '\n'
-                          'go rot\n'
-                          'exit\n')
+                                                   len(self.dataFormat) + 1) +
+                       '\n let type ' + str(self.dataFormat) + '\n'
+                       'let angle ' + str(angle) + '\n'
+                       'go rot\n'
+                       'exit\n')
         __rotate.close()
         os.system('greg -nw @rotateTemp.greg')
         if len(str(angle).split('.')) > 1:
             comments += [('rot' + str(str(angle).split('.')[0]) +
-                               'p' + str(str(angle).split('.')[1]) + 'deg')]
+                          'p' + str(str(angle).split('.')[1]) + 'deg')]
         else:
             comments += ['rot' + str(angle) + 'deg']
 
@@ -561,9 +570,9 @@ class GildasMap(main.Map):
         Parameters
         ----------
 
-        coordinate1: string
+        coordinate1 : string
             The coordinate where the cut trough the map starts.
-        coordinate2: string
+        coordinate2 : string
             The coordinate where the cut trough the map ends.
 
         Returns
@@ -571,8 +580,8 @@ class GildasMap(main.Map):
 
         A GildasMap object containing the slice.
 
-        Note
-        ----
+        Notes
+        -----
 
         This only works with cubes.
         """
@@ -591,7 +600,7 @@ class GildasMap(main.Map):
                                              comments=comment)) + '"\n' +
                          'TASK\CHAR "Starting point" START$ "' +
                          str(coordinate1) + '"\n' +
-                         'TASK\CHAR "Ending point" END$ "' + 
+                         'TASK\CHAR "Ending point" END$ "' +
                          str(coordinate2) + '"\n' +
                          'TASK\GO')
         __sliceInit.write(__init_string)
@@ -610,7 +619,7 @@ class GildasMap(main.Map):
 
         Parameters
         ----------
-        new_resolution: float or list
+        new_resolution : float or list
             The resulting resolution after the smoothing.
             It can be:
                 1. a float: i.e. the final major and minor beamsize.
@@ -619,10 +628,10 @@ class GildasMap(main.Map):
                    position angle defaults to 0.
                 3. a list with three floats: [major_axis, minor_axis,
                    position_angle].
-        old_resolution: float or list
+        old_resolution : float or list
             Same format as new_resolution. Defaults to self.resolution of the
             map instance.
-        prefix: string
+        prefix : string
             The path where the output is to be stored if different
             from the current prefix of the map.
 
@@ -637,11 +646,11 @@ class GildasMap(main.Map):
         """
         if prefix is None:
             prefix = self.prefix
-        if old_resolution == None:
+        if old_resolution is None:
             old_major = self.resolution[0]
             old_minor = self.resolution[1]
             pa = self.resolution[2]
-        if old_resolution != None:
+        if old_resolution is not None:
             if type(old_resolution) is list:
                 if len(old_resolution) == 2:
                     old_major = old_resolution[0]
@@ -670,35 +679,36 @@ class GildasMap(main.Map):
             pa = 0
         new_resolution = [new_major, new_minor, pa]
 
-        if (float(old_major) > float(new_major)
-            or float(old_minor) > float(new_minor)):
+        if ((float(old_major) > float(new_major)
+             or float(old_minor) > float(new_minor))):
             print 'Error: Old Resolution bigger than new one!'
 
         fwhm_major = (math.sqrt(float(new_major) ** 2
-                    - float(old_major) ** 2)
-                    * const.arcsecInRad)
+                                - float(old_major) ** 2)
+                      * const.arcsecInRad)
         fwhm_minor = (math.sqrt(float(new_minor) ** 2
-                     - float(old_minor) ** 2)
-                     * const.arcsecInRad)
+                                - float(old_minor) ** 2)
+                      * const.arcsecInRad)
         __gauss_smoothInit = open('gauss_smooth.init', 'w')
         __smooth_init_text = ('TASK\FILE "Input file" Y_NAME$ ' +
-                          str(self.map_name) + '\n'
-                         'TASK\FILE "Output smoothed image" X_NAME$ ' +
-                         str(self.returnName(prefix=prefix,
-                             resolution=new_resolution)) + '\n'
-                         'TASK\REAL "Major axis of convolving gaussian" '
-                         'MAJOR$ ' + str(fwhm_major) + '\n'
-                         'TASK\REAL "Minor axis of convolving gaussian" '
-                         'MINOR$ ' + str(fwhm_minor) + '\n'
-                         'TASK\REAL "Position angle" PA$ ' + str(pa) + '\n'
-                         'TASK\GO')
+                              str(self.map_name) + '\n'
+                              'TASK\FILE "Output smoothed image" X_NAME$ ' +
+                              str(self.returnName(prefix=prefix,
+                                                  resolution=new_resolution)) +
+                              '\n TASK\REAL "Major axis of '
+                              'convolving gaussian" '
+                              'MAJOR$ ' + str(fwhm_major) + '\n'
+                              'TASK\REAL "Minor axis of convolving gaussian" '
+                              'MINOR$ ' + str(fwhm_minor) + '\n'
+                              'TASK\REAL "Position angle" PA$ ' + str(pa) +
+                              '\n TASK\GO')
 
         __gauss_smoothInit.write(__smooth_init_text)
         __gauss_smoothInit.close()
 
         __convFile = open('temp.greg', 'w')
         __convFile.write('run gauss_smooth gauss_smooth.init /nowindow\n'
-                            'exit')
+                         'exit')
         __convFile.close()
         os.system('greg -nw @temp.greg')
         os.system('rm temp.greg')
@@ -708,23 +718,23 @@ class GildasMap(main.Map):
     def custom_go_spectrum(self, coordinate=False, size=False, angle=0):
         r"""
         This function uses the ``go spectrum`` command from GREG to plot
-        the spectra in a region given by ``size`` around the cooridinate given 
+        the spectra in a region given by ``size`` around the cooridinate given
         by ``coordinate``.
 
         Parameters
         ----------
-        coordinate: list
+        coordinate : list
             A list with the coordinates in floats in units of Degrees, or in
             string for equatorial coordinates. Default to ``False`` which means
             that the center of the map, determined from the map header, is
             used.
-        size: list
+        size : list
             The region around the ``coordinate`` from which spectra are plotted
             in arcsec, e.g. size = [50, 50] means a region of 50x50 arcsec
             around the given cooridnate. Defaults to None, which translates to
-            size = [0, 0] which in turn is interpreted as  the full map size 
-            by GREG. 
-        angle: float [degrees]
+            size = [0, 0] which in turn is interpreted as  the full map size
+            by GREG.
+        angle : float [degrees]
             Needed if the map is rotated to get the correct offsets. Defaults
             to 0.
         """
@@ -732,7 +742,8 @@ class GildasMap(main.Map):
         # in offsets from the central coordinate in the header
         if coordinate:
             offset = astFunc.calc_offset(self.central_coordinate_equatorial,
-                                     coordinate, angle, output_unit='arcsec')
+                                         coordinate, angle,
+                                         output_unit='arcsec')
         else:
             offset = [0, 0]
         print offset
@@ -742,7 +753,9 @@ class GildasMap(main.Map):
         name = self.returnName(comments=comment, dataFormat='eps')
         string = ('let center ' + str(offset[0]) + ' ' + str(offset[1]) + '\n'
                   'let size ' + str(size[0]) + ' ' + str(size[1]) + '\n'
-                  'let name ' + self.map_name.replace('.' + self.dataFormat, '') + '\n'
+                  'let name ' + self.map_name.replace('.' +
+                                                      self.dataFormat,
+                                                      '') + '\n'
                   'let type ' + self.dataFormat + '\n'
                   'go spectrum \n'
                   'ha ' + name + ' /dev eps color /over \n'
@@ -762,26 +775,36 @@ class GildasMap(main.Map):
         name = name or self.returnName(dataFormat='eps')
         pygreg.comm('ha ' + name + '/dev eps color')
 
-    def quick_preview(self, save=False, filename=None):
+    def quick_preview(self, save=False, filename=None, window=True,):
         r"""
         Plotting the map and optionally save the figure.
 
         Parameters
         ----------
-        save: True or False
+        save : True or False
             Choose wether or nor to save the figure.
-        filename: string
-            The filename to for the saved plot. If None defaults to 
+        filename : string
+            The filename to for the saved plot. If None defaults to
             ``'quick_preview.eps'``.
+        window : True or False
+            Choose whether the image display is opened or not.
+            Default True.
         """
-        pygreg.comm('dev im w')
+        pygreg.comm('clear')
+        pygreg.comm('image ' + self.map_name)
+        if window:
+            pygreg.comm('dev im w')
         pygreg.comm('lim /rg')
         pygreg.comm('set box match')
-        pygreg.comm('pl')
-        pygreg.comm('box /abs')
+        pygreg.comm('greg2\\pl')
+        pygreg.comm('greg\\box /abs')
         if save:
             filename = filename or 'quick_preview.eps'
-            pygreg.comm('ha '+filename+' dev eps color')
+            if '.eps' in filename:
+                pygreg.comm('ha ' + filename + ' /dev eps color /over')
+            if '.png' in filename:
+                pygreg.comm('ha ' + filename + ' /dev png color /over')
+
 
     def get_spectra_from_cube(self, coordinate, angle=0, prefix=None,
                               accuracy=2):

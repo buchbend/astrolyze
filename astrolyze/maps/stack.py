@@ -13,7 +13,6 @@ import fits
 import gildas
 import miriad
 
-from astrolyze.setup.paths import prefix
 import astrolyze.functions.constants as const
 
 
@@ -36,6 +35,7 @@ class Stack:
         self.miriad_formats = ['']
         self.folder = folder
         self.get_list(data_format=data_format)
+        print self.list
         self.stack = []
         for i in self.list:
             self.stack += [self.get_map_format(i)]
@@ -43,6 +43,7 @@ class Stack:
         self.units = []
         self.dataFormats = []
         for i in self.stack:
+            print i
             self.resolutions += [i.resolution]
             self.units += [i.fluxUnit]
             self.dataFormats = [i.dataFormat]
@@ -55,7 +56,7 @@ class Stack:
         Parameters
         ----------
 
-        map_name: string
+        map_name : string
            Path and name of the input map.
 
         Returns
@@ -71,7 +72,7 @@ class Stack:
         if dataFormat in self.fits_formats:
             return fits.FitsMap(map_name)
            # check for miriad maybe not perfect.
-        if len(map_name.split('_')) > 5 and os.path.isdir(map_name):
+        if len(map_name.split('_')) >= 5 and os.path.isdir(map_name):
             return miriad.MiriadMap(map_name)
 
     def get_list(self, data_format=None, depth=False):
@@ -81,20 +82,20 @@ class Stack:
         Parameters
         ----------
 
-        folder: string
+        folder : string
             The path to the folder that has to be parsed.
-        data_format: string
+        data_format : string
             Search for specific files containing the string, e.g.
             '.fits'
-        depth: integer
+        depth : integer
             The steps into the sub-folder system. Defaults to maximum depth.
 
         Returns
         -------
 
-        final_list: array
+        final_list : array
             Array with the string to the files in the folder and sub folders.
-        folder_list:
+        folder_list :
             Array with the strings to the folders. Only if depth is set.
         """
 
@@ -102,14 +103,20 @@ class Stack:
             r"""
             Returns a list with the contents of a folder.
             """
+            miriad_subfolder = ['header', 'mask', 'image', 'history']
             os.system('ls ' + str(folder) + ' > temp')
             filein = open('temp').readlines()
             list = []
             for i in filein:
-                list += [str(folder) + '/' + str(i.strip())]
+                # We have to exclude sub_folders that are miriad file
+                # sub-folders.
+                if (i.strip() in miriad_subfolder 
+                    and len(folder.split('_')) >= 5):
+                    pass
+                else:
+                    list += [str(folder) + '/' + str(i.strip())]
             os.system('rm -r temp')
             return list
-
         self.folder_list = [self.folder]
         self.list = []
         # Variable to steer the depth of the search.
@@ -128,6 +135,8 @@ class Stack:
                     if os.path.isdir(sub_folder):
                         new_folder_list += [sub_folder]
                         folder_check = True
+                        if len(sub_folder.split('_')) >= 5:
+                            self.list += [sub_folder]
                     if os.path.isfile(sub_folder):
                         if (data_format is not None and data_format
                             in sub_folder):
@@ -156,12 +165,12 @@ class Stack:
         Parameters
         ----------
 
-        list: list
+        list : list
             A list containing the relative or absolute paths to files.
-        old_prefix: string
+        old_prefix : string
             The old path to the folder structure that has to be copied. Has to
             actually appear in all the strings in list.
-        new_prefix: string
+        new_prefix : string
             The path to where the folder structure is to be copied.
 
         Notes
@@ -217,14 +226,14 @@ class Stack:
         Parameters
         ----------
 
-        resolution: float or list
+        resolution : float or list
             This may be either:
                  1. A list with three entries, i.e.
                     [[minor_fwhm], [major_fwhm], [position_angle]]
                  2. A list with two entries, position_angle defaults to 0, i.e.
                     [[minor_fwhm], [major_fwhm]]
                  3. A float. Same minor, major fwhm pa=0
-        folder: string
+        folder : string
             The path tot the folder in which the files are to be stored.
 
         Notes
@@ -275,12 +284,19 @@ class Stack:
                                            scale=scaling)
                         os.system('rm -rf ' +
                                   str(map_.returnName(dataFormat='fits')))
-                    map_ = map_.toFits()
-                    new_stack += [map_]
-                    os.system('rm -rf ' +  map_.returnName(dataFormat=None))
-                    os.system('rm -rf ' +
-                              map_.returnName(dataFormat=None,
-                                              resolution=old_resolution))
+                        map_ = map_.toFits()
+                        new_stack += [map_]
+                        os.system('rm -rf ' +  map_.returnName(dataFormat=None))
+                        os.system('rm -rf ' +
+                                  map_.returnName(dataFormat=None,
+                                                  resolution=old_resolution))
+                    elif (float(max_major_fwhm) == float(map_.resolution[0]) and
+                        float(max_minor_fwhm) == float(map_.resolution[1])):
+                        os.system('rm -rf ' +
+                                  str(map_.returnName(dataFormat='fits')))
+                        map_ = map_.toFits()
+                        new_stack += [map_]
+                        os.system('rm -rf ' +  map_.returnName(dataFormat=None))
         if resolution:
             for map_ in self.stack:
                 try:
@@ -316,10 +332,10 @@ class Stack:
         Parameters
         ----------
 
-        unit: string
+        unit : string
             See :py:func:`astrolyze.maps.fits.FitsMap.change_units`
             for details.
-        folder: string
+        folder : string
             The target folder. By default the maps
             are put into their current folder.
         """
@@ -333,11 +349,15 @@ class Stack:
                 if folder is not None:
                     map_.prefix = folder
                 map_ = map_.toFits()
-            if map_.dataFormat in self.fits_formats:
-                os.system('cp {} {}'.format(map_.map_name, folder))
+            elif map_.dataFormat in self.fits_formats:
+                map_.prefix = folder
+                map_ = map_.update_file()
             old_map = map_.map_name
+            print 'old', old_map
             map_ = map_.change_unit(unit, debug=debug)
-            os.system('rm -rf {}'.format(old_map))
+            print map_.map_name, old_map
+            if old_map.strip() != map_.map_name.strip():
+                os.system('rm -rf {}'.format(old_map))
             new_stack += [map_]
         return new_stack
 
@@ -349,10 +369,10 @@ class Stack:
         Parameters
         ----------
 
-        template: string
+        template : string
             Path to the map that will serve as a template, it may be one of
             the input maps of the stack.
-        folder: string
+        folder : string
             Path to the folder where the output maps are stored.
         """
         # Assure that the folder-string has a '\' at the end.
@@ -420,9 +440,9 @@ class Stack:
         Parameters
         ----------
 
-        target_format: string
+        target_format : string
             The format to which all maps are converted.
-        folder: string
+        folder : string
             Path to the folder where the new maps are stored.
             If ``None`` the current folder will be used.
         """
@@ -462,14 +482,14 @@ class Stack:
         Parameters
         ----------
 
-        folder: string
+        folder : string
            Path to the folder where the text files with the pixel
            to pixel comparisons are stored
 
-       plot: [True | False]
+        plot : [True | False]
            Decides whether to produce pixel-to-pixel plots directly.
 
-       tol: float
+        tol : float
            The tolerance for the maximum difference between the
            values of the pixel of two compared maps. Default to 1e6.
 
@@ -486,7 +506,7 @@ class Stack:
             Parameters
             ----------
 
-            folder: string
+            folder : string
                 Path to the folder where the images should be stored.
             """
             folder = check_folder_state(folder)

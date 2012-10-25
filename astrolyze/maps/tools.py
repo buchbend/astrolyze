@@ -23,20 +23,20 @@ def get_list(folder, data_format=None, depth=False):
     Parameters
     ----------
 
-    folder: string
+    folder : string
         The path to the folder that has to be parsed.
-    data_format: string
+    data_format : string
         Search for specific files containing the string, e.g.
         '.fits'
-    depth: integer
+    depth : integer
         The steps into the subfolder system. Defaults to maximum depth.
 
     Returns
     -------
 
-    final_list: array
+    final_list : array
         Array with the string to the files in the folder and sub folders.
-    folder_list:
+    folder_list :
         Array with the strings to the folders. Only if depth is set.
     """
 
@@ -71,8 +71,8 @@ def get_list(folder, data_format=None, depth=False):
                     new_folder_list += [sub_folder]
                     folder_check = True
                 if os.path.isfile(sub_folder):
-                    if (data_format is not None and data_format
-                        in sub_folder):
+                    if ((data_format is not None and data_format
+                         in sub_folder)):
                         if sub_folder not in final_list:
                             final_list += [sub_folder]
                     if (data_format is None):
@@ -86,8 +86,9 @@ def get_list(folder, data_format=None, depth=False):
         if x > 1000:
             print 'Not all folders contain files.'
             execute = False
-        # Replace the list of folders from last iteration with the 
+        # Replace the list of folders from last iteration with the
         # list of folders of the next.
+
         folder_list = new_folder_list
     if not depth:
         return final_list
@@ -103,12 +104,12 @@ def copy_structure(list, old_prefix, new_prefix):
     Parameters
     ----------
 
-    list: list
+    list : list
         A list containing the relative or absolute paths to files.
-    old_prefix: string
+    old_prefix : string
         The old path to the folder structure that has to be copied. Has to
         actually appear in all the strings in list.
-    new_prefix: string
+    new_prefix : string
         The path to where the folder structure is to be copied.
 
     Notes

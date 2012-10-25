@@ -1,13 +1,13 @@
 # Copyright (C) 2009-2012, Christof Buchbender
 from pysqlite2 import dbapi2 as sqlite
-import astrolyze_prefix as prefix
+from astrolyze.database import prefix_database
 
 class galaxyParams:
     r"""
     Loading source parameter from a database.
     """
     def __init__(self, name):
-        connection = sqlite.connect(str(prefix.dataBase) + 'parameter.db')
+        connection = sqlite.connect(str(prefix_database) + 'parameter.db')
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM Galaxies WHERE Name = ?",(name,))
         self.params = cursor.fetchall()[0]
@@ -33,7 +33,7 @@ class galaxyParams:
 
 class lineParameter:
     def __init__(self, name):
-        connection = sqlite.connect(str(prefix.dataBase) + 'parameter.db')
+        connection = sqlite.connect(str(prefix_database) + 'parameter.db')
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM Lines WHERE Name = ?",(name,))
         self.params =  cursor.fetchall()[0]

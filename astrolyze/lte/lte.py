@@ -16,9 +16,9 @@ def calc_jnu(nu, T):
     Parameters
     ----------
 
-    nu: float
+    nu : float
         Frequency
-    T: float
+    T : float
         Temperature
 
     Notes

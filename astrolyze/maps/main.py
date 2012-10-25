@@ -11,9 +11,10 @@ import numpy as np
 from pysqlite2 import dbapi2 as sqlite
 from scipy.ndimage import gaussian_filter
 
-import astrolyze_prefix as prefix
 import astrolyze.functions.constants as const
 from astrolyze.functions import units
+
+from astrolyze.database import prefix_database
 
 
 class Map:
@@ -26,10 +27,10 @@ class Map:
     Parameters
     ----------
 
-    map_name: string
+    map_name : string
         The name and path of the file that is to be initialized to the maps
         package.
-    name_convention: True or False
+    name_convention : True or False
         Only files following the name_convention are supported.
     '''
     def __init__(self, map_name, name_convention=True):
@@ -42,7 +43,7 @@ class Map:
         self.tmb_names = ['TMB', 'T', 'KKMS']
         self.MJy_per_sterad_names = ['MJPSR', 'MJY/SR']
         self.erg_sec_pixel_names = ['ERGPSECPPIX', 'ERGPSECPPIXEL',
-                                'ERG-S-1-Pixel', 'ERG-S-1']
+                                    'ERG-S-1-Pixel', 'ERG-S-1']
         self.erg_sec_beam_names = ['ERGPSECPBEAM']
         self.erg_sec_sterad_names = ['ERGPERSTER']
         self.known_units = (self.jansky_beam_names + self.jansky_pixel_names +
@@ -50,7 +51,8 @@ class Map:
                             self.erg_sec_beam_names +
                             self.erg_sec_sterad_names +
                             self.erg_sec_pixel_names)
-        # Definition of possible data format endings for the different programs.
+        # Definition of possible data format endings for the different
+        # programs.
         self.gildas_formats = ['gdf', 'mean', 'velo', 'width', 'lmv',
                                'lmv-clean']
         self.fits_formats = ['fits']
@@ -62,16 +64,20 @@ class Map:
         self.map_name = map_name
         # Test if the file exists. Directory for Miriad.
         # File for Fits and GILDAS.
-        if (not os.path.isdir(self.map_name)
-            and not os.path.isfile(self.map_name)):
+        if ((not os.path.isdir(self.map_name)
+             and not os.path.isfile(self.map_name))):
             print 'Exiting: ' + self.map_name + ' does not exist'
             sys.exit()
         # Get Informations from the file name.
         if name_convention:
-            self.map_nameList = map_name.split('_')
+            self.map_nameList = map_name.split('/')[-1].split('_')
+            self.prefix_list = map_name.split('/')[0:-1]
             self.comments = []
             self.source = self.map_nameList[0].split('/')[-1]
-            self.prefix = self.map_nameList[0].replace(self.source, '')
+            if len(self.prefix_list) > 0:
+                self.prefix = string.join(self.prefix_list, '/') + '/'
+            elif len(self.prefix_list) == 0:
+                self.prefix = ''
             self.telescope = self.map_nameList[1]
             self.species = self._resolveSpecies()
             self.fluxUnit = self.map_nameList[3]
@@ -79,17 +85,19 @@ class Map:
             if self.map_name.endswith('.fits'):
                 self.dataFormat = 'fits'
                 self.map_nameList[-1] = self.map_nameList[-1].replace('.fits',
-                                                                    '')
+                                                                      '')
             for i in self.gildas_formats:
                 if self.map_name.endswith('.' + i):
                     self.dataFormat = i
                     self.map_nameList[-1] = self.map_nameList[-1].replace('.' +
-                                                                        i, '')
+                                                                          i,
+                                                                          '')
             for i in self.class_formats:
                 if self.map_name.endswith('.' + i):
                     self.dataFormat = i
                     self.map_nameList[-1] = self.map_nameList[-1].replace('.' +
-                                                                        i, '')
+                                                                          i,
+                                                                          '')
             if os.path.isdir(self.map_name):
                 # Miriad Data Format uses directories
                 self.dataFormat = None
@@ -106,12 +114,13 @@ class Map:
         # Getting information from the databases.
         #!!!!!  TODO: Bas implementation. Try should only contain very short
         # parts of the program otherwise errors in the program are camouflaged.
+        # print  str(prefix_database) + 'parameter.db'
         try:
-            self.connection = sqlite.connect(str(prefix.dataBase) +
-                                         'parameter.db')
+            self.connection = sqlite.connect(str(prefix_database) +
+                                             'parameter.db')
             self.cursor = self.connection.cursor()
             self.cursor.execute("SELECT * FROM Galaxies WHERE Name = ?",
-                            (self.source.upper(),))
+                                (self.source.upper(),))
             self.params = self.cursor.fetchall()[0]
             self.type = self.params[2]
             self.distance = self.params[3]
@@ -132,7 +141,7 @@ class Map:
             self.inclination = None
             self.R25 = None
         try:
-            self.connection = sqlite.connect(str(prefix.dataBase) +
+            self.connection = sqlite.connect(str(prefix_database) +
                                              'parameter.db')
             self.cursor = self.connection.cursor()
             self.cursor.execute("SELECT * FROM Lines WHERE Name = ?",
@@ -145,7 +154,7 @@ class Map:
         except:
             pass
         try:
-            self.connection = sqlite.connect(str(prefix.dataBase) +
+            self.connection = sqlite.connect(str(prefix_database) +
                                              'parameter.db')
             self.cursor = self.connection.cursor()
             self.cursor.execute("SELECT * FROM cal_error WHERE Telescope = "
@@ -299,8 +308,8 @@ class Map:
 
         """
         if self.resolution != 'uk':
-            self.beamSizeSterad = (1.133 * const.a2r ** 2 * self.resolution[0] *
-                             self.resolution[1])
+            self.beamSizeSterad = (1.133 * const.a2r ** 2 * self.resolution[0]
+                                   * self.resolution[1])
             if self.distance is not None:
                 self.beamSizeM2 = (1.133 * (self.distance * const.a2r *
                                             const.pcInM) ** 2 *
@@ -309,8 +318,8 @@ class Map:
             self.beamSize = np.nan
 
     def change_map_name(self, source=None, telescope=None, species=None,
-                      fluxUnit=None, resolution=None, comments=None,
-                      dataFormat=False, prefix=None):
+                        fluxUnit=None, resolution=None, comments=None,
+                        dataFormat=False, prefix=None):
         '''
         This function can be used to change the names of the maps and make a
         copy of the file to the new name and/or location.
@@ -338,28 +347,26 @@ class Map:
             self.comments = self.comments + comments
         if len(self.comments) == 0:
             if  str(self.map_name) != (str(prefix) + str(source) + '_' +
-                                      str(telescope) + '_' + str(species) + '_'
-                                      + str(fluxUnit) + '_' + str(resolution) +
-                                      '.' + str(dataFormat)):
+                                       str(telescope) + '_' + str(species) +
+                                       '_' + str(fluxUnit) + '_' +
+                                       str(resolution) + '.' +
+                                       str(dataFormat)):
                 os.system('cp ' + str(self.map_name) + ' ' +
                           str(prefix) + str(source) + '_' + str(telescope) +
-                          '_' + str(species) + '_' + str(fluxUnit) + '_' +
-                          self.resolutionToString(self.resolution) + '.' +
-                          str(dataFormat))
+                          '_' + str(species) + '_' + str(fluxUnit) +
+                          '_' + self.resolutionToString(self.resolution) +
+                          '.' + str(dataFormat))
                 self.map_name = (str(prefix) + str(source) + '_' +
-                                str(telescope) + '_' + str(species) + '_' +
-                                str(fluxUnit) + '_' +
-                                self.resolutionToString(self.resolution) +
-                                '.' + str(dataFormat))
+                                 str(telescope) + '_' + str(species) + '_' +
+                                 str(fluxUnit) + '_' +
+                                 self.resolutionToString(self.resolution) +
+                                 '.' + str(dataFormat))
 
         if len(self.comments) != 0:
-            if (str(self.map_name) != str(prefix) + str(source) + '_' +
-                                     str(telescope) + '_' + str(species) +
-                                     '_' + str(fluxUnit) + '_' +
-                                     str(resolution) + '_' +
-                                    '_'.join(self.comments) + '.' +
-                                     str(dataFormat)):
-
+            if ((str(self.map_name) != str(prefix) + str(source) + '_' +
+                 str(telescope) + '_' + str(species) + '_' + str(fluxUnit) +
+                 '_' + str(resolution) + '_' + '_'.join(self.comments) + '.' +
+                 str(dataFormat))):
                 os.system('cp ' + str(self.map_name) + ' ' + str(prefix) +
                           str(source) + '_' + str(telescope) + '_' +
                           str(species) + '_' + str(fluxUnit) + '_' +
@@ -367,11 +374,11 @@ class Map:
                           '_'.join(self.comments) + '.' + str(dataFormat))
 
                 self.map_name = (str(prefix) + str(source) + '_' +
-                                str(telescope) + '_' + str(species) + '_' +
-                                str(fluxUnit) + '_' +
-                                self.resolutionToString(self.resolution) +
-                                '_' + '_'.join(self.comments) +
-                                '.' + str(dataFormat))
+                                 str(telescope) + '_' + str(species) + '_' +
+                                 str(fluxUnit) + '_' +
+                                 self.resolutionToString(self.resolution) +
+                                 '_' + '_'.join(self.comments) +
+                                 '.' + str(dataFormat))
 
     def returnName(self, source=None, telescope=None, species=None,
                    fluxUnit=None, resolution=None, comments=None,
@@ -413,8 +420,8 @@ class Map:
                         self.resolutionToString(resolution))
         if len(comments) != 0:
             if dataFormat is not None:
-                return (str(prefix) + str(source) + '_' + str(telescope) + '_' +
-                        str(species) + '_' + str(fluxUnit) + '_' +
+                return (str(prefix) + str(source) + '_' + str(telescope) +
+                        '_' + str(species) + '_' + str(fluxUnit) + '_' +
                         self.resolutionToString(resolution) + '_' +
                         '_'.join(comments) + '.' + str(dataFormat))
             if dataFormat is None:
@@ -424,24 +431,24 @@ class Map:
                         '_'.join(comments))
 
     def flux_conversion(self, x=None, major=None, minor=None,
-                 nu_or_lambda='nu', direction=None):
+                        nu_or_lambda='nu', direction=None):
         r"""
         Calulates conversion between K.km/s and Jy/beam and vise versa.
 
         Parameters
         ----------
 
-        x: float [GHz]
+        x : float [GHz]
             Wavelength/frequency. Defaults to the frequency of the loaded map,
             i.e. self.frequency
-        major: float
+        major : float
             Major Axis Beam (arcsec). Default None, i.e. using self.resolution.
-        minor: float
+        minor : float
             Minor Axis Beam(arcsec). Default None, i.e. using self.resolution.
-        nu_or_lambda: string
+        nu_or_lambda : string
             Choose type of x: frequency = ``'nu'`` or wavelength =
             ``'lambda'``.
-        direction: string
+        direction : string
             choose conversion direction ``'kelvin_to_jansky'``
             means Kelvin to Jansky; ``'jansky_to_kelvin'`` Jansky to Kelvin.
 
@@ -452,19 +459,19 @@ class Map:
         does not need any input. Otherwise this has to be given explicitly.
         """
         if direction is not None and (direction != 'kelvin_to_jansky'
-           or direction != 'jansky_to_kelvin'):
+                                      or direction != 'jansky_to_kelvin'):
             print ('Keyword Error direction has to be kelvin_to_jansky or'
                    'jansky_to_kelvin -> Exit!')
         if self.fluxUnit in ['JyB', 'Jy/Beam'] and direction is None:
             direction = 'jansky_to_kelvin'
         if self.fluxUnit in ['Tmb', 'T', 'Kkms'] and direction is None:
             direction = 'kelvin_to_jansky'
-        if (self.fluxUnit not in ['JyB', 'Jy/Beam']):
-            if (self.fluxUnit not in ['Tmb', 'T', 'Kkms']):
+        print self.fluxUnit
+        if ((self.fluxUnit not in ['JyB', 'Jy/Beam'] and self.fluxUnit
+             not in ['Tmb', 'T', 'Kkms'])):
                 print ('Map is not in the right units has to be Jy/beam or '
                        'Kelvin something. -> Exit!')
                 sys.exit()
-            sys.exit()
         if nu_or_lambda == 'lambda':
             if direction == 'jansky_to_kelvin':
                 def fcon(x, major, minor):

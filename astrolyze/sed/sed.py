@@ -14,6 +14,7 @@ import astrolyze.maps.stack as stack
 
 import astrolyze.maps.tools as mtools
 import astrolyze.functions.astro_functions as astro_functions
+import astrolyze.functions.constants as const
 
 
 class SedStack(stack.Stack):
@@ -57,7 +58,7 @@ class SedStack(stack.Stack):
         Parameters
         ----------
 
-        filein: string
+        filein : string
             Path to file that cotains the coordinates format has to be:
 
             source_name RA DEC
@@ -68,8 +69,8 @@ class SedStack(stack.Stack):
         Returns
         -------
 
-        self.coordinates: list
-        self.source_names: list
+        self.coordinates : list
+        self.source_names : list
             Format::
             [[source_name_1, RA_1, DEC_1] , ... , [source_name_N, RA_N, DEC_N]]
 
@@ -134,7 +135,7 @@ class SedStack(stack.Stack):
         Parameters
         ----------
 
-        folder: string
+        folder : string
             The path to the folder where the temperature, mass, beta and chisq
             maps are created. If the folder does not exist is will be created.
 
@@ -237,14 +238,14 @@ class Sed:
     Parameters
     ----------
 
-    source_name: string
+    source_name : string
         The name of the source to which the SED corresponds to.
-    coordinate: list
+    coordinate : list
         The coordinate of the source. [RA, DEC]
-    flux_array: list
+    flux_array : list
         The array that is created by SedStack with the entries of wavelength,
         flux, and error.
-    init_fit: logic
+    init_fit : logic
         Steers whether the SED is fitted already during creation.
     """
     def __init__(self, source_name, coordinate, flux_array,
@@ -307,7 +308,7 @@ class Sed:
         ..  :py:func:`astrolyze.functions.astro_functions.grey_body_fit`
         """
         try:
-            (self.p2, 
+            (self.p2,
              self.fit_chisq) = astro_functions.grey_body_fit(
                                            data=self.flux_array,
                                            start_parameter=self.p1,
@@ -325,22 +326,22 @@ class Sed:
         # print 'Fit-Done'
 
     def plot_sed(self, axes=plt.gca(), nu_or_lambda='nu', color='black',
-                 linewidth=0.5, xRange='normal'):
+                 linewidth=0.5, x_range='normal'):
         '''Plot a multi component greybody model.
 
         Parameters
         ----------
 
-        nu_or_lambda:
+        nu_or_lambda :
            plot against frequency ``'nu'`` or wavelenght ``'lambda'``
-        kappa:
+        kappa :
             The kappa to use. ``'easy'`` or ``'Kruegel'``. Please refer
             to :py:func:`functions.astroFunctions.greyBody` for more
             information.
-        xRange: PLEASE ADD DESCRIPTION
-        linewidth: float
+        xRange : PLEASE ADD DESCRIPTION
+        linewidth : float
             The linewidth of the plotted lines. Default to 0.5.
-        color: matplotlib conform color
+        color : matplotlib conform color
             the color of the plotted lines. Default to ``'black'``.
         '''
         if not self.fit_done:
@@ -349,7 +350,7 @@ class Sed:
             sys.exit()
         if self.p2 ==  None:
             pass
-        if xRange == 'LTIR':
+        if x_range == 'LTIR':
         # Plot the SED in the range of the determination
             # of the L_TIR: 3-1100 micron
             xmin =  3e-6# micron
@@ -359,18 +360,18 @@ class Sed:
             xmax = const.c/xmin/1e9
             step = 0.1
 
-        if xRange == 'normal':
+        if x_range == 'normal':
             # arbitrary range definition
             xmin = 1e-2
             xmax = 3e5
             step = 0.5
-        if type(xRange) == list:
-            xmin = xRange[0]
-            xmax = xRange[1]
-            if len(xRange) < 3:
+        if type(x_range) == list:
+            xmin = x_range[0]
+            xmax = x_range[1]
+            if len(x_range) < 3:
                 step = 0.1
             else:
-                step = xRange[2]
+                step = x_range[2]
         x = np.arange(xmin,xmax,step)
         # multi_component_grey_body gives the summed 'model' and the components
         # grey'. 'grey' is a List
@@ -382,11 +383,11 @@ class Sed:
             model,grey = astro_functions.multi_component_grey_body(self.p2, x,
                                                                    'nu',
                                                                    self.kappa)
-            y=copy(x)
-            modelLambda =copy(model)
+            y=x.copy()
+            modelLambda =model.copy()
             greyLambda = []
             for i in range(len(grey)):
-                greyLambda += [copy(grey[i])]
+                greyLambda += [grey[i].copy()]
             for i in range(len(x)):
                 y[i]=(const.c/(x[len(x)-i-1]*1e9))/1e-6
             for i in range(len(model)):
@@ -396,10 +397,105 @@ class Sed:
             x=y
             model =modelLambda
             grey = greyLambda
-        plt.loglog(x,model,ls='-', color=color, label='_nolegend_', lw=0.5,
+        plt.loglog(x, model, ls='-', color=color, label='_nolegend_', lw=0.5,
                    marker='')
         linestyles = [':','-.','-']
         j=0
         for i in grey:
             plt.loglog(x, i, color=color, ls=linestyles[j], lw=0.5, marker='')
             j+=1
+
+    def create_figure(self, save=True, plotLegend=False,
+                     color=['black'], marker=['x'], title=None, x_label=None,
+                     y_label=None, nu_or_lambda='nu', fontdict=None,
+                     textStringLoc=[1,1], lineWidth=0.5,
+                     kappa='easy', x_range='normal'):
+        r""" Creates a quick preview of the loaded SED. TODO: extend
+        documentation.
+        """
+        fig1 = plt.figure()
+        fig1ax1 = fig1.add_subplot(111)
+        textString = ''
+        for i in range(len(self.p2[0])):
+            textString += ('T=' + str('%1.1f' % self.p2[0][i]) +
+                           ' K\nM=' + str("%1.2e" % self.p2[1][i]) + ' Msun\n')
+
+        if len(self.p2[0])==2:
+            textString+= 'N1/N2 = '+str('%i'%(self.p2[1][0]/self.p2[1][1]))+'\n'
+        textString += ('beta = ' + str("%1.2f" % self.p2[2][0]) +
+                       '\nchi$^2$ =' + str("%1.2f" % self.fit_chisq) + '\n')
+        # sets the limits of the plot Page
+        plotSize = 0.9 # how much in percentace should the plotpage be larger
+                       # than the plotted values?
+        if nu_or_lambda=='nu':
+            xLimNu = [min(self.flux_array[0]) -
+                      min(self.flux_array[0]) * plotSize,
+                      max(self.flux_array[0]) + max(self.flux_array[0])]
+
+        if nu_or_lambda == 'lambda':
+            newSelf_Flux_Array = []
+            for i in self.flux_array[0]:
+                print i
+                newSelf_Flux_Array += [astro_functions.frequency_to_wavelength(i)]
+
+            self.flux_array[0] =newSelf_Flux_Array
+            xLimNu = [min(self.flux_array[0]) -
+                      min(self.flux_array[0]) * plotSize * 2,
+                      max(self.flux_array[0]) +
+                      max(self.flux_array[0]) * plotSize]
+        ylim = [min(self.flux_array[1]) - min(self.flux_array[1]) * plotSize,
+                max(self.flux_array[1]) +
+                max(self.flux_array[1]) * plotSize / 2]
+        # makes the plot page squared; TBD not really square yet
+        fig1ax1.set_xlim(xLimNu[0],xLimNu[1])
+        fig1ax1.set_ylim(ylim[0],ylim[1])
+
+        # PLots the model given in self.p2
+        self.plot_sed(axes=plt.gca(), nu_or_lambda=nu_or_lambda, color='black',
+                      linewidth=0.5, x_range=x_range)
+
+        markersize =7
+        #Plotting the data points
+        parted = [1]
+        if len(parted)==1:
+            fig1ax1.errorbar(self.flux_array[0], self.flux_array[1],
+                         yerr=self.flux_array[2], fmt='o', marker='p',
+                         mfc='None', mew=0.5, mec='#00ffff', ms=markersize,
+                         color='black', lw=lineWidth)
+        else:
+            for i in range(len(parted)):
+                if i == 0:
+                    fig1ax1.errorbar(self.flux_array[0][0:parted[i]],
+                                 self.flux_array[1][0:parted[i]],
+                                 yerr=self.flux_array[2][0:parted[i]],
+                                 fmt=marker[i],
+                                 marker=marker[i], mfc='None', label=label[i],
+                                 mew=0.5, mec=color[i], ms=markersize,
+                                 color=color[i], lw=lineWidth)
+                else:
+                    fig1ax1.errorbar(self.flux_array[0][parted[i-1]:parted[i]],
+                                self.flux_array[1][parted[i-1]:parted[i]],
+                                yerr=self.flux_array[2][parted[i-1]:parted[i]],
+                                fmt=marker[i], marker=marker[i],
+                                mfc='None', label=label[i], mew=0.5,
+                                mec=color[i], ms=markersize, color=color[i],
+                                lw=lineWidth)
+
+        # setting up legend,title, xlabel.
+        if plotLegend == 'yes':
+            fontdict={'size':'11'}
+            plt.legend(loc='upper right', numpoints=1, fancybox=False,
+                      prop=fontdict, markerscale=1)
+        fontdict={'size':'17'}
+        plt.text(90,0.2,s=textString, fontdict=fontdict, alpha=0.4)
+        if title:
+            fig1ax1.title(title)
+        if x_label:
+            fig1ax1.xlabel(x_label)
+        if y_label:
+            fig1ax1.ylabel(y_label)
+        fig1ax1.axis([xLimNu[0],xLimNu[1],ylim[0],ylim[1]])
+        if save:
+            fig1.savefig(self.source_name + '_SED.eps', dpi=None, facecolor='w',
+                    edgecolor='w',orientation='portrait', papertype='a5',
+                    format='eps',bbox_inches='tight')

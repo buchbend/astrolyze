@@ -72,14 +72,14 @@ class FitsMap(main.Map):
 
         Parameters
         ----------
-        backup: True or False
+        backup : True or False
             If True a copy of the original file is created having the extension
             ``"_old"`` after the file endind, i.e. some_name.fits -> some_name.
             fits_old.
 
         Returns
         --------
-        FitsMap: Instance
+        FitsMap : Instance
 
         Notes
         -----
@@ -90,7 +90,7 @@ class FitsMap(main.Map):
         --------
         """
         map_name = self.returnName()
-        if backup == True:
+        if backup is True:
             os.system('cp ' + str(map_name) + ' ' + str(map_name) + '_old')
         os.system('rm ' + str(map_name))
         try:
@@ -171,8 +171,9 @@ class FitsMap(main.Map):
         is given. If not only  steradians are calculated.
         """
         _pixSize = np.asarray([float(math.fabs(self.header['CDELT1']) *
-                             const.d2r), float(math.fabs(self.header['CDELT2'])
-                             * const.d2r)])
+                                     const.d2r),
+                               float(math.fabs(self.header['CDELT2'])
+                                     * const.d2r)])
         _pixSizeSterad = _pixSize[0] * _pixSize[1]
         self.pixelSizeSterad = math.sqrt((float(_pixSizeSterad)) ** 2)
         if self.distance is not None:
@@ -189,7 +190,7 @@ class FitsMap(main.Map):
             Still in Development. Maybe Never finished.
             **Do Not Use**
         """
-        if oldRes == None:
+        if oldRes is None:
             oldMajor = self.resolution[0]
             oldMinor = self.resolution[1]
             pa = self.resolution[2]
@@ -217,15 +218,15 @@ class FitsMap(main.Map):
 
         Parameters
         ----------
-        x1y1: list
+        x1y1 : list
             The upper right corner of the rectangle to cut out.
             Either in:
                 * pixel coordinated [x1, y1]
             Or:
                 * equatorial coordinates ['RA','DEC']
-        x2y2: list
+        x2y2 : list
             The lower left corner in the same format as x1y1.
-        pix_or_coord: string
+        pix_or_coord : string
             Either ``"pix"`` or ``"coord"`` choosing what **x1y1**
             and **x2y2** represents.
 
@@ -265,7 +266,7 @@ class FitsMap(main.Map):
                           * self.header['CDELT1'] + self.header['CRVAL1'])
         self.header['CRVAL1'] = self.NewCRVal1
         self.NewCRVal2 = ((y1 - math.floor(self.header['CRPIX2']))
-                         * self.header['CDELT2'] + self.header['CRVAL2'])
+                          * self.header['CDELT2'] + self.header['CRVAL2'])
         self.header['CRVAL2'] = self.NewCRVal2
         print (str(len(range(int(x1), int(x2)))),
                str(len(range(int(y1), int(y2)))))
@@ -296,7 +297,7 @@ class FitsMap(main.Map):
             self.data = self.data[0]
         x1, y1 = self.sky2pix(coords[0])
         x2, y2 = self.sky2pix(coords[1])
-        if centerCoord != None:
+        if centerCoord is not None:
             centx, centy = self.sky2pix(centerCoord)
             print centy, centx
         values = [[], []]
@@ -324,7 +325,7 @@ class FitsMap(main.Map):
                 loop = range(x1, x2)
             for i in loop:
                 values[0] += [self.data[y1][i]]
-                if radial == True:
+                if radial is True:
                     values[1] += [(i - centx) * self.pixSize1 / 60]
                 else:
                     values[1] += [i]
@@ -339,7 +340,7 @@ class FitsMap(main.Map):
         Parameters
         ----------
 
-        position: list
+        position : list
             The position in RA,DEC where the aperture is to be applied.
             The Format has to be either:
 
@@ -351,7 +352,7 @@ class FitsMap(main.Map):
         Returns
         -------
 
-        flux: float
+        flux : float
             The flux at the given position.
 
         See Also
@@ -375,7 +376,7 @@ class FitsMap(main.Map):
 
         Parameters
         ----------
-        position: list
+        position : list
             The position in RA,DEC where the aperture is to be applied.
             The Format has to be either:
 
@@ -384,10 +385,10 @@ class FitsMap(main.Map):
             or:
                 * [RA, DEC] where RA and DEC being the coordinates in Grad.
 
-        apertureSize: float [arcsec]
+        apertureSize : float [arcsec]
             The diameter of the aperture to be applied.
 
-        backgroundSize: float [arcsec]
+        backgroundSize : float [arcsec]
             The Size of the Anulli in which the background is to be
             estimated. The number to be given here correspond to the diameter
             of the circle in [arcsec ] descibing the outer border of the
@@ -396,23 +397,23 @@ class FitsMap(main.Map):
             backgroundSize. Default is 0 and thus **no background substaction**
             is applied.
 
-        output: True or False
+        output : True or False
             If True the function reports the calculated values during
             execution.
 
-        annotion: logical
+        annotion : logical
             If True a kvis annotation file ``"apertures.ann"`` containing the
             aperture used to integrate the flux is created. Default is False,
             i.e. not to create the aperture.
 
-        newAnnotation: logical
+        newAnnotation : logical
             If True ``"apertures.ann"`` is overwritten. If False an old
             ``"apertures.ann"`` is used to append the new apertures. If it not
             exists a new one is created. The latter is the default.
 
         Returns
         -------
-        List:  [Sum, Mean, Number of pixels]
+        List :  [Sum, Mean, Number of pixels]
 
         Notes
         -----
@@ -439,9 +440,9 @@ class FitsMap(main.Map):
                 sys.exit()
          # Check if the pixel size is quadratic, if not the function does not
          # work correctly (yet)
-        if (((self.pixSize1) ** 2 - (self.pixSize2) ** 2) ** 2 <
-            ((self.pixSize1) ** 2) * 0.01):
-            if output == True:
+        if ((((self.pixSize1) ** 2 - (self.pixSize2) ** 2) ** 2 <
+             ((self.pixSize1) ** 2) * 0.01)):
+            if output is True:
                 print ('Pixel Size X: ' + str(self.pixSize1 / (1. / 60 / 60))
                        + ' arcsec')
                 print ('Pixel Size Y: ' + str(self.pixSize2 / (1. / 60 / 60))
@@ -449,7 +450,7 @@ class FitsMap(main.Map):
                 print ('Pixel Size quadratic to 1%, Go on with '
                        'calculation of Apertures')
         else:
-            if output == True:
+            if output is True:
                 print self.pixSize1, self.pixSize2
                 print ('Pixel Size *NOT* quadratic: Exit the program, '
                        'please regrid!')
@@ -482,10 +483,13 @@ class FitsMap(main.Map):
         if backgroundSize != 0:
             for x in range(int(x_min), int(x_max)):
                 for y in range(int(y_min), int(y_max)):
-                    if (math.floor(math.sqrt((xCenter - x) ** 2 +
-                        (yCenter - y) ** 2)) < backgroundSteps
-                        and math.floor(math.sqrt((xCenter - x) ** 2 +
-                        (yCenter - y) ** 2)) > apertureSteps):
+                    if ((math.floor(math.sqrt((xCenter - x) ** 2 +
+                                              (yCenter - y) ** 2)) <
+                         backgroundSteps and math.floor(math.sqrt((xCenter - x)
+                                                                  ** 2 +
+                                                                  (yCenter - y)
+                                                                  ** 2))
+                         > apertureSteps)):
                         sumBackgnd += self.data[y][x]
                         NBackgnd += 1
             backgndMean = sumBackgnd / NBackgnd
@@ -494,7 +498,7 @@ class FitsMap(main.Map):
         for x in range(int(x_min), int(x_max)):
             for y in range(int(y_min), int(y_max)):
                 if (math.floor(math.sqrt((xCenter - x) ** 2 + (yCenter - y) **
-                    2)) < apertureSteps):
+                                         2)) < apertureSteps):
                     if backgroundSize != 0:
                         sum += self.data[y][x] - backgndMean
                     else:
@@ -507,14 +511,14 @@ class FitsMap(main.Map):
         if backgroundSize == 0:
             mean = (sum / N)
             result = [sum, mean, N]
-        if output == True:
+        if output is True:
             print ('Sum:', result[0], 'Mean:', result[1],
                    'Number of Pixel:', result[2])
-        if newAnnotation == False:
+        if newAnnotation is False:
             fileout = open('apertures.ann', 'a')
-        if newAnnotation == True:
+        if newAnnotation is True:
             fileout = open('apertures.ann', 'w')
-        if annotation == True:
+        if annotation is True:
             position = astFunc.equatorial_to_degrees(position)
             apertureString = ('CROSS ' +
                               str(position[0]) + ' ' +
@@ -536,17 +540,17 @@ class FitsMap(main.Map):
 
         Parameters
         -----------
-        coordinate: list
+        coordinate : list
             Either ['RA','DEC'], e.g. ['1:34:7.00', '+30:47:52.00'] in
             equatorial coordinates or [RA, DEC] in GRAD.
-        origin: int
+        origin : int
            ``0`` or ``1``; this steers how the first pixel is counted
            ``0`` is for usage with python as it starts to count from zero.
            ``1`` is the fits standart.
 
         Returns
         --------
-        pixel: List
+        pixel : List
             [x, y]; the pixel coordinates of the map.
         """
         # Equatorial_to_degrees is only possible to execute if coordinate is in
@@ -568,16 +572,16 @@ class FitsMap(main.Map):
 
         Parameters
         -----------
-        pixel: list
+        pixel : list
             Pixel of the map; [x, y].
-        degrees_or_equatorial: string
+        degrees_or_equatorial : string
             Either ``"degrees"`` or ``"equatorial"``. Choosing the
             Format of the coordintates to be returnes.
             Defaults to ``"degrees"``.
 
         Returns
         --------
-        coordinate: list
+        coordinate : list
             The coordinates corresponding to pixel. Either in Degrees or in
             Equatorial coordinates, depending on the parameter
             *degrees_or_equatorial*.
@@ -602,26 +606,26 @@ class FitsMap(main.Map):
 
         Parameters
         ----------
-        beamConv: list
+        beamConv : list
             A list of the [major axis, minor axis, position_angle]
             of the gaussion used for convolution.
-        beamOrig:
+        beamOrig :
             Same format as beamConv but giving the parameters of the original
             beam of the map. As Default the self.resolution list is used.
-        dx1, dy1: floats
+        dx1, dy1 : floats
             Being the pixel size in both dimensions of the map.
             By default the ``CDELT1`` and ``CDELT2`` keywords from the
             fits header are used.
 
         Returns
         -------
-        fac:
+        fac :
             Factor for the output Units.
-        amp:
+        amp :
             Amplitude of resultant gaussian.
-        bmaj, bmin:
+        bmaj, bmin :
             Major and minor axes of resultant gaussian.
-        bpa:
+        bpa :
             Position angle of the resulting gaussian.
         """
         #include 'mirconst.h'
@@ -630,31 +634,31 @@ class FitsMap(main.Map):
         bmaj2, bmin2, bpa2 = beamConv
         bmaj2, bmin2, bpa2 = (bmaj2 * const.arcsecInGrad, bmin2 *
                               const.arcsecInGrad, bpa2 * const.arcsecInGrad)
-        if beamOrig == None:
+        if beamOrig is None:
             bmaj1, bmin1, bpa1 = self.resolution
             bmaj1, bmin1, bpa1 = (bmaj1 * const.arcsecInGrad,
                                   bmin1 * const.arcsecInGrad,
                                   bpa1 * const.arcsecInGrad)
-        if dx1 == None:
+        if dx1 is None:
             dx1 = self.header['CDELT1']
-        if dy1 == None:
+        if dy1 is None:
             dy1 = self.header['CDELT1']
         cospa1 = math.cos(bpa1)
         cospa2 = math.cos(bpa2)
         sinpa1 = math.sin(bpa1)
         sinpa2 = math.sin(bpa2)
         alpha = ((bmaj1 * cospa1) ** 2
-                + (bmin1 * sinpa1) ** 2
-                + (bmaj2 * cospa2) ** 2
-                + (bmin2 * sinpa2) ** 2)
+                 + (bmin1 * sinpa1) ** 2
+                 + (bmaj2 * cospa2) ** 2
+                 + (bmin2 * sinpa2) ** 2)
         beta = ((bmaj1 * sinpa1) ** 2
                 + (bmin1 * cospa1) ** 2
                 + (bmaj2 * sinpa2) ** 2
                 + (bmin2 * cospa2) ** 2)
         gamma = (2 * ((bmin1 ** 2 - bmaj1 ** 2)
-                * sinpa1 * cospa1
-                + (bmin2 ** 2 - bmaj2 ** 2)
-                * sinpa2 * cospa2))
+                      * sinpa1 * cospa1
+                      + (bmin2 ** 2 - bmaj2 ** 2)
+                      * sinpa2 * cospa2))
         s = alpha + beta
         t = math.sqrt((alpha - beta) ** 2 + gamma ** 2)
         bmaj = math.sqrt(0.5 * (s + t))
@@ -676,14 +680,18 @@ class FitsMap(main.Map):
 
         Parameters
         ----------
-        final_unit: string
+        final_unit : string
             The unit to change the map to. Possible are:
-                1. Jy/beam: ``"JyB"``, ``"Jy/Beam"``
-                2. Jy/pixel: ``"JyP"``, ``"JyPix"``, ``"JyPix"``
-                3. MJy/sterad: ``"MJyPsr"``, ``"MJy/sr"``
+                1. Jy/beam: ``"JyB"`` ``"JyBeam"``
+                2. Jy/pixel: ``"JyP"``, ``"JyPix"``, ``"JyPixel"``
+                3. MJy/sterad: ``"MJyPsr"``, ``"MJPSR"``, ``"MJy/sr"``
                 4. Main Beam Temperature: ``"Tmb"``, ``"T"``, ``"Kkms"``
-                6. erg/s/pixel: ``"ergs"``
-        frequency: float
+                5. erg/s/pixel: ``"ergs"`` ``"ERGPSECPPIX"``,
+                                ``"ERGPSECPPIXEL"``, ``"ERG-S-1-Pixel"``,
+                                ``"ERG-S-1"``
+                6. erg/s/beam: ``"ERGPSECPBEAM"``
+                7. erg/s/sterad ``"ERGPERSTER"``
+        frequency : float
             Can be used if self.frequency is NaN. The frequency (in GHz) is
             needed for conversions between temperature and Jansky/Erg scale.
             Other conversions don't need it.
@@ -697,10 +705,11 @@ class FitsMap(main.Map):
             conversions may work properly.
         """
         # Definition of the unit nomenclatures.
-        _jansky_beam_names = ['JYB']
-        _jansky_pixel_names = ['JYPIX', 'JYP', 'JY/PIXEL']
+        # TODO!! This should be Uset input.
+        _jansky_beam_names = ['JYB', 'JyBeam']
+        _jansky_pixel_names = ['JYPIX', 'JYP', 'JYPIXEL']
         _tmb_names = ['TMB', 'T', 'KKMS']
-        _MJy_per_sterad_names = ['MJPSR', 'MJY/SR']
+        _MJy_per_sterad_names = ['MJPSR', 'MJYPSR', 'MJY/SR']
         _erg_sec_pixel_names = ['ERGPSECPPIX', 'ERGPSECPPIXEL',
                                 'ERG-S-1-Pixel', 'ERG-S-1']
         _erg_sec_beam_names = ['ERGPSECPBEAM']
@@ -720,7 +729,7 @@ class FitsMap(main.Map):
             Parameters
             ----------
 
-            invert: logic
+            invert : logic
                 If ``"True"`` the conversion is done from ``Jy/Beam``
                 to `` Jy/Pixel``. If ``"False"`` vice-versa.
             '''
@@ -790,19 +799,19 @@ class FitsMap(main.Map):
                     self.header.update('BUNIT', 'K km/s')
                 else:
                     print ('Wavelength needed to convert between Jy and K.'
-                          '\nCannot continue -> Exit!')
+                           '\nCannot continue -> Exit!')
                     sys.exit()
 
         def ErgSecBeam_JyBeam(invert=False):
             if not invert:
                 factor = units.JyBToErgsB(None, self.distance, self.wavelength,
-                                    invert=True, map_use=True)
+                                          invert=True, map_use=True)
                 self.data = self.data * factor
                 self.fluxUnit = 'JyB'
                 self.header.update('BUNIT', 'Jy/beam')
             if invert:
                 factor = units.JyBToErgsB(None, self.distance, self.wavelength,
-                                    invert=False, map_use=True)
+                                          invert=False, map_use=True)
                 self.data = self.data * factor
                 self.fluxUnit = 'ErgPSecPBeam'
                 self.header.update('BUNIT', 'ergs s^-1 beam^-1')
@@ -1001,9 +1010,9 @@ class FitsMap(main.Map):
         elif self.fluxUnit.upper() not in _known_units:
             print ('Flux unit not known to astrolyze - '
                    'Can not continue')
-            if debug == True:
+            if debug is True:
                 pass
-            elif debug == False:
+            elif debug is False:
                 sys.exit()
         return FitsMap(self.returnName())
 
@@ -1055,7 +1064,7 @@ class FitsMap(main.Map):
 
         Parameters
         ----------
-        prefix: string or None
+        prefix : string or None
             Path to location where the new gildas file will be stored.
             The default is None which defaults to the current self.prefix.
 
@@ -1072,9 +1081,10 @@ class FitsMap(main.Map):
         _miriad_name = self.returnName(prefix=_prefix, dataFormat=None)
         os.system('rm -rf ' + _miriad_name)
         _fileout.write('fits in=' + str(self.map_name) + ' out=' +
-                      _miriad_name + ' op=xyin\n')
+                       _miriad_name + ' op=xyin\n')
         os.system('fits in=' + str(self.map_name) + ' out=' +
                   _miriad_name + ' op=xyin')
+        os.system('rm miriad.out')
         return miriad.MiriadMap(_miriad_name)
 
     def toFits(self):

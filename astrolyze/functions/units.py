@@ -24,21 +24,19 @@ def WmToKkms(x, resolution=0, sterad=False, ToKKms=False, m2_or_cm2='m',
 
     Parameters
     ----------
-
-    x: float
+    x : float
         wavelenght/frequency [GHZ].
-    resolution: float
-    ToKKms: True or False
+    resolution : float
+    ToKKms : True or False
         Direction of the conversion.
-    sterad: True or False
+    sterad : True or False
         If False convert from per beam to per sterad.
-    m2_or_cm2: string
+    m2_or_cm2 : string
         Choose if conversion to/from W m-2 oder W cm-2. ``'m2'`` or ``'cm2'``.
 
     Returns
     -------
-
-    factor: float
+    factor : float
         The conversion factor.
     '''
     # To W=Joule/s => Joule = 1e7 erg
@@ -71,23 +69,20 @@ def ergToKkms(x, toErg=False, nu_or_lambda='nu'):
 
     Parameters
     ----------
-
-    x: float
+    x : float
         wavelenght/frequency [GHZ],
-    toErg: True or False
+    toErg : True or False
         True converts the other direction, i.e. from K km/s to ergs/cm2/s/sr.
-    nu_or_lambda: string
+    nu_or_lambda : string
          Choose type of x: frequency = ``'nu'`` or wavelenght = ``'lambda'``.
 
     Returns
     -------
-
-    factor: float
+    factor : float
         The conversion factor.
 
     Notes
     -----
-
     Approved.
     """
     # To W=Joule/s => Joule = 1e7 erg
@@ -118,14 +113,14 @@ def Int2Lum(distance_in_pc, cm_or_m='cm'):
 
     Parameters
     ----------
-    distance_in_pc: float
+    distance_in_pc : float
         Distance to the source in parsecs.
-    cm_or_m: string
+    cm_or_m : string
         Choose wether the out put is in cm^2 = ``'cm'`` or in
         m^2 = ``'m'``.
+
     Notes
     -----
-
     Approved.
     """
     if cm_or_m == 'm':
@@ -140,22 +135,18 @@ def JyBToErgsB(input_flux, distance, wavelength, invert=False, map_use=False):
 
     Parameters
     ----------
-
-    input_flux: float
+    input_flux : float
         Flux to be converted in Jy/beam
-    distance: float
+    distance : float
         Distance to the source in parsec.
-    wavelength: float
+    wavelength : float
         Wavelength :math:`\lambda` in :math:`\mu m`.
-    map_use: 
-
+    map_use :
 
     Returns
     -------
-
     The conversion factor (map_use = true) or the already converted flux
     (map_use = False).
-
     r"""
     # change from Jansky to erg s-1 cm-2 Hz-1
     conversion = JanskyToErgs_cm
@@ -182,24 +173,22 @@ def JyBToWM2Kpc2(input_flux, distance, major, minor, wavelength,
 
     Parameters
     ----------
-
-    input_flux:  float
+    input_flux :  float
         Flux to be converted.
-    distance: float
+    distance : float
         Distance to source in parsec.
-    major: float
+    major : float
         Major Axis Beam (arcsec).
-    minor: float
+    minor : float
         Minor Axis Beam(arcsec).
-    wavelength: float
+    wavelength : float
         Wavelenght :math:`\lambda` in :math:`\mu m`
-    invert: True or False
+    invert : True or False
         Changes the direction of conversion.
 
     Returns
     -------
-
-    float: the converted Flux.
+    float : the converted Flux.
     """
     # change to W/m2/Hz/beam
     conversion =  JanskyToWatt
@@ -221,24 +210,22 @@ def JyBToWKpc2(input_flux, distance, major, minor,
 
     Parameters
     ----------
-
-    input_flux:  float
+    input_flux :  float
         Flux to be converted.
-    distance: float
+    distance : float
         Distance to source in parsec.
-    major: float
+    major : float
         Major Axis Beam (arcsec).
-    minor: float
+    minor : float
         Minor Axis Beam(arcsec).
-    wavelength: float
+    wavelength : float
         Wavelenght :math:`\lambda` in :math:`\mu m`.
-    invert: True or False
+    invert : True or False
         Changes the direction of conversion.
 
     Returns
     -------
-
-    float: the converted Flux.
+    float : the converted Flux.
     """
     conversion =  JanskyToWatt  # change to W/m2/Hz/beam
     beamsize = (1.133 *
@@ -268,25 +255,22 @@ def kelvin_to_jansky(x, major, minor, nu_or_lambda='nu'):
 
     Parameters
     ----------
-
-    x: float
+    x : float
         wavelength/frequency [GHZ],
-    major: float
+    major : float
         Major Axis Beam (arcsec),
-    minor: float
+    minor : float
         Minor Axis Beam(arcsec),
-    nu_or_lambda: string
+    nu_or_lambda : string
          Choose type of x: frequency = ``'nu'`` or wavelength = ``'lambda'``.
 
     Notes
     -----
-
     This function has been compared with the Time estimator from the
     [GILDAS] package ASTRO and yields the same conversion factors.
 
     References
     ----------
-
     .. [GILDAS] www.iram.fr/IRAMFR/GILDAS
     """
     if nu_or_lambda == 'lambda':
@@ -304,19 +288,17 @@ def jansky_to_kelvin(x, major, minor, nu_or_lambda='nu'):
 
     Parameters
     ----------
-
-    x: float
+    x : float
         wavelength/frequency [GHZ],
-    major: float
+    major : float
         Major Axis Beam (arcsec).
-    minor: float
+    minor : float
         Minor Axis Beam(arcsec).
-    nu_or_lambda: string
+    nu_or_lambda : string
          Choose type of x: frequency = ``'nu'`` or wavelength = ``'lambda'``.
 
     Notes
     -----
-
      Same as :func:`kelvin_to_jansky`
     """
     if nu_or_lambda == 'lambda':

@@ -14,7 +14,6 @@ import pyclass
 from astrolyze.maps.main import *
 import astrolyze.maps.gildas
 
-import astrolyze_prefix as prefix
 import astrolyze.functions.constants as const
 from astrolyze.functions import astro_functions as astFunc
 import astrolyze.functions.units
@@ -40,6 +39,7 @@ class ClassSpectra(Map):
     def __init__(self, map_name, nameConvention=True):
         r"""Initializes a Class Spectral File."""
         astrolyze.maps.main.Map.__init__(self, map_name, nameConvention)
+        print self.map_name
         self._init_file_to_greg()
         if self.dataFormat not in self.class_formats:
             print ('Exiting: Not a CLASS format (AFAIK). Supported'
@@ -116,7 +116,10 @@ class ClassSpectra(Map):
             With the first spectrum in the list of spectra within the accuracy
             range with the given coordinate.
         """
-        _prefix =  prefix or self.prefix
+        if prefix is None:
+            _prefix = self.prefix
+        if prefix is not None:
+            _prefix = prefix
         offset = astFunc.calc_offset(self.central_coordinate_equatorial,
                                      coordinate, angle, output_unit='arcsec')
         self.set_defaults()
@@ -139,7 +142,9 @@ class ClassSpectra(Map):
                        'radius.\n###')
                 break
         if not region:
-            return_name = self.returnName(prefix = _prefix, comments=['extract'])
+            print 'asdsa',_prefix
+            return_name = self.returnName(prefix = _prefix,
+                                          comments=['extract'])
             pyclass.comm('file out ' + return_name + ' single /overwrite')
             pyclass.comm('write')
         if region:
@@ -155,7 +160,8 @@ class ClassSpectra(Map):
 #        """
 #        telescope = telescop
 
-    def get_region_from_cube(self, coordinate, angle=0, prefix=None, accuracy=10):
+    def get_region_from_cube(self, coordinate, angle=0, prefix=None, 
+                             accuracy=10):
         r"""
         The same as :py:func:``get_spectra_from_cube`` but returns all spectra
         found inside a circular region arounf coordinate and in a radius of 
@@ -200,13 +206,14 @@ class ClassSpectra(Map):
         name = name or self.returnName(dataFormat='eps')
         pyclass.comm('ha ' + name + '/dev eps color')
 
-    def quick_view(self):
+    def quick_view(self, number=1):
         r"""
         Helper Functions that displays the first spectrum of the loaded
         file. 
         """
         # TODO: make more usefull.
         pyclass.comm('file in ' + self.map_name)
+        pyclass.comm('dev im w')
         pyclass.comm('find')
-        pyclass.comm('get f')
+        pyclass.comm('get {}'.format(number))
         pyclass.comm('pl')

@@ -19,23 +19,23 @@ class Molecule:
     Parameters
     ----------
 
-    nu: float
-    Q: list
+    nu : float
+    Q : list
         The partition function of the molecule evaluated at discreet
         temperatures. Given in T.
-    T: list
+    T : list
         The temperatures at which the partition functions was evaluated. The
         value of Q used finally is interpolated to the excitation_temperature
         give.
-    Eu: float
+    Eu : float
         Energy of the upper state of the transition.
-    Aul: float
+    Aul : float
         The Einstein coefficient. For the transition of upper-to-lower state.
-    gu: float
+    gu : float
         ADD DESCRIPTION.
-    mu: float
+    mu : float
         ADD DESCRIPTION.
-    name = string
+    name : string
         The name of the molecule. 
     """
     def __init__(self, nu, Q, T, Eu, Aul, gu, mu, name=''):

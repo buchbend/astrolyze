@@ -1,81 +1,135 @@
 # Copyright (C) 2012, Christof Buchbender
 # BSD License (License.txt)
+r""" Installation of Astrolyze using distutils.core.setup.
+Basically it copies all scripts to
+"""
+
 import os
+import sys
 import site
 from distutils.core import setup
 
-if not os.path.exists(os.path.expanduser('~/.astrolyze')):
-    r"""
-    Creating a folder where custom setups can be stored.
-    So far fized to .astrolyze in the home folder.
+r""" This function sets up the optional astrolyze databases for the maps
+classes and *MAYBE LATER* also the dictionary containing the Information on
+individual molecules for the ``lte`` package.
+"""
+from pysqlite2 import dbapi2 as sqlite
+import os
+
+def get_line_parameter(filein, database):
+    r""" Reads in the line names and frequencies from ``filein`` and creates a
+    table Lines in the ``database``.
     """
-    # TODO: Allow custom paths!!! Or NOT, decide!!!
-    jskjd
-    os.system('mkdir ~/.astrolyze')
-    os.system('mkdir ~/.astrolyze/setup')
-    os.system('mkdir ~/.astrolyze/database')
-    os.system('mkdir ~/.astrolyze/lte')
+    const_c = 299792458.  # Speed of light [m]
+    filein = open(filein).readlines()
+    lines = []
+    for row in filein[1:]:
+        line_name, frequency = row.split()
+        lines += [[line_name, float(frequency) * 1e9,
+                   float(const_c / float(frequency) / 1e9)]]
+    print database
+    connection = sqlite.connect(database)
+    cursor = connection.cursor()
+    cursor.execute('CREATE TABLE Lines (id INTEGER PRIMARY KEY,'
+                   'Name VARCHAR(50), '
+                   'Frequency FLOAT, '
+                   'Wavelenght Float)')
+    for i in lines:
+        cursor.execute('INSERT INTO Lines VALUES (null, ?, ?, ?)', (i[0], i[1],
+                       i[2]))
+    connection.commit()
+    cursor.close()
+    connection.close()
 
 
-def extend_path(path):
+def get_galaxy_parameter(filein, database):
     r"""
-    Creates a .pth file including all custom path for the installation.
-    So far only needed for the database setup.
     """
-    # TODO: Make sure the file goes to the correct folder. 
-    #       So far its maybe only valid for my computer.
-    string = os.path.expanduser(path)
-    pth_file = open('/usr/lib/python2.7/dist-packages/astrolyze.pth', 'w')
-    pth_file.write(string)
-    pth_file.close()
+    filein = open(filein).readlines()
+    galaxies = []
+    for row in filein[1:]:
+        (galaxy_name, morphology_type, distance, v_lsr, RA, DEC, PA,
+        inclination, R25) = row.split()
+        galaxies += [[galaxy_name, morphology_type, float(distance),
+                     float(v_lsr), RA, DEC, float(PA), float(inclination),
+                     float(R25)]]
+    connection = sqlite.connect(database)
+    cursor = connection.cursor()
+    cursor.execute('CREATE TABLE Galaxies (id INTEGER PRIMARY KEY, Name '
+                   'VARCHAR(50), MorphType VARCHAR(50), Distance DOUBLE, VLSR '
+                   'DOUBLE, Central Position VARCHAR(50), PA DOUBLE, '
+                   'Inclination FLOAT, R25 FLOAT)')
+    for i in galaxies:
+        cursor.execute('INSERT INTO Galaxies VALUES (null, ?, ?, ?, ?, ?, ?, '
+                       '?, ?)',(i[0], i[1], i[2], i[3], i[4] + ' ' + i[5], i[6],
+                                i[7], i[8]))
+    connection.commit()
+    cursor.close()
+    connection.close()
 
 
-def init_data_base():
-    os.system('rm -rf ' +
-              os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix.py'))
-    init_prefix = ('dataBase = "' + 
-                    os.path.expanduser('~/.astrolyze/database/') + '"\n')
-    file_out = open(os.path.expanduser('~/.astrolyze/setup/astrolyze_prefix'
-                    '.py'), 'w')
-    file_out.write(init_prefix)
-    file_out.close()
-
-def change_permissions():
+def get_calibration_error(filein, database):
     r"""
-    This asures that the user can modify the files to customize the database
-    entries and create the database itself.
     """
-    os.system('chmod 777 ' +
-              os.path.expanduser('~/.astrolyze/setup/line_parameter.txt'))
-    os.system('chmod 777 ' +
-              os.path.expanduser('~/.astrolyze/setup/galaxy_parameter.txt'))
-    os.system('chmod 777 ' +
-              os.path.expanduser('~/.astrolyze/setup/calibration_error.txt'))
-    os.system('chmod 777 ' +
-              os.path.expanduser('~/.astrolyze/database/'))
+    filein = open(filein).readlines()
+    calibration_error_list = []
+    for row in filein[1:]:
+        items = row.split()
+        telescope = items[0]
+        species = items[1]
+        calibration_error = items[2]
+        # The rest of the words in the row are interpreted as reference.
+        # ' '.join() produces one string with one space between the items.
+        reference = ' '.join(items[3:])
+        calibration_error_list += [[telescope, species,
+                                    float(calibration_error), reference]]
+    connection = sqlite.connect(database)
+    cursor = connection.cursor()
+    cursor.execute('CREATE TABLE cal_error (id INTEGER PRIMARY KEY, Telescope '
+                    'VARCHAR(50), Species VARCHAR(50), uncertainty DOUBLE, '
+                    'Reference VARCHAR(50))')
+    for i in calibration_error_list:
+        cursor.execute('INSERT INTO cal_error VALUES (null, ?, ?, ?, ?)',
+                       (i[0], i[1], i[2], i[3]))
+    connection.commit()
+    cursor.close()
+    connection.close()
 
-init_data_base()
-extend_path('~/.astrolyze/setup/')
+
+def create_database(database):
+    r"""
+    """
+    if os.path.isfile(database):
+        os.system('rm -rf ' + database)
+    filein = os.path.expanduser('cfg/line_parameter.txt')
+    get_line_parameter(filein, database)
+    filein = os.path.expanduser('cfg/galaxy_parameter.txt')
+    get_galaxy_parameter(filein, database)
+    filein = os.path.expanduser('cfg/calibration_error.txt')
+    get_calibration_error(filein, database)
+
+
+create_database(os.path.expanduser('astrolyze/database/parameter.db'))
+
 
 setup(
     name='astrolyze',
     version='0.1.0',
     author='Christof Buchbender',
     author_email='christof.buchbender@gmail.com',
-    packages=['astrolyze', 
+    packages=['astrolyze',
               'astrolyze/maps',
               'astrolyze/spectra',
-              'astrolyze/sed', 
-              'astrolyze/lte', 
-              'astrolyze/functions', 
+              'astrolyze/sed',
+              'astrolyze/lte',
+              'astrolyze/functions',
+              'astrolyze/database'
              ],
-    scripts=['bin/setup_astrolyze.py'],
-    data_files=[(os.path.expanduser('~/.astrolyze/setup/'),
-                ['cfg/line_parameter.txt', 'cfg/galaxy_parameter.txt',
-                'cfg/calibration_error.txt'])],
+    package_data={'astrolyze': ['database/parameter.db']},
     url='http://www.strange-associations.de/astrolyze/',
     license='LICENSE.txt',
-    description='Reduction and analysing tools for (mainly) Radioastronomy.',
+    description=('Reduction and analysing tools for (mainly)'
+                 'Radioastronomical Data.'),
     long_description=open('README.txt').read(),
     classifiers=['Topic :: Scientific/Engineering :: Astronomy'],
     requires=[
@@ -84,12 +138,9 @@ setup(
         "matplotlib",
         "scipy",
         "pywcs",
-        "copy",
-        "random",
         "pysqlite2",
-        "socket"
         "docutils"
     ],
 )
 
-change_permissions()
+# change_permissions()

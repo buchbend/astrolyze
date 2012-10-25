@@ -20,17 +20,17 @@ def black_body(x, T, nu_or_lambda='nu'):
 
     Parameters
     ----------
-    x: float or numpy array
+    x : float or numpy array
         wavelength [GHz] or frequency [micron];  specify type in nu_or_lambda
-    T: float [Kelvin]
+    T : float [Kelvin]
         Temperature of the black_body
-    nu_or_lambda: string
+    nu_or_lambda : string
         Specify whether x is a frequency :math:`\nu` ``'nu'`` or a wavelenght
         :math:`\lambda` ``'lambda'``; default is ``'nu'``.
 
     Returns
     -------
-        Flux density in Jansky: float [Jy]
+        Flux density in Jansky : float [Jy]
 
     Notes
     -----
@@ -49,10 +49,8 @@ def black_body(x, T, nu_or_lambda='nu'):
 
     Both formulas are scaled by 1e26, thus returning the flux in Jansky.
 
-
     Examples
     --------
-
     The function works with linear numpy arrays. Thus the black_body can be
     evaluated at many points at the same time. Using matplotlib it can
     also be plotted:
@@ -89,36 +87,34 @@ def black_body(x, T, nu_or_lambda='nu'):
 
 
 def grey_body(p, x, nu_or_lambda='nu', kappa='Kruegel', distance=840e3):
-    r"""
-    Calculation of the flux density in Jansky of a grey_body under assumption
-    of optically thin emission.
-
-    Please see Notes_ below for an detailed description assumptions and
-    equations used.
+    r""" Calculation of the flux density in Jansky of a grey_body under
+    assumption of optically thin emission. Please see Notes below for an
+    detailed description assumptions and equations used.
 
     Parameters
-    -----------
-    p: list
+    ----------
+    p : list
         List of the parameters defining a grey_body, being Temperature [K],
         column density or mass (dependent on the kappa used) and the grey_body
         slope index beta, respectively (refer to notes for more information):
-            p = [T, N, beta]
-    x: float or numpy array
+        p = [T, N, beta]
+    x : float or numpy array
         Wavelength [GHz] or frequency [micron];
         specify type in nu_or_lambda
-    kappa: string
+    kappa : string
         Chooses the dust extinction coefficient to use:
             * ``"easy"`` -> kappa = nu^beta; tau = N * kappa
             * ``"Kruegel"`` -> kappa = 0.04*(nu/250Ghz)^beta;
               tau = M/D^2 * kappa
+
         Please refer to Notes below, for further explanation.
-    distance: float
+    distance : float
         The distance to the source that is to be modeled if kappa
         ``"Kruegel"`` is used.
 
     Other Parameters
     ----------------
-    nu_or_lambda: string
+    nu_or_lambda : string
         Specify whether x is a frequency :math:`\nu` ``'nu'`` or a wavelength
         :math:`\lambda` ``'lambda'``; default is ``'nu'``. if lambda the input
         converted to a frequency in [GHz].
@@ -166,12 +162,12 @@ def grey_body(p, x, nu_or_lambda='nu', kappa='Kruegel', distance=840e3):
 
     Examples
     --------
-
     The same examples as for :func:`black_body` apply.
 
     References
     ----------
     .. [KS] Kruegel, E. & Siebenmorgen, R. 1994, A&A, 288, 929
+
     """
     T, N, beta = p
     # Switch to choose kappa
@@ -207,37 +203,34 @@ def multi_component_grey_body(pMulti, x, nu_or_lambda='nu', kappa='Kruegel'):
     Jansky for the input frequency/wavelenght.
 
     Parameters
-    ---------
-    pMulti: nested lists
+    ----------
+    pMulti : nested lists
         Similar to p from
-        :py:func:`functions.astroFunctions.grey_body` but the three entries are
+        :py:func:`grey_body` but the three entries are
         lists, i.e.::
         pMulti = [[T1, T2, T3, ...Tn], [N1, N2, N3,...Nn], [beta]]
-    x: float or numpy array
+    x : float or numpy array
         frequency [micron] (or wavelenght **Not maintained**, specify type in
         nu_or_lambda)
 
     Returns
     -------
-    sum(snu): float
+    sum(snu) : float
         All dust components summed.
-    snu:
+    snu :
         A list with the fluxes of the individual components.
 
     See Also
     --------
-
     black_body, grey_body
 
     Notes
     -----
-
     Only one common beta for all components can be used. May be expanded to
     mutliple betas if needed.
 
     Examples
     --------
-
     Same as for black_body, but all returned grey_bodies may be plotted.
     """
     T, N, beta = pMulti
@@ -260,41 +253,40 @@ def grey_body_fit(data, start_parameter, nu_or_lambda='nu', fit_beta=False,
 
     Parameters
     ----------
-
-    data: array
+    data : array
         The obseved data. Array of shape(3, x) first row has to be the X values
         (Frequency in [GHz]) of the measurements, second row the Y values
         (Flux [Jy]), and the third row  the Z values the errors on the
         fluxes i.e.:
-            data = array([[X1, X2, X3, ...], [Y1, Y2, Y3,...], [Z1, Z2,
-            Z3, ...]])
-    start_parameter: array
+        data = array([[X1, X2, X3, ...], [Y1, Y2, Y3,...], [Z1, Z2,
+        Z3, ...]])
+    start_parameter : array
         Array of a first guess of the parameters of the grey_body components.
-        The number of components is arbitrary
-            start_parameter = [[T1, T2, T3,...], [N1, N2, N3, ...], beta]
+        The number of components is arbitrary.
+        start_parameter = [[T1, T2, T3,...], [N1, N2, N3, ...], beta]
 
-    fit_beta: True or False
+    fit_beta : True or False
         If True Beta is allowed to vary. Default is False.
 
-    fix_temperature: True or False
+    fix_temperature : True or False
         If True the Temperature is fixed allowed to vary.
 
-    rawChiSq:
+    rawChiSq :
         if None the function gives the reduced chisq Value. If True the
         function gives chisq without dividing it by the dof
 
     Returns
     -------
-    p2: list
+    p2 : list
         The final grey_body parameters that reduce the least squares for the
         given dataset.
-    chisq/rawChiSq:
+    chisq/rawChiSq :
         chisq is reduced chisq with degrees of freedom:
             dof= #dataPoints-#freeFitParameters-1
 
     Other Parameters
     ----------------
-    nu_or_lambda: string
+    nu_or_lambda : string
         Specify whether x is a frequency :math:`\nu` ``'nu'`` or
         a wavelenght :math:`\lambda` ``'lambda'``; default is ``'nu'``.::
         **Don't** use ``'lambda'`` as this part of the
@@ -302,7 +294,6 @@ def grey_body_fit(data, start_parameter, nu_or_lambda='nu', fit_beta=False,
 
     See Also
     --------
-
     scipy.optimize.leastsq: This function is used to perform the least squares
     fit.
     multi_component_grey_body, grey_body, black_body: Defining the function to
@@ -310,12 +301,11 @@ def grey_body_fit(data, start_parameter, nu_or_lambda='nu', fit_beta=False,
 
     Notes
     -----
-
     A one component fit has four free parameters if beta is allowed to vary or
     three if beta is fixed (one more than parameters to fit). Each additional
     component adds two more free paramters to fit.
     Assure that:
-        number of data points > number of free parameters.
+    number of data points > number of free parameters.
     """
     # Distinguish between the different options and build the parameter list
     # needed by optimize.leastsq()
@@ -342,17 +332,16 @@ def grey_body_fit(data, start_parameter, nu_or_lambda='nu', fit_beta=False,
 
         Parameters
         ----------
-
-        p: list
+        p : list
             same start start_parameter as in grey_body_fit
-        x and y:
+        x and y :
          The two rows, data[0] and data[1] of the data variable from
          grey_body_fit.
-        y_error: The absolute error on the flux measurement.
+        y_error : The absolute error on the flux measurement.
 
         Other Parameters
         ----------------
-        nu_or_lambda: string
+        nu_or_lambda : string
             Specify whether x is a frequency :math:`\nu` ``'nu'`` or
             a wavelenght :math:`\lambda` ``'lambda'``; default is ``'nu'``.::
             **Don't** use ``'lambda'`` as this part of the
@@ -360,7 +349,6 @@ def grey_body_fit(data, start_parameter, nu_or_lambda='nu', fit_beta=False,
 
         Notes
         -----
-
         This function caluclates the residuals that are minimized by
         :func:`leastsq`, thus it calculates:
 
@@ -448,17 +436,15 @@ def _grid_fit(data, beta, nu_or_lambda='nu', fit_beta=False, rawChiSq=False,
 
     Parameters
     ----------
-
-    data: array
+    data : array
         Same format as in grey_body_fit.
-    beta:
+    beta :
         The beta value. If fit_beta=True this is varied in the fits.
-    kappa:
+    kappa :
         As in :func:`greybody`.
 
     Other Parameters
     ----------------
-
     fit_beta: True or False
         Steers if beta is fittet or not.
     rawChisq: True or False
@@ -472,17 +458,16 @@ def _grid_fit(data, beta, nu_or_lambda='nu', fit_beta=False, rawChiSq=False,
 
         Parameters
         ----------
-
-        p: list
+        p : list
             same start start_parameter as in grey_body_fit
-        x and y:
+        x and y :
          The two rows, data[0] and data[1] of the data variable from
          grey_body_fit.
-        y_error: The absolute error on the flux measurement.
+        y_error : The absolute error on the flux measurement.
 
         Other Parameters
         ----------------
-        nu_or_lambda: string
+        nu_or_lambda : string
             Specify whether x is a frequency :math:`\nu` ``'nu'`` or
             a wavelenght :math:`\lambda` ``'lambda'``; default is ``'nu'``.::
             **Don't** use ``'lambda'`` as this part of the
@@ -490,7 +475,6 @@ def _grid_fit(data, beta, nu_or_lambda='nu', fit_beta=False, rawChiSq=False,
 
         Notes
         -----
-
         This function caluclates the residuals that are minimized by
         :func:`leastsq`, thus it calculates:
 
@@ -562,34 +546,31 @@ def LTIR(p2, kappa='Kruegel', xmin=3., xmax=1100., beamConv=True,
 
     Parameters
     ----------
-
-    p2: list
+    p2 : list
         The parameters defining the multi-component greybody model. Same format
         as p in
         :py:func:`astrolyze.functions.astroFunctions.multi_component_grey_body`
-    kappa: string
+    kappa : string
         The dust extinction coefficient used to describe the greybodies. See:
         py:func:`grey_body`
-    xmin, xmax: float
+    xmin, xmax : float
         The integration range in units of micron. Defaults to 3 -- 110 micron.
         The definition of LTIR from [DA]
-    beamConv: True or False
+    beamConv : True or False
         For units in Lsun the code is not well written. Hardcoded conversion
         between an 28" and 40" beam. !! CHANGE !!
-    unit: string
+    unit : string
         If ``'Lsun'`` the returned integrated flux is in units of solar
         luminosities (erg s^-1). For this a distance is needed. If ``'JyB'``
         the units are Jy/beam; distance is not used.
 
     Notes
     -----
-
     Needs some work to be generally usable. For units in Jy/beam the code seems
     to be safe.
 
     References
     ----------
-
     .. [DA] Dale et al. 2001; ApJ; 549:215-227
     """
     #Convert the input xmin/xmax from micron to m and to frequency in
@@ -628,22 +609,21 @@ def generate_monte_carlo_data_sed(data):
 
     Parameters
     ----------
-
-    data: array
+    data : array
          Same format as in grey_body_fit function:
             data= [[x1, x2, x3, ...][y1, y2, y3, ...][z1, z2, z3, ...]]
+
          with x = wavelenght/frequency, y = flux, z = error on flux.
 
     Returns
     -------
-
-    newData: array in same format as data.
-        The monte carlo simulated measurement.
+    newData : array in same format as data.
+        The Monte-Carlo simulated measurement.
 
     See Also
     --------
-
     random.gauss
+
     """
     newData = copy(data)
     for i in range(len(data[1])):
@@ -662,21 +642,21 @@ def grey_body_monte_carlo(p, data, iterations):
 
     Parameters
     ----------
-    p: list
+    p : list
         The parameters defining the multi component grey_body model to be
         fitted. Same format as p in :py:func:`multi_component_grey_body`
-    data: array
+    data : array
         The actual measured data of the SED, same format as for
         :py:func:`grey_body_fitFunction`
-    iterations: int
+    iterations : int
         Number of times new data is generated and fitted.
 
     Returns
     -------
-    string:
+    string :
         Containing the mean, standard deviation of the fit parameters, ready
         to print out.
-    betaTlist: List of all fit results. Name misleading since it may not
+    betaTlist : List of all fit results. Name misleading since it may not
         include the beta.
     """
     # Define the variables that store the MOnte Carlo T and N values
@@ -755,12 +735,12 @@ def line(p, x):
 
     Parameters
     ----------
-    p: list
+    p : list
         Contains the slope and the y-axis intersection of the line [m, b].
 
     Returns
     -------
-    y: value of y corresponding to x.
+    y : value of y corresponding to x.
     """
     return p[0] * x + p[1]
 
@@ -772,12 +752,12 @@ def anti_line(p, y):
 
     Parameters
     ----------
-    p: list
+    p : list
         Contains the slope and the y-axis intersection of the line [m, b].
 
     Returns
     -------
-    y: value of x corresponding to y.
+    y : value of x corresponding to y.
     """
     return y / p[0] - p[1]
 
@@ -790,15 +770,15 @@ def linear_error_function(p, x, y, y_error, x_error):
     Parameters
     ----------
 
-    p: list
+    p : list
         Same as in :func:`line` and :func:`anti_line`.
-    x: float or list
+    x : float or list
         x measurements. Data.
-    y: float or list
+    y : float or list
         y measurements. Data.
-    x_error: float or list
+    x_error : float or list
         The x measurment errors.
-    y_error: float or list
+    y_error : float or list
         The y measurment errors.
     """
     if x_error.all():
@@ -815,16 +795,16 @@ def line_fit(p, x, y, y_error, x_error=False, iterations=10000):
     Parameters
     ----------
 
-    p: list
+    p : list
         Containg slope (m) and y-axis intersection (b) p=[m, b]. Same as in
         :func:`line` and :func:`antiline`.
-    x: float or list
+    x : float or list
         x measurements. Data.
-    y: float or list
+    y : float or list
         y measurements. Data.
-    y_error: float or list
+    y_error : float or list
         The y measurment errors.
-    x_error: float or list
+    x_error : float or list
         The x measurment errors. If unset only errors in y are taken into
         account.
     """
@@ -845,13 +825,13 @@ def analytic_linear_fit(x, y, x_error, y_error):
     Parameters
     ----------
 
-    x: float or list
+    x : float or list
         x measurements. Data.
-    y: float or list
+    y : float or list
         y measurements. Data.
-    y_error: float or list
+    y_error : float or list
         The y measurment errors.
-    x_error: float or list
+    x_error : float or list
         The x measurment errors. If unset only errors in y are taken into
         account.
 
@@ -921,15 +901,15 @@ def generate_monte_carlo_data_line(data, errors):
     Parameters
     ----------
 
-    data: list
+    data : list
         A list of original measurements.
-    errors: list
+    errors : list
         A list of the corresponding errors.
 
     Returns
     -------
 
-    newData: array in same format as data.
+    newData : array in same format as data.
         The monte carlo simulated measurement.
 
     See Also
@@ -953,27 +933,27 @@ def line_monte_carlo(p, x, y, x_error, y_error, iterations,
     Parameters
     ----------
 
-    p: list
+    p : list
         Containg slope (m) and y-axis intersection (b) p=[m, b]. Same as in
         :func:`line` and :func:`antiline`.
-    x: float or list
+    x : float or list
         x measurements. Data.
-    y: float or list
+    y : float or list
         y measurements. Data.
-    y_error: float or list
+    y_error : float or list
         The y measurment errors.
-    x_error: float or list
+    x_error : float or list
         The x measurment errors. If unset only errors in y are taken into
         account.
 
     Returns
     -------
 
-    string: A string containing the results.
-    BList: A list containing the fittet y-Axis intersections.
-    MList: A list containing the fitted slopes.
-    chisqList: A list with the chisq values.
-    resultArray: Array with the mean and the standard deviations of
+    string : A string containing the results.
+    BList : A list containing the fittet y-Axis intersections.
+    MList : A list containing the fitted slopes.
+    chisqList : A list with the chisq values.
+    resultArray : Array with the mean and the standard deviations of
         slopes and y-axis intersections, i.e. [mean(M), std(M), mean(B),
         std(B)]
 
@@ -1016,18 +996,18 @@ def gauss1D(x, fwhm, offset=0, amplitude=1):
 
     Parameters
     ----------
-    x: float or numpy.ndarray
+    x : float or numpy.ndarray
         the x-axis value/values where the Gaussian is to be caluclated.
-    fwhm: float
+    fwhm : float
         The width of the Gaussian.
-    offset:
+    offset :
         The offset in x direction from 0. Default is 0.
-    amplitude:
+    amplitude :
         The height of the Gaussian. Default is 1.
 
     Returns
     -------
-    gauss: float or np.ndarray
+    gauss : float or np.ndarray
         The y value for the specified Gaussian distribution evaluated at x.
 
     Notes
@@ -1050,23 +1030,23 @@ def gauss2D(x, y, major, minor, pa=0, xOffset=0, yOffset=0, amplitude=1):
 
     Parameters
     ----------
-    x: float or numpy.ndarray
+    x : float or numpy.ndarray
         the x-axis value/values where the Gaussian is to be caluclated.
-    y: float or numpy.ndarray
+    y : float or numpy.ndarray
         the y-axis value/values where the Gaussian is to be calculated.
 
-    major, minor: float
+    major, minor : float
         The fwhm of the Gaussian in x and y direction.
-    pa: float
+    pa : float
         The position angle of the Gaussian in degrees. Default is 0.
     xOffset, yOffset:
         The offset in x and y direction from 0. Default is 0.
-    amplitude:
+    amplitude :
         The height of the Gaussian. Default is 1.
 
     Returns
     -------
-    gauss: float or np.ndarray
+    gauss : float or np.ndarray
         The y value for the specified Gaussian distribution evaluated at x.
 
     Notes
@@ -1104,14 +1084,12 @@ def degrees_to_equatorial(degrees):
 
     Parameters
     ----------
-
-    degrees: list
+    degrees : list
         The coordinates in degrees in the format of: [23.4825, 30.717222]
 
     Returns
     -------
-
-    equatorial: list
+    equatorial : list
         The coordinates in equatorial notation, e.g.
         corresponding ['1:33:55.80', '+30:43:2.00'].
     """
@@ -1135,20 +1113,17 @@ def equatorial_to_degrees(equatorial):
 
     Parameters
     ----------
-
-    equatorial: list
+    equatorial : list
         The coordinates in degress in equatorial notation, e.g.
         ['1:33:55.80', '+30:43:2.00']
 
     Returns
     -------
-
-    degrees: list
+    degrees : list
         The coordinates in degreees, e.g. [23.4825, 30.717222].
 
     Raises
     ------
-
     SystemExit
         If ``equatorial`` is not a list of strings in the above format.
     """
@@ -1179,24 +1154,21 @@ def calc_offset(central_coordinate, offset_coordinate, angle = 0,
 
     Parameters
     ----------
-
-    central_coordinate: list
+    central_coordinate : list
         The reference coordinate in degrees or equatorial.
-    offset_coordinate: list
+    offset_coordinate : list
         The second coordinate, the offset will be with rescpect to
         central_coordinate.
-    angle: float
+    angle : float
         The angle in degrees, allowing rotated systems.
 
     Returns
     -------
-
-    rotated_offset: list
+    rotated_offset : list
         The offsets, rotated only if angle given.
 
     Notes
     -----
-
     This functions includes a correction of the RA offset with declination:
 
     .. math:
@@ -1235,9 +1207,9 @@ def rotation_2d(coordinate, angle):
     Parameters
     ----------
 
-    coordinates: list of floats
+    coordinates : list of floats
         Coordinates in the unrotated system [x, y].
-    angle: float
+    angle : float
         The rotation angle
 
     Returns
@@ -1258,21 +1230,18 @@ def vel_to_freq_resolution(center_frequency, velocity_resolution):
 
     Parameters
     ----------
-
-    center_frequency: float
+    center_frequency : float
         Center frequency in GHz.
-    velocity_resolution:
+    velocity_resolution :
         Velocity resolution in km/s.
 
     Returns
     -------
-
-    frequency_resolution: float
+    frequency_resolution : float
         The corresponding frequency resolution in Mhz
 
     Notes
     -----
-
     Approved!
 
     """
@@ -1293,20 +1262,17 @@ def freq_to_vel_resolution(center_frequency, frequency_resolution):
 
     Parameters
     ----------
-
-    center_frequency: float
+    center_frequency : float
         Center frequency in GHz.
-    frequency_resolution: float
+    frequency_resolution : float
         The frequency resolution in MHz.
 
     Returns
     -------
-
     velocity_resolution in km/s.
 
     Notes
     -----
-
     Uses the formula TODO v_LSR = c((nu0-nuObs)/nu0)
 
     Approved!
@@ -1325,21 +1291,18 @@ def v_lsr(center_frequency, observation_frequency):
 
     Parameters
     ----------
-
-    center_frequency: float
+    center_frequency : float
         center_frequency in GHz
-    observation_frequency: float
+    observation_frequency : float
         The observation frequency in GHz.
 
     Returns
     -------
-
-    v_lsr: float
+    v_lsr : float
         The velocity corresponding to the frequency shift in km/s
 
     Notes
     -----
-
     Approved!
     """
     center_frequency = center_frequency * 1e9
@@ -1354,23 +1317,19 @@ def redshifted_frequency(rest_frequency, v_lsr):
 
     Parameters
     ----------
-
-    rest_frequency: float
+    rest_frequency : float
         The frequency of the line at rest in Ghz (More often state the obvious
         :)).
-
-    v_lsr: float
+    v_lsr : float
         The velocity of the source in km/s.
 
     Returns
     -------
-
-    redshifted_frequency: float
+    redshifted_frequency : float
        The sky frequency in GHz.
 
     Notes
     -----
-
     The formula used is:
 
     .. math::
@@ -1390,25 +1349,23 @@ def redshifted_frequency(rest_frequency, v_lsr):
     return redshifted_frequency
 
 
-def frequency_to_wavelenght(frequency):
+def frequency_to_wavelength(frequency):
     r"""
     Converting frequency to wavelength.
 
     Parameters
     ----------
-
-    frequency: float [GHZ]
+    frequency : float [GHZ]
 
     Returns
-    -------
-
-    wavelenght: float [micron]
+   -------
+    wavelength : float [micron]
     """
     # Conversion from GHz to Hz
     frequency = frequency * 1e9
-    wavelenght = const.c / frequency
+    wavelength = const.c / frequency
     # Conversion from m to micron (mum).
-    wavelenght = wavelenght / 1e-6
+    wavelength = wavelength / 1e-6
     return wavelength
 
 
