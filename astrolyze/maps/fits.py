@@ -359,6 +359,7 @@ class FitsMap(main.Map):
         --------
 
         sky2pix, astFunc.equatorial_to_degrees, wcs.wcs_sky2pix
+
         """
         x, y = self.sky2pix(position)
         return self.data[y][x]
@@ -421,6 +422,7 @@ class FitsMap(main.Map):
         The pixel sizes have to be quadratic for the algorithm to work. It
         measures a circle by counting the pixels from the central pixel
         corresponding to the given coordinate.
+
         """
         # Calculate the x,y Pixel coordinate of the position.
         xCenter, yCenter = self.sky2pix(position)
@@ -557,9 +559,12 @@ class FitsMap(main.Map):
         # the correct form for RA DEC.
         try:
             coordinate = astFunc.equatorial_to_degrees(coordinate)
+            print coordinate
+            print [[coordinate[0]],[coordinate[1]]]
         except:
             pass
-        pixel = self.wcs.wcs_sky2pix([coordinate], origin)[0]
+        coordinate = np.array([[coordinate[0], coordinate[1]]], np.float_)
+        pixel = self.wcs.wcs_sky2pix(coordinate, origin)[0]
         # The pixels are floats. To get integers we get the floor value
         # of the floats
         pixel = [int(math.floor(float(pixel[0]))),
