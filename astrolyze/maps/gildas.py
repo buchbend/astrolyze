@@ -557,7 +557,7 @@ class GildasMap(main.Map):
         else:
             comments += ['rot' + str(angle) + 'deg']
 
-        os.system('mv ' + self.map_name.replace('.'+ self.dataFormat, '' )) +
+        os.system('mv ' + self.map_name.replace('.'+ self.dataFormat, '' ) +
                   '-rot' + str(angle) + 'deg.'
                   + str(self.dataFormat) + ' '
                   + str(self.returnName(prefix=prefix, comments=comment)))
