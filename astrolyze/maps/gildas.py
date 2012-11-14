@@ -557,8 +557,8 @@ class GildasMap(main.Map):
         else:
             comments += ['rot' + str(angle) + 'deg']
 
-        os.system('mv ' + addOn.myStrip(str(self.map_name),
-                  len(self.dataFormat) + 1) + '-rot' + str(angle) + 'deg.'
+        os.system('mv ' + self.map_name.replace('.'+ self.dataFormat, '' )) +
+                  '-rot' + str(angle) + 'deg.'
                   + str(self.dataFormat) + ' '
                   + str(self.returnName(prefix=prefix, comments=comment)))
         os.system('rm -rf rotateTemp.greg')
