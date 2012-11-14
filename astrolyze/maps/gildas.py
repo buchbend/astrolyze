@@ -34,11 +34,11 @@ class GildasMap(main.Map):
             sys.exit()
 
     def _init_map_to_greg(self):
-        pygreg.comm('image ' + self.map_name)
+        pygreg.comm('image "' + self.map_name + '"')
         self._load_gildas_variables()
-        pygreg.comm('let name ' +
-                    self.map_name.replace('.' + self.dataFormat, ''))
-        pygreg.comm('let type ' + self.dataFormat)
+        pygreg.comm('let name "' +
+                    self.map_name.replace('.' + self.dataFormat, '"'))
+        pygreg.comm('let type "' + self.dataFormat + '"')
 
     def _load_gildas_variables(self):
         r"""
@@ -155,9 +155,10 @@ class GildasMap(main.Map):
         >>> map =  GildasMap('M33_PdBI_12co10_Tmb_22.0_2kms.gdf')
         >>> coordinate = ['1:34:7.00', '+30:47:52.00']
         >>> map.spectrum(coordinate)
+
         Creates M33_PdBI_12co10_Tmb_22.0_2kms.tab in the present folder.
 
-..        Tested and working.
+        ..        Tested and working.
         """
         os.system('rm spectrum.init')
         if prefix is None:
@@ -542,8 +543,8 @@ class GildasMap(main.Map):
         >>> map.goRot(45)
         """
         __rotate = open('rotateTemp.greg', 'w')
-        __rotate.write('let name ' + addOn.myStrip(str(self.map_name),
-                                                   len(self.dataFormat) + 1) +
+        __rotate.write('let name ' +
+                       self.map_name.replace('.' + self.dataFormat, '') +
                        '\n let type ' + str(self.dataFormat) + '\n'
                        'let angle ' + str(angle) + '\n'
                        'go rot\n'
@@ -639,9 +640,9 @@ class GildasMap(main.Map):
         -----
         .. warning::
 
-            The gauss_smooth Task from GILDAS only gives correct output
-            units when the map is on a temperature or \"per pixel\" scale.
-            **Maps in Jy/Beam won't be in Jy/Beam after smoothing.**
+        The gauss_smooth Task from GILDAS only gives correct output
+        units when the map is on a temperature or \"per pixel\" scale.
+        **Maps in Jy/Beam won't be in Jy/Beam after smoothing.**
 
         """
         if prefix is None:
