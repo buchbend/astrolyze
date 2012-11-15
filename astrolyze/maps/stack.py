@@ -7,6 +7,7 @@ import sys
 import pyfits
 import pywcs
 import matplotlib.pyplot as plt
+import numpy as np
 
 import main
 import fits
@@ -110,7 +111,7 @@ class Stack:
             for i in filein:
                 # We have to exclude sub_folders that are miriad file
                 # sub-folders.
-                if (i.strip() in miriad_subfolder 
+                if (i.strip() in miriad_subfolder
                     and len(folder.split('_')) >= 5):
                     pass
                 else:
@@ -397,6 +398,14 @@ class Stack:
             old_map = map_.map_name
             map_ = map_.reproject(template=template.map_name)
             map_ = map_.toFits()
+            print map_.map_name
+            while len(map_.data) == 1:
+                map_.data = map_.data[0]
+            max_value = max(map_.data[np.where(np.invert(np.isnan(map_.data)))])
+            min_value = min(map_.data[np.where(np.invert(np.isnan(map_.data)))])
+            map_.header['DATAMAX'] = max_value
+            map_.header['DATAMIN'] = min_value
+            map_ = map_.update_file()
             new_stack += [map_]
             os.system('rm -rf {}'.format(old_map))
             os.system('rm -rf {}'.format(map_.returnName(dataFormat='gdf')))
@@ -459,7 +468,7 @@ class Stack:
         for i in self.stack:
             if i.dataFormat not in target_format:
                 if folder is not None:
-                    map_.prefix = folder
+                    i.prefix = folder
                 if target_format == self.fits_formats:
                     map_ = i.toFits()
                 if target_format == self.gildas_formats:
