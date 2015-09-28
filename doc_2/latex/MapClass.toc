@@ -1,0 +1,70 @@
+\select@language {english}
+\contentsline {chapter}{\numberline {1}MapClass/MapTools Tutorial}{3}{chapter.1}
+\contentsline {section}{\numberline {1.1}Motivation}{3}{section.1.1}
+\contentsline {chapter}{\numberline {2}Maps}{5}{chapter.2}
+\contentsline {section}{\numberline {2.1}Main}{5}{section.2.1}
+\contentsline {paragraph}{Methods}{6}{paragraph*.4}
+\contentsline {paragraph}{Notes}{6}{paragraph*.7}
+\contentsline {section}{\numberline {2.2}Fits}{6}{section.2.2}
+\contentsline {paragraph}{Methods}{6}{paragraph*.10}
+\contentsline {paragraph}{Notes}{7}{paragraph*.12}
+\contentsline {paragraph}{Notes}{7}{paragraph*.14}
+\contentsline {paragraph}{Notes}{9}{paragraph*.23}
+\contentsline {paragraph}{Examples}{10}{paragraph*.25}
+\contentsline {paragraph}{Examples}{10}{paragraph*.27}
+\contentsline {paragraph}{Notes}{10}{paragraph*.29}
+\contentsline {section}{\numberline {2.3}Gildas}{10}{section.2.3}
+\contentsline {paragraph}{Methods}{11}{paragraph*.31}
+\contentsline {paragraph}{Examples}{11}{paragraph*.33}
+\contentsline {paragraph}{Notes}{11}{paragraph*.35}
+\contentsline {paragraph}{Examples}{12}{paragraph*.37}
+\contentsline {paragraph}{Notes}{12}{paragraph*.41}
+\contentsline {paragraph}{References}{13}{paragraph*.43}
+\contentsline {paragraph}{Examples}{13}{paragraph*.44}
+\contentsline {paragraph}{Notes}{14}{paragraph*.46}
+\contentsline {paragraph}{Notes}{14}{paragraph*.48}
+\contentsline {paragraph}{Examples}{14}{paragraph*.49}
+\contentsline {paragraph}{Examples}{14}{paragraph*.51}
+\contentsline {paragraph}{Examples}{14}{paragraph*.53}
+\contentsline {section}{\numberline {2.4}Miriad}{15}{section.2.4}
+\contentsline {paragraph}{Methods}{15}{paragraph*.55}
+\contentsline {chapter}{\numberline {3}Spectra}{17}{chapter.3}
+\contentsline {section}{\numberline {3.1}Class}{17}{section.3.1}
+\contentsline {paragraph}{Methods}{17}{paragraph*.58}
+\contentsline {paragraph}{Notes}{17}{paragraph*.60}
+\contentsline {chapter}{\numberline {4}MapTools}{19}{chapter.4}
+\contentsline {paragraph}{Notes}{19}{paragraph*.65}
+\contentsline {paragraph}{Examples}{19}{paragraph*.66}
+\contentsline {chapter}{\numberline {5}SEDs}{21}{chapter.5}
+\contentsline {paragraph}{Methods}{21}{paragraph*.72}
+\contentsline {paragraph}{Methods}{21}{paragraph*.76}
+\contentsline {paragraph}{Examples}{22}{paragraph*.78}
+\contentsline {chapter}{\numberline {6}LTE}{23}{chapter.6}
+\contentsline {paragraph}{Notes}{23}{paragraph*.84}
+\contentsline {chapter}{\numberline {7}Functions}{25}{chapter.7}
+\contentsline {section}{\numberline {7.1}astroFunctions}{25}{section.7.1}
+\contentsline {paragraph}{Notes}{25}{paragraph*.88}
+\contentsline {paragraph}{References}{25}{paragraph*.89}
+\contentsline {paragraph}{Notes}{26}{paragraph*.92}
+\contentsline {paragraph}{Examples}{26}{paragraph*.93}
+\contentsline {paragraph}{Notes}{27}{paragraph*.95}
+\contentsline {paragraph}{Notes}{28}{paragraph*.99}
+\contentsline {paragraph}{Notes}{28}{paragraph*.101}
+\contentsline {paragraph}{Notes}{30}{paragraph*.105}
+\contentsline {paragraph}{References}{30}{paragraph*.106}
+\contentsline {paragraph}{Examples}{30}{paragraph*.107}
+\contentsline {paragraph}{Notes}{31}{paragraph*.109}
+\contentsline {paragraph}{Notes}{33}{paragraph*.116}
+\contentsline {paragraph}{References}{34}{paragraph*.117}
+\contentsline {paragraph}{Notes}{34}{paragraph*.119}
+\contentsline {paragraph}{Examples}{34}{paragraph*.120}
+\contentsline {section}{\numberline {7.2}units}{34}{section.7.2}
+\contentsline {paragraph}{Notes}{37}{paragraph*.129}
+\contentsline {paragraph}{Notes}{37}{paragraph*.131}
+\contentsline {paragraph}{Notes}{37}{paragraph*.133}
+\contentsline {paragraph}{References}{37}{paragraph*.134}
+\contentsline {section}{\numberline {7.3}constants}{38}{section.7.3}
+\contentsline {chapter}{\numberline {8}Indices and tables}{41}{chapter.8}
+\contentsline {chapter}{Bibliography}{43}{chapter*.136}
+\contentsline {chapter}{Python Module Index}{45}{section*.141}
+\contentsline {chapter}{Python Module Index}{47}{section*.142}

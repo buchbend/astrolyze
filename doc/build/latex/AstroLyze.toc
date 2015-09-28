@@ -1,0 +1,43 @@
+\select@language {english}
+\contentsline {section}{\numberline {1}Installation of astrolyze}{ii}{section.1}
+\contentsline {subsection}{\numberline {1.1}Dependencies}{ii}{subsection.1.1}
+\contentsline {subsubsection}{Python}{ii}{subsubsection*.2}
+\contentsline {subsubsection}{Gildas}{ii}{subsubsection*.3}
+\contentsline {subsubsection}{Miriad}{iii}{subsubsection*.4}
+\contentsline {subsection}{\numberline {1.2}Installation}{iii}{subsection.1.2}
+\contentsline {subsection}{\numberline {1.3}Configuration of the (optional) Database}{iii}{subsection.1.3}
+\contentsline {section}{\numberline {2}Motivation}{iv}{section.2}
+\contentsline {subsection}{\numberline {2.1}Inter-operating Fits, Gildas and Miriad}{iv}{subsection.2.1}
+\contentsline {subsection}{\numberline {2.2}Changing map units}{iv}{subsection.2.2}
+\contentsline {subsection}{\numberline {2.3}Working with stacks of images}{iv}{subsection.2.3}
+\contentsline {subsection}{\numberline {2.4}Producing SEDs}{v}{subsection.2.4}
+\contentsline {subsection}{\numberline {2.5}Not only images ...}{vi}{subsection.2.5}
+\contentsline {section}{\numberline {3}Manual}{vi}{section.3}
+\contentsline {section}{\numberline {4}Modules}{vii}{section.4}
+\contentsline {section}{\numberline {5}maps}{viii}{section.5}
+\contentsline {section}{\numberline {6}main}{viii}{section.6}
+\contentsline {subsection}{\numberline {6.1}From naming convention}{viii}{subsection.6.1}
+\contentsline {subsubsection}{Calculated Values}{viii}{subsubsection*.6}
+\contentsline {subsubsection}{Known Format endings of the different file types}{ix}{subsubsection*.7}
+\contentsline {subsection}{\numberline {6.2}Variables loaded from Database}{ix}{subsection.6.2}
+\contentsline {subsubsection}{From Line Database}{ix}{subsubsection*.8}
+\contentsline {subsubsection}{From Galaxy Database}{ix}{subsubsection*.9}
+\contentsline {subsubsection}{From Calibration Database}{ix}{subsubsection*.10}
+\contentsline {section}{\numberline {7}fits}{x}{section.7}
+\contentsline {subsection}{\numberline {7.1}Variables loaded with pyfits}{x}{subsection.7.1}
+\contentsline {subsection}{\numberline {7.2}Calculated values}{x}{subsection.7.2}
+\contentsline {subsection}{\numberline {7.3}Known header keywords}{x}{subsection.7.3}
+\contentsline {subsection}{\numberline {7.4}Known names of units}{x}{subsection.7.4}
+\contentsline {subsection}{\numberline {7.5}Changing Formats}{xi}{subsection.7.5}
+\contentsline {subsection}{\numberline {7.6}Making use of Pyfits}{xi}{subsection.7.6}
+\contentsline {subsection}{\numberline {7.7}Change Map Units}{xii}{subsection.7.7}
+\contentsline {section}{\numberline {8}Using gildas}{xii}{section.8}
+\contentsline {subsection}{\numberline {8.1}Variables}{xii}{subsection.8.1}
+\contentsline {subsubsection}{Gildas Specific}{xii}{subsubsection*.13}
+\contentsline {paragraph}{How is Gildas used by astrolyze}{xiii}{paragraph*.14}
+\contentsline {subsection}{\numberline {8.2}Wrapping Gildas Tasks}{xiii}{subsection.8.2}
+\contentsline {subsection}{\numberline {8.3}Direc use of pyGildas}{xiii}{subsection.8.3}
+\contentsline {section}{\numberline {9}Using miriad}{xiii}{section.9}
+\contentsline {section}{\numberline {10}Using the stack module}{xiv}{section.10}
+\contentsline {section}{\numberline {11}Using the sed module}{xiv}{section.11}
+\contentsline {section}{Bibliography}{xiv}{section*.15}
