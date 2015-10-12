@@ -1,4 +1,4 @@
-m. MapClass documentation master file, created by
+.. MapClass documentation master file, created by
    sphinx-quickstart on Tue May 15 17:38:24 2012.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.

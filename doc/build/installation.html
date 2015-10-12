@@ -1,0 +1,227 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Installation of astrolyze &mdash; AstroLyze 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="AstroLyze 0.1.0 documentation" href="index.html" />
+    <link rel="next" title="Motivation" href="manual.html" />
+    <link rel="prev" title="astrolyze Documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="manual.html" title="Motivation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="astrolyze Documentation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">AstroLyze 0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/logo1.jpg" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Installation of astrolyze</a><ul>
+<li><a class="reference internal" href="#dependencies">Dependencies</a><ul>
+<li><a class="reference internal" href="#python">Python</a></li>
+<li><a class="reference internal" href="#gildas">Gildas</a></li>
+<li><a class="reference internal" href="#miriad">Miriad</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#configuration-of-the-optional-database">Configuration of the (optional) Database</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">astrolyze Documentation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="manual.html"
+                        title="next chapter">Motivation</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/installation.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="installation-of-astrolyze">
+<h1>Installation of astrolyze<a class="headerlink" href="#installation-of-astrolyze" title="Permalink to this headline">¶</a></h1>
+<p>astrolyze is only tested on Linux/Ubuntu so far.</p>
+<div class="section" id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="python">
+<h3>Python<a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h3>
+<p>astrolyze depends on the following python packages</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">numpy</span>
+<span class="n">pyfits</span>
+<span class="n">matplotlib</span>
+<span class="n">scipy</span>
+<span class="n">pywcs</span>
+<span class="n">pysqlite2</span>
+</pre></div>
+</div>
+<p>In Ubuntu (and thus most probable also Debian) these dependencies can be
+installed via:</p>
+<div class="highlight-python"><div class="highlight"><pre>sudo apt-get install python-matplotlib python-pywcs python-scipy python-numpy
+python-pysqlite2 python-pyfits
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">It does not work with python3!!</p>
+</div>
+</div>
+<div class="section" id="gildas">
+<h3>Gildas<a class="headerlink" href="#gildas" title="Permalink to this headline">¶</a></h3>
+<p>To be able to use GILDAS from within astrolyze it is enough to have a working
+GILDAS installation compiled with the python support. The actual GILDAS version
+and installation instructions can be found here:</p>
+<p><a class="reference external" href="http://www.iram.fr/IRAMFR/GILDAS/">http://www.iram.fr/IRAMFR/GILDAS/</a></p>
+</div>
+<div class="section" id="miriad">
+<h3>Miriad<a class="headerlink" href="#miriad" title="Permalink to this headline">¶</a></h3>
+<p>Also Miriad just has to be installed and working. At the moment only the smooth
+function of miriad is used in astrolyze but it is worth installing it since it
+it a common task. Miriad and instructions for installation can be found here:</p>
+<p><a class="reference external" href="ftp://ftp.atnf.csiro.au/pub/software/miriad/INSTALL.html">ftp://ftp.atnf.csiro.au/pub/software/miriad/INSTALL.html</a></p>
+</div>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>If you are interested in the package please sent me a short E-Mail
+(<a class="reference external" href="mailto:buchbend&#37;&#52;&#48;iram&#46;es">buchbend<span>&#64;</span>iram<span>&#46;</span>es</a>) and I&#8217;ll send it to you. Later it will be available on-line.</p>
+<p>So far it astrolyze is only available as a source distribution. To install
+astrolyze unpack the tar-ball via:</p>
+<div class="highlight-python"><div class="highlight"><pre>tar -xvzf astrolyze-0.1.0.tar.gz
+</pre></div>
+</div>
+<p>which will unpack into a directory &#8216;&#8217;astrolyze-0.1.0&#8217;&#8217; in the current path.
+After entering this directory the installation of astrolyze is done via:</p>
+<div class="highlight-python"><div class="highlight"><pre>sudo python setup.py install
+</pre></div>
+</div>
+<p>In the current state the setup does not allow a custom installation path. The
+files will be installed depending on your system configuration in either of the
+following locations:</p>
+<div class="highlight-python"><div class="highlight"><pre>/usr/lib/pythonX.Y/site-packages
+/usr/local/lib/pythonX.Y/site-packages
+</pre></div>
+</div>
+<p>Here X and Y are the major and minor number your python installations.</p>
+</div>
+<div class="section" id="configuration-of-the-optional-database">
+<h2>Configuration of the (optional) Database<a class="headerlink" href="#configuration-of-the-optional-database" title="Permalink to this headline">¶</a></h2>
+<p>The setup.py script will generate a <tt class="docutils literal"><span class="pre">parameter.db</span></tt> sqlite database containing
+information about the maps and files opened in Astrolyze. From the keyword of
+the &#8216;&#8217;Naming Convention&#8217;&#8216;.</p>
+<p>In the current state  astrolyze reads in</p>
+<blockquote>
+<div><ul class="simple">
+<li>Additional informations of the source</li>
+<li>Frequencies and wavelengths</li>
+<li>Calibration error for specific telescopes</li>
+</ul>
+</div></blockquote>
+<p>The database has to be populated by the user. This is done via the three text
+files in the <tt class="docutils literal"><span class="pre">cfg</span></tt> folder located in <tt class="docutils literal"><span class="pre">astrolyze-0.1.0</span></tt> that contains:</p>
+<p>galaxy_parameter.txt:</p>
+<p>line_parameter.txt:</p>
+<p>calibration_error.txt:</p>
+<p>The Names of the source telescope and lines have to be exactly how they are
+used in the map names. However the writing can be an arbitrary mix of upper an
+lower case characters. Internally Astrolyze converts them to upper case before
+comparing.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="manual.html" title="Motivation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="astrolyze Documentation"
+             >previous</a> |</li>
+        <li><a href="index.html">AstroLyze 0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Christof Buchbender.
+      Last updated on Oct 12, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

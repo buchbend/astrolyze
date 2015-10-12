@@ -8,7 +8,7 @@ astro_functions
 
 .. automodule:: astrolyze.functions.astro_functions
     :members:
-    
+
 -----
 
 units

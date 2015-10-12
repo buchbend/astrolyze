@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# AstroLyze documentation build configuration file, created by
-# sphinx-quickstart on Mon Nov  5 16:58:09 2012.
+# MapClass documentation build configuration file, created by
+# sphinx-quickstart on Tue May 15 17:38:24 2012.
 #
 # This file is execfile()d with the current directory set to its containing dir.
 #
@@ -16,7 +16,6 @@ import sys, os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
 
 sys.path.insert(0, os.path.abspath('../'))
 
@@ -28,16 +27,14 @@ sys.path.insert(0, os.path.abspath('../'))
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.doctest',
-              'sphinx.ext.intersphinx',
+              'sphinx.ext.doctest', 'sphinx.ext.pngmath',
+              'sphinx.ext.todo', 'sphinx.ext.coverage',
               'matplotlib.sphinxext.plot_directive',
-              'sphinx.ext.todo',
-              'sphinx.ext.coverage',
-              'sphinx.ext.ifconfig',
-              'sphinx.ext.pngmath',
-              'numpydoc',
-              'sphinx.ext.autosummary' ]
+              'numpydoc', 'sphinx.ext.autosummary']
+#              'matplotlib.sphinxext.only_directives',
+#              'matplotlib.sphinxext.plot_directive']
 
+todo_include_todos=True
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -97,6 +94,7 @@ pygments_style = 'sphinx'
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
+
 numpydoc_show_class_member = True
 
 # -- Options for HTML output ---------------------------------------------------
@@ -104,6 +102,7 @@ numpydoc_show_class_member = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 html_theme = 'sphinxdoc'
+#html_theme = 'default'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -122,7 +121,7 @@ html_theme = 'sphinxdoc'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = None
+html_logo = 'figures/logo1.jpg'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -136,7 +135,7 @@ html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-#html_last_updated_fmt = '%b %d, %Y'
+html_last_updated_fmt = '%b %d, %Y'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
@@ -183,7 +182,7 @@ htmlhelp_basename = 'AstroLyzedoc'
 
 latex_elements = {
 # The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+'papersize': 'a4paper',
 
 # The font size ('10pt', '11pt' or '12pt').
 #'pointsize': '10pt',
@@ -195,8 +194,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index_pdf', 'AstroLyze.tex', u'AstroLyze Documentation',
-   u'Christof Buchbender', 'howto'),
+  ('index', 'astrolyze.tex', u'Astrolyze Documentation',
+   u'Christof Buchbender', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -225,7 +224,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'astrolyze', u'AstroLyze Documentation',
+    ('index', 'astrolyze', u'Astrolyze Documentation',
      [u'Christof Buchbender'], 1)
 ]
 
@@ -239,8 +238,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'AstroLyze', u'AstroLyze Documentation',
-   u'Christof Buchbender', 'AstroLyze', 'One line description of project.',
+  ('index', 'astrolyze', u'Astrolyze Documentation',
+   u'Christof Buchbender', 'astrolyze', 'One line description of project.',
    'Miscellaneous'),
 ]
 
@@ -252,10 +251,6 @@ texinfo_documents = [
 
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
-
-
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}
 
 # -- Additional Global Options ------------------------------------------------
 
