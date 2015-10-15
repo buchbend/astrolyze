@@ -5,4 +5,4 @@ pyfits
 matplotlib
 scipy
 pywcs
-pysqlite2
+pysqlite
