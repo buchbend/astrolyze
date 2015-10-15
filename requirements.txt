@@ -1,2 +1,8 @@
 numpydoc
 pysqlite2
+numpy
+pyfits
+matplotlib
+scipy
+pywcs
+pysqlite2
