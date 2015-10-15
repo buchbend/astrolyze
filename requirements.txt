@@ -1,4 +1,3 @@
-numpydoc
 numpy
 pyfits
 matplotlib
