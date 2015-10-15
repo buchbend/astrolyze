@@ -1,2 +1,3 @@
 pywcs
 pyfits
+phinxcontrib.napoleon
