@@ -1,3 +1,1 @@
-matplotlib==1.4.3
-numpy==1.10.0.post2
-numpydoc==0.4
+numpydoc
