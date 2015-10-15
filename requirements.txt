@@ -1,3 +1,2 @@
-pywcs
 pyfits
-sphinxcontrib.napoleon
+pywcs
