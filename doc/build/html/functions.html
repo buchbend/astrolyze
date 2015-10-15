@@ -26,8 +26,8 @@
     <link rel="top" title="astrolyze 0.0.2 documentation" href="index.html" />
     <link rel="prev" title="LTE" href="lte.html" /> 
   </head>
-  <body>
-    <div class="related">
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -39,10 +39,10 @@
         <li class="right" >
           <a href="lte.html" title="LTE"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">astrolyze 0.0.2 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">astrolyze 0.0.2 documentation</a> &raquo;</li> 
       </ul>
     </div>
-      <div class="sphinxsidebar">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="index.html">
               <img class="logo" src="_static/logo1.jpg" alt="Logo"/>
@@ -60,12 +60,14 @@
   <h4>Previous topic</h4>
   <p class="topless"><a href="lte.html"
                         title="previous chapter">LTE</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="_sources/functions.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/functions.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
       <input type="text" name="q" />
@@ -84,7 +86,7 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body">
+          <div class="body" role="main">
             
   <div class="section" id="functions">
 <h1>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h1>
@@ -92,7 +94,7 @@
 <span id="astro-functions"></span><h2>astro_functions<a class="headerlink" href="#module-astrolyze.functions.astro_functions" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.LTIR">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">LTIR</tt><big>(</big><em>p2</em>, <em>kappa='Kruegel'</em>, <em>xmin=3.0</em>, <em>xmax=1100.0</em>, <em>beamConv=True</em>, <em>distance=847000.0</em>, <em>unit='JyB'</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#LTIR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.LTIR" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">LTIR</code><span class="sig-paren">(</span><em>p2</em>, <em>kappa='Kruegel'</em>, <em>xmin=3.0</em>, <em>xmax=1100.0</em>, <em>beamConv=True</em>, <em>distance=847000.0</em>, <em>unit='JyB'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#LTIR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.LTIR" title="Permalink to this definition">¶</a></dt>
 <dd><p>Integration of a multi-component greybody model.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -101,15 +103,15 @@
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>p2</strong> (<em>list</em>) &#8211; The parameters defining the multi-component greybody model. Same format
 as p in
-<tt class="xref py py-func docutils literal"><span class="pre">astrolyze.functions.astroFunctions.multi_component_grey_body()</span></tt></li>
+<code class="xref py py-func docutils literal"><span class="pre">astrolyze.functions.astroFunctions.multi_component_grey_body()</span></code></li>
 <li><strong>kappa</strong> (<em>string</em>) &#8211; The dust extinction coefficient used to describe the greybodies. See:
 py:func:<cite>grey_body</cite></li>
 <li><strong>xmax</strong> (<em>xmin,</em>) &#8211; The integration range in units of micron. Defaults to 3 &#8211; 110 micron.
 The definition of LTIR from [DA]</li>
 <li><strong>beamConv</strong> (<em>True or False</em>) &#8211; For units in Lsun the code is not well written. Hardcoded conversion
 between an 28&#8221; and 40&#8221; beam. !! CHANGE !!</li>
-<li><strong>unit</strong> (<em>string</em>) &#8211; If <tt class="docutils literal"><span class="pre">'Lsun'</span></tt> the returned integrated flux is in units of solar
-luminosities (erg s^-1). For this a distance is needed. If <tt class="docutils literal"><span class="pre">'JyB'</span></tt>
+<li><strong>unit</strong> (<em>string</em>) &#8211; If <code class="docutils literal"><span class="pre">'Lsun'</span></code> the returned integrated flux is in units of solar
+luminosities (erg s^-1). For this a distance is needed. If <code class="docutils literal"><span class="pre">'JyB'</span></code>
 the units are Jy/beam; distance is not used.</li>
 </ul>
 </td>
@@ -130,7 +132,7 @@ to be safe.</p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.analytic_linear_fit">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">analytic_linear_fit</tt><big>(</big><em>x</em>, <em>y</em>, <em>x_error</em>, <em>y_error</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#analytic_linear_fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.analytic_linear_fit" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">analytic_linear_fit</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>x_error</em>, <em>y_error</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#analytic_linear_fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.analytic_linear_fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function resembles the analytical solution following chaper 8 from
 [TA].</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -175,7 +177,7 @@ measurement&#8221; by John R. Taylor.</td></tr>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.anti_line">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">anti_line</tt><big>(</big><em>p</em>, <em>y</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#anti_line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.anti_line" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">anti_line</code><span class="sig-paren">(</span><em>p</em>, <em>y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#anti_line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.anti_line" title="Permalink to this definition">¶</a></dt>
 <dd><p>Inverse of a line returning the x value corresponding to a y value, i.e.
 <cite>x = y/m - b</cite>.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -194,7 +196,7 @@ measurement&#8221; by John R. Taylor.</td></tr>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.black_body">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">black_body</tt><big>(</big><em>x</em>, <em>T</em>, <em>nu_or_lambda='nu'</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#black_body"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.black_body" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">black_body</code><span class="sig-paren">(</span><em>x</em>, <em>T</em>, <em>nu_or_lambda='nu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#black_body"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.black_body" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculation of the flux density of a black body at a temperature T and a
 wavelenght/frequency x.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -204,8 +206,8 @@ wavelenght/frequency x.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>x</strong> (<em>float or numpy array</em>) &#8211; wavelength [GHz] or frequency [micron];  specify type in nu_or_lambda</li>
 <li><strong>T</strong> (<em>float [Kelvin]</em>) &#8211; Temperature of the black_body</li>
-<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Specify whether x is a frequency <span class="math">\nu</span> <tt class="docutils literal"><span class="pre">'nu'</span></tt> or a wavelenght
-<span class="math">\lambda</span> <tt class="docutils literal"><span class="pre">'lambda'</span></tt>; default is <tt class="docutils literal"><span class="pre">'nu'</span></tt>.</li>
+<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Specify whether x is a frequency <span class="math">\nu</span> <code class="docutils literal"><span class="pre">'nu'</span></code> or a wavelenght
+<span class="math">\lambda</span> <code class="docutils literal"><span class="pre">'lambda'</span></code>; default is <code class="docutils literal"><span class="pre">'nu'</span></code>.</li>
 </ul>
 </td>
 </tr>
@@ -255,7 +257,7 @@ also be plotted:</p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.calc_offset">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">calc_offset</tt><big>(</big><em>central_coordinate</em>, <em>offset_coordinate</em>, <em>angle=0</em>, <em>output_unit='farcsec'</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#calc_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.calc_offset" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">calc_offset</code><span class="sig-paren">(</span><em>central_coordinate</em>, <em>offset_coordinate</em>, <em>angle=0</em>, <em>output_unit='farcsec'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#calc_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.calc_offset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the offset between two coordinates.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -269,7 +271,8 @@ central_coordinate.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>rotated_offset</strong> &#8211; The offsets, rotated only if angle given.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>rotated_offset</strong> &#8211;
+The offsets, rotated only if angle given.</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list</p>
@@ -283,7 +286,7 @@ central_coordinate.</li>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.degrees_to_equatorial">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">degrees_to_equatorial</tt><big>(</big><em>degrees</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#degrees_to_equatorial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.degrees_to_equatorial" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">degrees_to_equatorial</code><span class="sig-paren">(</span><em>degrees</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#degrees_to_equatorial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.degrees_to_equatorial" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts RA, DEC coordinates in degrees to equatorial notation.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -291,7 +294,8 @@ central_coordinate.</li>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>degrees</strong> (<em>list</em>) &#8211; The coordinates in degrees in the format of: [23.4825, 30.717222]</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>equatorial</strong> &#8211; The coordinates in equatorial notation, e.g.
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>equatorial</strong> &#8211;
+The coordinates in equatorial notation, e.g.
 corresponding [&#8216;1:33:55.80&#8217;, &#8216;+30:43:2.00&#8217;].</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list</td>
@@ -302,7 +306,7 @@ corresponding [&#8216;1:33:55.80&#8217;, &#8216;+30:43:2.00&#8217;].</td>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.equatorial_to_degrees">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">equatorial_to_degrees</tt><big>(</big><em>equatorial</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#equatorial_to_degrees"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.equatorial_to_degrees" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">equatorial_to_degrees</code><span class="sig-paren">(</span><em>equatorial</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#equatorial_to_degrees"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.equatorial_to_degrees" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts RA, DEC coordinates in equatorial notation to degrees.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -311,11 +315,13 @@ corresponding [&#8216;1:33:55.80&#8217;, &#8216;+30:43:2.00&#8217;].</td>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>equatorial</strong> (<em>list</em>) &#8211; The coordinates in degress in equatorial notation, e.g.
 [&#8216;1:33:55.80&#8217;, &#8216;+30:43:2.00&#8217;]</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>degrees</strong> &#8211; The coordinates in degreees, e.g. [23.4825, 30.717222].</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>degrees</strong> &#8211;
+The coordinates in degreees, e.g. [23.4825, 30.717222].</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><tt class="xref py py-exc docutils literal"><span class="pre">SystemExit</span></tt> &#8211; If <tt class="docutils literal"><span class="pre">equatorial</span></tt> is not a list of strings in the above format.</td>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal"><span class="pre">SystemExit</span></code> &#8211;
+If <code class="docutils literal"><span class="pre">equatorial</span></code> is not a list of strings in the above format.</td>
 </tr>
 </tbody>
 </table>
@@ -323,7 +329,7 @@ corresponding [&#8216;1:33:55.80&#8217;, &#8216;+30:43:2.00&#8217;].</td>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.freq_to_vel_resolution">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">freq_to_vel_resolution</tt><big>(</big><em>center_frequency</em>, <em>frequency_resolution</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#freq_to_vel_resolution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.freq_to_vel_resolution" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">freq_to_vel_resolution</code><span class="sig-paren">(</span><em>center_frequency</em>, <em>frequency_resolution</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#freq_to_vel_resolution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.freq_to_vel_resolution" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to convert a frequency resolution to a velocity resolution
 for a given center frequency.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -351,7 +357,7 @@ for a given center frequency.</p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.frequency_to_wavelength">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">frequency_to_wavelength</tt><big>(</big><em>frequency</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#frequency_to_wavelength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.frequency_to_wavelength" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">frequency_to_wavelength</code><span class="sig-paren">(</span><em>frequency</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#frequency_to_wavelength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.frequency_to_wavelength" title="Permalink to this definition">¶</a></dt>
 <dd><blockquote>
 <div><p>Converting frequency to wavelength.</p>
 <p>frequency : float [GHZ]</p>
@@ -363,7 +369,7 @@ for a given center frequency.</p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.gauss1D">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">gauss1D</tt><big>(</big><em>x</em>, <em>fwhm</em>, <em>offset=0</em>, <em>amplitude=1</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#gauss1D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.gauss1D" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">gauss1D</code><span class="sig-paren">(</span><em>x</em>, <em>fwhm</em>, <em>offset=0</em>, <em>amplitude=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#gauss1D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.gauss1D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calulcates 1D Gaussian.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -377,7 +383,8 @@ for a given center frequency.</p>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>gauss</strong> &#8211; The y value for the specified Gaussian distribution evaluated at x.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>gauss</strong> &#8211;
+The y value for the specified Gaussian distribution evaluated at x.</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float or np.ndarray</p>
@@ -393,7 +400,7 @@ for a given center frequency.</p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.gauss2D">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">gauss2D</tt><big>(</big><em>x</em>, <em>y</em>, <em>major</em>, <em>minor</em>, <em>pa=0</em>, <em>xOffset=0</em>, <em>yOffset=0</em>, <em>amplitude=1</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#gauss2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.gauss2D" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">gauss2D</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>major</em>, <em>minor</em>, <em>pa=0</em>, <em>xOffset=0</em>, <em>yOffset=0</em>, <em>amplitude=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#gauss2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.gauss2D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates a 2D Gaussian at position x y.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -409,7 +416,8 @@ for a given center frequency.</p>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>gauss</strong> &#8211; The y value for the specified Gaussian distribution evaluated at x.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>gauss</strong> &#8211;
+The y value for the specified Gaussian distribution evaluated at x.</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float or np.ndarray</p>
@@ -431,7 +439,7 @@ c = sin(pa)**2/(2*major**2) + cos(pa)**2/(2*minor**2) \\</span></p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.generate_monte_carlo_data_line">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">generate_monte_carlo_data_line</tt><big>(</big><em>data</em>, <em>errors</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#generate_monte_carlo_data_line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.generate_monte_carlo_data_line" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">generate_monte_carlo_data_line</code><span class="sig-paren">(</span><em>data</em>, <em>errors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#generate_monte_carlo_data_line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.generate_monte_carlo_data_line" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function makes a Monte Carlo Simulation of a data Set of measurements
 it uses the random.gauss() function to generate a data point
 from a gauss distribution, that has a mean equal to the measurement
@@ -446,7 +454,8 @@ and its standard deviation corresonding to the error of the measurement.</p>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>newData</strong> &#8211; The monte carlo simulated measurement.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>newData</strong> &#8211;
+The monte carlo simulated measurement.</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">array in same format as data.</p>
@@ -456,16 +465,16 @@ and its standard deviation corresonding to the error of the measurement.</p>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><tt class="xref py py-func docutils literal"><span class="pre">random.gauss()</span></tt></p>
+<p class="last"><code class="xref py py-func docutils literal"><span class="pre">random.gauss()</span></code></p>
 </div>
 </dd></dl>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.generate_monte_carlo_data_sed">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">generate_monte_carlo_data_sed</tt><big>(</big><em>data</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#generate_monte_carlo_data_sed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.generate_monte_carlo_data_sed" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">generate_monte_carlo_data_sed</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#generate_monte_carlo_data_sed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.generate_monte_carlo_data_sed" title="Permalink to this definition">¶</a></dt>
 <dd><p>MonteCarlo Simulation of a set of flux measurements, assuming that the
 measurement data follows a gauss distribution.</p>
-<p>This function makes use of the <tt class="xref py py-func docutils literal"><span class="pre">random.gauss()</span></tt> function to generate a
+<p>This function makes use of the <code class="xref py py-func docutils literal"><span class="pre">random.gauss()</span></code> function to generate a
 data point from a gauss distribution, that has a mean equal to the Flux
 measurement and a standard deviation correponding to the error of the
 measurement.</p>
@@ -480,7 +489,8 @@ measurement.</p>
 <p>with x = wavelenght/frequency, y = flux, z = error on flux.</p>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>newData</strong> &#8211; The Monte-Carlo simulated measurement.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>newData</strong> &#8211;
+The Monte-Carlo simulated measurement.</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">array in same format as data.</td>
 </tr>
@@ -488,13 +498,13 @@ measurement.</p>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><tt class="xref py py-func docutils literal"><span class="pre">random.gauss()</span></tt></p>
+<p class="last"><code class="xref py py-func docutils literal"><span class="pre">random.gauss()</span></code></p>
 </div>
 </dd></dl>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.grey_body">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">grey_body</tt><big>(</big><em>p</em>, <em>x</em>, <em>nu_or_lambda='nu'</em>, <em>kappa='Kruegel'</em>, <em>distance=840000.0</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#grey_body"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.grey_body" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">grey_body</code><span class="sig-paren">(</span><em>p</em>, <em>x</em>, <em>nu_or_lambda='nu'</em>, <em>kappa='Kruegel'</em>, <em>distance=840000.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#grey_body"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.grey_body" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculation of the flux density in Jansky of a grey_body under
 assumption of optically thin emission. Please see Notes below for an
 detailed description assumptions and equations used.</p>
@@ -512,8 +522,8 @@ specify type in nu_or_lambda</li>
 <li><strong>kappa</strong> (<em>string</em>) &#8211; <dl class="docutils">
 <dt>Chooses the dust extinction coefficient to use:</dt>
 <dd><ul class="first last">
-<li><tt class="docutils literal"><span class="pre">&quot;easy&quot;</span></tt> -&gt; kappa = nu^beta; tau = N * kappa</li>
-<li><tt class="docutils literal"><span class="pre">&quot;Kruegel&quot;</span></tt> -&gt; kappa = 0.04*(nu/250Ghz)^beta;
+<li><code class="docutils literal"><span class="pre">&quot;easy&quot;</span></code> -&gt; kappa = nu^beta; tau = N * kappa</li>
+<li><code class="docutils literal"><span class="pre">&quot;Kruegel&quot;</span></code> -&gt; kappa = 0.04*(nu/250Ghz)^beta;
 tau = M/D^2 * kappa</li>
 </ul>
 </dd>
@@ -521,13 +531,14 @@ tau = M/D^2 * kappa</li>
 <p>Please refer to Notes below, for further explanation.</p>
 </li>
 <li><strong>distance</strong> (<em>float</em>) &#8211; The distance to the source that is to be modeled if kappa
-<tt class="docutils literal"><span class="pre">&quot;Kruegel&quot;</span></tt> is used.</li>
+<code class="docutils literal"><span class="pre">&quot;Kruegel&quot;</span></code> is used.</li>
 </ul>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name" colspan="2">Other Parameters:</th></tr>
-<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first last"><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Specify whether x is a frequency <span class="math">\nu</span> <tt class="docutils literal"><span class="pre">'nu'</span></tt> or a wavelength
-<span class="math">\lambda</span> <tt class="docutils literal"><span class="pre">'lambda'</span></tt>; default is <tt class="docutils literal"><span class="pre">'nu'</span></tt>. if lambda the input
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first last"><strong>nu_or_lambda</strong> (<em>string</em>) &#8211;
+Specify whether x is a frequency <span class="math">\nu</span> <code class="docutils literal"><span class="pre">'nu'</span></code> or a wavelength
+<span class="math">\lambda</span> <code class="docutils literal"><span class="pre">'lambda'</span></code>; default is <code class="docutils literal"><span class="pre">'nu'</span></code>. if lambda the input
 converted to a frequency in [GHz].</p>
 </td>
 </tr>
@@ -546,19 +557,19 @@ unity. This simplifies the equation of the grey_body to:</p>
 <div class="math">
 <p><span class="math">S(x, \tau) = \tau * (black_body(x, T))</span></p>
 </div><p>This script supports two versions of the dust extinction coefficient.::
-A simple version without a lot of physics put into, kappa = <tt class="docutils literal"><span class="pre">'easy'</span></tt>
+A simple version without a lot of physics put into, kappa = <code class="docutils literal"><span class="pre">'easy'</span></code>
 which defaults to the following grey_body equation:</p>
 <div class="math">
 <p><span class="math">S(x, \tau) = N * x^{\beta} * black_body(x,T) ,</span></p>
 </div><p>with N being a column density scaling factor.</p>
-<p>The second version, kappa = <tt class="docutils literal"><span class="pre">'Kruegel'</span></tt> uses the dust extinction
+<p>The second version, kappa = <code class="docutils literal"><span class="pre">'Kruegel'</span></code> uses the dust extinction
 coefficient reported in [KS] which renders the used equation to:</p>
 <div class="math">
 <p><span class="math">\kappa = 0.04 * (\frac{x\,[GHz]}{250\,GHz})^{\beta}
 
 S_{\nu} = M[kg] / D^2[m^2] * \kappa * black_body(x,T) .</span></p>
 </div><p class="rubric">Examples</p>
-<p>The same examples as for <a class="reference internal" href="#astrolyze.functions.astro_functions.black_body" title="astrolyze.functions.astro_functions.black_body"><tt class="xref py py-func docutils literal"><span class="pre">black_body()</span></tt></a> apply.</p>
+<p>The same examples as for <a class="reference internal" href="#astrolyze.functions.astro_functions.black_body" title="astrolyze.functions.astro_functions.black_body"><code class="xref py py-func docutils literal"><span class="pre">black_body()</span></code></a> apply.</p>
 <p class="rubric">References</p>
 <table class="docutils citation" frame="void" id="ks" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
@@ -570,7 +581,7 @@ S_{\nu} = M[kg] / D^2[m^2] * \kappa * black_body(x,T) .</span></p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.grey_body_fit">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">grey_body_fit</tt><big>(</big><em>data</em>, <em>start_parameter</em>, <em>nu_or_lambda='nu'</em>, <em>fit_beta=False</em>, <em>fix_temperature=False</em>, <em>rawChiSq=None</em>, <em>kappa='Kruegel'</em>, <em>residuals=False</em>, <em>iterations=1000000000.0</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#grey_body_fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.grey_body_fit" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">grey_body_fit</code><span class="sig-paren">(</span><em>data</em>, <em>start_parameter</em>, <em>nu_or_lambda='nu'</em>, <em>fit_beta=False</em>, <em>fix_temperature=False</em>, <em>rawChiSq=None</em>, <em>kappa='Kruegel'</em>, <em>residuals=False</em>, <em>iterations=1000000000.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#grey_body_fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.grey_body_fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function fits a multi component grey body model to an observed SED for
 the optical thin case.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -595,24 +606,26 @@ function gives chisq without dividing it by the dof</li>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul>
-<li><p class="first"><strong>p2</strong> (<em>list</em>) &#8211; The final grey_body parameters that reduce the least squares for the
+<li><p class="first"><strong>p2</strong> (<em>list</em>) &#8211;
+The final grey_body parameters that reduce the least squares for the
 given dataset.</p>
 </li>
-<li><dl class="first docutils">
-<dt><em>chisq/rawChiSq</em> &#8211; chisq is reduced chisq with degrees of freedom:</dt>
-<dd><p class="first last">dof= #dataPoints-#freeFitParameters-1</p>
-</dd>
-</dl>
+<li><p class="first"><em>chisq/rawChiSq</em> &#8211;
+chisq is reduced chisq with degrees of freedom:</p>
+<blockquote>
+<div><p>dof= #dataPoints-#freeFitParameters-1</p>
+</div></blockquote>
 </li>
 </ul>
 </p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name" colspan="2">Other Parameters:</th></tr>
-<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first last"><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Specify whether x is a frequency <span class="math">\nu</span> <tt class="docutils literal"><span class="pre">'nu'</span></tt> or
-a wavelenght <span class="math">\lambda</span> <tt class="docutils literal"><span class="pre">'lambda'</span></tt>; default is <tt class="docutils literal"><span class="pre">'nu'</span></tt>.::
-<strong>Don&#8217;t</strong> use <tt class="docutils literal"><span class="pre">'lambda'</span></tt> as this part of the
-<a class="reference internal" href="#astrolyze.functions.astro_functions.grey_body" title="astrolyze.functions.astro_functions.grey_body"><tt class="xref py py-func docutils literal"><span class="pre">grey_body()</span></tt></a> is not up-to-date.</p>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first last"><strong>nu_or_lambda</strong> (<em>string</em>) &#8211;
+Specify whether x is a frequency <span class="math">\nu</span> <code class="docutils literal"><span class="pre">'nu'</span></code> or
+a wavelenght <span class="math">\lambda</span> <code class="docutils literal"><span class="pre">'lambda'</span></code>; default is <code class="docutils literal"><span class="pre">'nu'</span></code>.::
+<strong>Don&#8217;t</strong> use <code class="docutils literal"><span class="pre">'lambda'</span></code> as this part of the
+<a class="reference internal" href="#astrolyze.functions.astro_functions.grey_body" title="astrolyze.functions.astro_functions.grey_body"><code class="xref py py-func docutils literal"><span class="pre">grey_body()</span></code></a> is not up-to-date.</p>
 </td>
 </tr>
 </tbody>
@@ -620,10 +633,10 @@ a wavelenght <span class="math">\lambda</span> <tt class="docutils literal"><spa
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <dl class="docutils">
-<dt><tt class="xref py py-func docutils literal"><span class="pre">scipy.optimize.leastsq()</span></tt></dt>
+<dt><code class="xref py py-func docutils literal"><span class="pre">scipy.optimize.leastsq()</span></code></dt>
 <dd>This function is used to perform the least squares</dd>
 </dl>
-<p class="last"><tt class="xref py py-func docutils literal"><span class="pre">fit.()</span></tt>, <a class="reference internal" href="#astrolyze.functions.astro_functions.multi_component_grey_body" title="astrolyze.functions.astro_functions.multi_component_grey_body"><tt class="xref py py-func docutils literal"><span class="pre">multi_component_grey_body()</span></tt></a>, <a class="reference internal" href="#astrolyze.functions.astro_functions.grey_body" title="astrolyze.functions.astro_functions.grey_body"><tt class="xref py py-func docutils literal"><span class="pre">grey_body()</span></tt></a>, <a class="reference internal" href="#astrolyze.functions.astro_functions.black_body" title="astrolyze.functions.astro_functions.black_body"><tt class="xref py py-func docutils literal"><span class="pre">black_body()</span></tt></a>, <tt class="xref py py-func docutils literal"><span class="pre">be()</span></tt></p>
+<p class="last"><code class="xref py py-func docutils literal"><span class="pre">fit.()</span></code>, <a class="reference internal" href="#astrolyze.functions.astro_functions.multi_component_grey_body" title="astrolyze.functions.astro_functions.multi_component_grey_body"><code class="xref py py-func docutils literal"><span class="pre">multi_component_grey_body()</span></code></a>, <a class="reference internal" href="#astrolyze.functions.astro_functions.grey_body" title="astrolyze.functions.astro_functions.grey_body"><code class="xref py py-func docutils literal"><span class="pre">grey_body()</span></code></a>, <a class="reference internal" href="#astrolyze.functions.astro_functions.black_body" title="astrolyze.functions.astro_functions.black_body"><code class="xref py py-func docutils literal"><span class="pre">black_body()</span></code></a>, <code class="xref py py-func docutils literal"><span class="pre">be()</span></code></p>
 </div>
 <p class="rubric">Notes</p>
 <p>A one component fit has four free parameters if beta is allowed to vary or
@@ -635,11 +648,11 @@ number of data points &gt; number of free parameters.</p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.grey_body_monte_carlo">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">grey_body_monte_carlo</tt><big>(</big><em>p</em>, <em>data</em>, <em>iterations</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#grey_body_monte_carlo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.grey_body_monte_carlo" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">grey_body_monte_carlo</code><span class="sig-paren">(</span><em>p</em>, <em>data</em>, <em>iterations</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#grey_body_monte_carlo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.grey_body_monte_carlo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to evaluate the errors in the parameters fitted with the
 grey_body_fit function.</p>
 <p>It uses Monte Carlo Simulated data (from
-<a class="reference internal" href="#astrolyze.functions.astro_functions.generate_monte_carlo_data_sed" title="astrolyze.functions.astro_functions.generate_monte_carlo_data_sed"><tt class="xref py py-func docutils literal"><span class="pre">generate_monte_carlo_data_sed()</span></tt></a>) and performs a fit to this new data
+<a class="reference internal" href="#astrolyze.functions.astro_functions.generate_monte_carlo_data_sed" title="astrolyze.functions.astro_functions.generate_monte_carlo_data_sed"><code class="xref py py-func docutils literal"><span class="pre">generate_monte_carlo_data_sed()</span></code></a>) and performs a fit to this new data
 giving back the results of the fit parameters.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -647,17 +660,19 @@ giving back the results of the fit parameters.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>p</strong> (<em>list</em>) &#8211; The parameters defining the multi component grey_body model to be
-fitted. Same format as p in <a class="reference internal" href="#astrolyze.functions.astro_functions.multi_component_grey_body" title="astrolyze.functions.astro_functions.multi_component_grey_body"><tt class="xref py py-func docutils literal"><span class="pre">multi_component_grey_body()</span></tt></a></li>
+fitted. Same format as p in <a class="reference internal" href="#astrolyze.functions.astro_functions.multi_component_grey_body" title="astrolyze.functions.astro_functions.multi_component_grey_body"><code class="xref py py-func docutils literal"><span class="pre">multi_component_grey_body()</span></code></a></li>
 <li><strong>data</strong> (<em>array</em>) &#8211; The actual measured data of the SED, same format as for
-<tt class="xref py py-func docutils literal"><span class="pre">grey_body_fitFunction()</span></tt></li>
+<code class="xref py py-func docutils literal"><span class="pre">grey_body_fitFunction()</span></code></li>
 <li><strong>iterations</strong> (<em>int</em>) &#8211; Number of times new data is generated and fitted.</li>
 </ul>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
-<li><em>string</em> &#8211; Containing the mean, standard deviation of the fit parameters, ready
+<li><em>string</em> &#8211;
+Containing the mean, standard deviation of the fit parameters, ready
 to print out.</li>
-<li><strong>betaTlist</strong> (<em>List of all fit results. Name misleading since it may not</em>) &#8211; include the beta.</li>
+<li><strong>betaTlist</strong> (<em>List of all fit results. Name misleading since it may not</em>) &#8211;
+include the beta.</li>
 </ul>
 </p>
 </td>
@@ -668,7 +683,7 @@ to print out.</li>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.line">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">line</tt><big>(</big><em>p</em>, <em>x</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.line" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">line</code><span class="sig-paren">(</span><em>p</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.line" title="Permalink to this definition">¶</a></dt>
 <dd><p>Line <cite>y = m*x + b</cite> equation. Returns y value at point x.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -686,7 +701,7 @@ to print out.</li>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.line_fit">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">line_fit</tt><big>(</big><em>p</em>, <em>x</em>, <em>y</em>, <em>y_error</em>, <em>x_error=False</em>, <em>iterations=10000</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#line_fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.line_fit" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">line_fit</code><span class="sig-paren">(</span><em>p</em>, <em>x</em>, <em>y</em>, <em>y_error</em>, <em>x_error=False</em>, <em>iterations=10000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#line_fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.line_fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Linear Fit to data, taking either errors in y or both in x and y into
 account.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -695,7 +710,7 @@ account.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>p</strong> (<em>list</em>) &#8211; Containg slope (m) and y-axis intersection (b) p=[m, b]. Same as in
-<a class="reference internal" href="#astrolyze.functions.astro_functions.line" title="astrolyze.functions.astro_functions.line"><tt class="xref py py-func docutils literal"><span class="pre">line()</span></tt></a> and <tt class="xref py py-func docutils literal"><span class="pre">antiline()</span></tt>.</li>
+<a class="reference internal" href="#astrolyze.functions.astro_functions.line" title="astrolyze.functions.astro_functions.line"><code class="xref py py-func docutils literal"><span class="pre">line()</span></code></a> and <code class="xref py py-func docutils literal"><span class="pre">antiline()</span></code>.</li>
 <li><strong>x</strong> (<em>float or list</em>) &#8211; x measurements. Data.</li>
 <li><strong>y</strong> (<em>float or list</em>) &#8211; y measurements. Data.</li>
 <li><strong>y_error</strong> (<em>float or list</em>) &#8211; The y measurment errors.</li>
@@ -710,16 +725,16 @@ account.</li>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.line_monte_carlo">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">line_monte_carlo</tt><big>(</big><em>p</em>, <em>x</em>, <em>y</em>, <em>x_error</em>, <em>y_error</em>, <em>iterations</em>, <em>fitIterations=1000000000.0</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#line_monte_carlo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.line_monte_carlo" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">line_monte_carlo</code><span class="sig-paren">(</span><em>p</em>, <em>x</em>, <em>y</em>, <em>x_error</em>, <em>y_error</em>, <em>iterations</em>, <em>fitIterations=1000000000.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#line_monte_carlo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.line_monte_carlo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gererate an estimate of the errors of the fitted parameters determined by
-the <a class="reference internal" href="#astrolyze.functions.astro_functions.line_fit" title="astrolyze.functions.astro_functions.line_fit"><tt class="xref py py-func docutils literal"><span class="pre">line_fit()</span></tt></a> function.</p>
+the <a class="reference internal" href="#astrolyze.functions.astro_functions.line_fit" title="astrolyze.functions.astro_functions.line_fit"><code class="xref py py-func docutils literal"><span class="pre">line_fit()</span></code></a> function.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>p</strong> (<em>list</em>) &#8211; Containg slope (m) and y-axis intersection (b) p=[m, b]. Same as in
-<a class="reference internal" href="#astrolyze.functions.astro_functions.line" title="astrolyze.functions.astro_functions.line"><tt class="xref py py-func docutils literal"><span class="pre">line()</span></tt></a> and <tt class="xref py py-func docutils literal"><span class="pre">antiline()</span></tt>.</li>
+<a class="reference internal" href="#astrolyze.functions.astro_functions.line" title="astrolyze.functions.astro_functions.line"><code class="xref py py-func docutils literal"><span class="pre">line()</span></code></a> and <code class="xref py py-func docutils literal"><span class="pre">antiline()</span></code>.</li>
 <li><strong>x</strong> (<em>float or list</em>) &#8211; x measurements. Data.</li>
 <li><strong>y</strong> (<em>float or list</em>) &#8211; y measurements. Data.</li>
 <li><strong>y_error</strong> (<em>float or list</em>) &#8211; The y measurment errors.</li>
@@ -733,7 +748,8 @@ account.</li>
 <li><strong>BList</strong> (<em>A list containing the fittet y-Axis intersections.</em>)</li>
 <li><strong>MList</strong> (<em>A list containing the fitted slopes.</em>)</li>
 <li><strong>chisqList</strong> (<em>A list with the chisq values.</em>)</li>
-<li><strong>resultArray</strong> (<em>Array with the mean and the standard deviations of</em>) &#8211; slopes and y-axis intersections, i.e. [mean(M), std(M), mean(B),
+<li><strong>resultArray</strong> (<em>Array with the mean and the standard deviations of</em>) &#8211;
+slopes and y-axis intersections, i.e. [mean(M), std(M), mean(B),
 std(B)]</li>
 </ul>
 </p>
@@ -743,13 +759,13 @@ std(B)]</li>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="#astrolyze.functions.astro_functions.grey_body_fit" title="astrolyze.functions.astro_functions.grey_body_fit"><tt class="xref py py-func docutils literal"><span class="pre">grey_body_fit()</span></tt></a>, <a class="reference internal" href="#astrolyze.functions.astro_functions.generate_monte_carlo_data_line" title="astrolyze.functions.astro_functions.generate_monte_carlo_data_line"><tt class="xref py py-func docutils literal"><span class="pre">generate_monte_carlo_data_line()</span></tt></a></p>
+<p class="last"><a class="reference internal" href="#astrolyze.functions.astro_functions.grey_body_fit" title="astrolyze.functions.astro_functions.grey_body_fit"><code class="xref py py-func docutils literal"><span class="pre">grey_body_fit()</span></code></a>, <a class="reference internal" href="#astrolyze.functions.astro_functions.generate_monte_carlo_data_line" title="astrolyze.functions.astro_functions.generate_monte_carlo_data_line"><code class="xref py py-func docutils literal"><span class="pre">generate_monte_carlo_data_line()</span></code></a></p>
 </div>
 </dd></dl>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.linear_error_function">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">linear_error_function</tt><big>(</big><em>p</em>, <em>x</em>, <em>y</em>, <em>y_error</em>, <em>x_error</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#linear_error_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.linear_error_function" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">linear_error_function</code><span class="sig-paren">(</span><em>p</em>, <em>x</em>, <em>y</em>, <em>y_error</em>, <em>x_error</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#linear_error_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.linear_error_function" title="Permalink to this definition">¶</a></dt>
 <dd><p>Error function, i.e. residual from the measured value, which has to be
 minimised in the least square fit taking X and Y Error into account.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -757,7 +773,7 @@ minimised in the least square fit taking X and Y Error into account.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>p</strong> (<em>list</em>) &#8211; Same as in <a class="reference internal" href="#astrolyze.functions.astro_functions.line" title="astrolyze.functions.astro_functions.line"><tt class="xref py py-func docutils literal"><span class="pre">line()</span></tt></a> and <a class="reference internal" href="#astrolyze.functions.astro_functions.anti_line" title="astrolyze.functions.astro_functions.anti_line"><tt class="xref py py-func docutils literal"><span class="pre">anti_line()</span></tt></a>.</li>
+<li><strong>p</strong> (<em>list</em>) &#8211; Same as in <a class="reference internal" href="#astrolyze.functions.astro_functions.line" title="astrolyze.functions.astro_functions.line"><code class="xref py py-func docutils literal"><span class="pre">line()</span></code></a> and <a class="reference internal" href="#astrolyze.functions.astro_functions.anti_line" title="astrolyze.functions.astro_functions.anti_line"><code class="xref py py-func docutils literal"><span class="pre">anti_line()</span></code></a>.</li>
 <li><strong>x</strong> (<em>float or list</em>) &#8211; x measurements. Data.</li>
 <li><strong>y</strong> (<em>float or list</em>) &#8211; y measurements. Data.</li>
 <li><strong>x_error</strong> (<em>float or list</em>) &#8211; The x measurment errors.</li>
@@ -771,7 +787,7 @@ minimised in the least square fit taking X and Y Error into account.</p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.multi_component_grey_body">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">multi_component_grey_body</tt><big>(</big><em>pMulti</em>, <em>x</em>, <em>nu_or_lambda='nu'</em>, <em>kappa='Kruegel'</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#multi_component_grey_body"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.multi_component_grey_body" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">multi_component_grey_body</code><span class="sig-paren">(</span><em>pMulti</em>, <em>x</em>, <em>nu_or_lambda='nu'</em>, <em>kappa='Kruegel'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#multi_component_grey_body"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.multi_component_grey_body" title="Permalink to this definition">¶</a></dt>
 <dd><p>Combines multiple grey_body functions and returns the flux density in
 Jansky for the input frequency/wavelenght.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -780,7 +796,7 @@ Jansky for the input frequency/wavelenght.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>pMulti</strong> (<em>nested lists</em>) &#8211; Similar to p from
-<a class="reference internal" href="#astrolyze.functions.astro_functions.grey_body" title="astrolyze.functions.astro_functions.grey_body"><tt class="xref py py-func docutils literal"><span class="pre">grey_body()</span></tt></a> but the three entries are
+<a class="reference internal" href="#astrolyze.functions.astro_functions.grey_body" title="astrolyze.functions.astro_functions.grey_body"><code class="xref py py-func docutils literal"><span class="pre">grey_body()</span></code></a> but the three entries are
 lists, i.e.::
 pMulti = [[T1, T2, T3, ...Tn], [N1, N2, N3,...Nn], [beta]]</li>
 <li><strong>x</strong> (<em>float or numpy array</em>) &#8211; frequency [micron] (or wavelenght <strong>Not maintained</strong>, specify type in
@@ -789,8 +805,10 @@ nu_or_lambda)</li>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
-<li><strong>sum(snu)</strong> (<em>float</em>) &#8211; All dust components summed.</li>
-<li><em>snu</em> &#8211; A list with the fluxes of the individual components.</li>
+<li><strong>sum(snu)</strong> (<em>float</em>) &#8211;
+All dust components summed.</li>
+<li><em>snu</em> &#8211;
+A list with the fluxes of the individual components.</li>
 </ul>
 </p>
 </td>
@@ -799,7 +817,7 @@ nu_or_lambda)</li>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="#astrolyze.functions.astro_functions.black_body" title="astrolyze.functions.astro_functions.black_body"><tt class="xref py py-func docutils literal"><span class="pre">black_body()</span></tt></a>, <a class="reference internal" href="#astrolyze.functions.astro_functions.grey_body" title="astrolyze.functions.astro_functions.grey_body"><tt class="xref py py-func docutils literal"><span class="pre">grey_body()</span></tt></a></p>
+<p class="last"><a class="reference internal" href="#astrolyze.functions.astro_functions.black_body" title="astrolyze.functions.astro_functions.black_body"><code class="xref py py-func docutils literal"><span class="pre">black_body()</span></code></a>, <a class="reference internal" href="#astrolyze.functions.astro_functions.grey_body" title="astrolyze.functions.astro_functions.grey_body"><code class="xref py py-func docutils literal"><span class="pre">grey_body()</span></code></a></p>
 </div>
 <p class="rubric">Notes</p>
 <p>Only one common beta for all components can be used. May be expanded to
@@ -810,7 +828,7 @@ mutliple betas if needed.</p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.redshifted_frequency">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">redshifted_frequency</tt><big>(</big><em>rest_frequency</em>, <em>v_lsr</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#redshifted_frequency"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.redshifted_frequency" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">redshifted_frequency</code><span class="sig-paren">(</span><em>rest_frequency</em>, <em>v_lsr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#redshifted_frequency"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.redshifted_frequency" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the sky frequency corresponding to a rest frequency for a
 source with a velocity v_lsr.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -824,7 +842,8 @@ source with a velocity v_lsr.</p>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>redshifted_frequency</strong> &#8211; The sky frequency in GHz.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>redshifted_frequency</strong> &#8211;
+The sky frequency in GHz.</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
@@ -841,7 +860,7 @@ source with a velocity v_lsr.</p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.rotation_2d">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">rotation_2d</tt><big>(</big><em>coordinate</em>, <em>angle</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#rotation_2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.rotation_2d" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">rotation_2d</code><span class="sig-paren">(</span><em>coordinate</em>, <em>angle</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#rotation_2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.rotation_2d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Implementation of the rotation matrix in two dimensions.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -853,7 +872,8 @@ source with a velocity v_lsr.</p>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>[x_rotated, y_rotated]</strong> &#8211; Coordinates in the rotated system.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>[x_rotated, y_rotated]</strong> &#8211;
+Coordinates in the rotated system.</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list of floats</p>
@@ -865,7 +885,7 @@ source with a velocity v_lsr.</p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.v_lsr">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">v_lsr</tt><big>(</big><em>center_frequency</em>, <em>observation_frequency</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#v_lsr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.v_lsr" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">v_lsr</code><span class="sig-paren">(</span><em>center_frequency</em>, <em>observation_frequency</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#v_lsr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.v_lsr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the velocity that corresponds to a certain frequency shift
 between two frequencies.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -878,7 +898,8 @@ between two frequencies.</p>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>v_lsr</strong> &#8211; The velocity corresponding to the frequency shift in km/s</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>v_lsr</strong> &#8211;
+The velocity corresponding to the frequency shift in km/s</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
@@ -892,7 +913,7 @@ between two frequencies.</p>
 
 <dl class="function">
 <dt id="astrolyze.functions.astro_functions.vel_to_freq_resolution">
-<tt class="descclassname">astrolyze.functions.astro_functions.</tt><tt class="descname">vel_to_freq_resolution</tt><big>(</big><em>center_frequency</em>, <em>velocity_resolution</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#vel_to_freq_resolution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.vel_to_freq_resolution" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">vel_to_freq_resolution</code><span class="sig-paren">(</span><em>center_frequency</em>, <em>velocity_resolution</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#vel_to_freq_resolution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.astro_functions.vel_to_freq_resolution" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a velocity resolution to frequency resolution for a given
 center frequency.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -905,7 +926,8 @@ center frequency.</p>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>frequency_resolution</strong> &#8211; The corresponding frequency resolution in Mhz</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>frequency_resolution</strong> &#8211;
+The corresponding frequency resolution in Mhz</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
@@ -924,7 +946,7 @@ center frequency.</p>
 <p>Constant unit conversions available in this module are:</p>
 <span class="target" id="module-astrolyze.functions.units"></span><dl class="function">
 <dt id="astrolyze.functions.units.Int2Lum">
-<tt class="descclassname">astrolyze.functions.units.</tt><tt class="descname">Int2Lum</tt><big>(</big><em>distance_in_pc</em>, <em>cm_or_m='cm'</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/units.html#Int2Lum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.Int2Lum" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">Int2Lum</code><span class="sig-paren">(</span><em>distance_in_pc</em>, <em>cm_or_m='cm'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#Int2Lum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.Int2Lum" title="Permalink to this definition">¶</a></dt>
 <dd><p>Conversion factor to calculate luminosity from intensities
 by integrating over the sky 4 pi Distance^2.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -933,8 +955,8 @@ by integrating over the sky 4 pi Distance^2.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>distance_in_pc</strong> (<em>float</em>) &#8211; Distance to the source in parsecs.</li>
-<li><strong>cm_or_m</strong> (<em>string</em>) &#8211; Choose wether the out put is in cm^2 = <tt class="docutils literal"><span class="pre">'cm'</span></tt> or in
-m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
+<li><strong>cm_or_m</strong> (<em>string</em>) &#8211; Choose wether the out put is in cm^2 = <code class="docutils literal"><span class="pre">'cm'</span></code> or in
+m^2 = <code class="docutils literal"><span class="pre">'m'</span></code>.</li>
 </ul>
 </td>
 </tr>
@@ -946,7 +968,7 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
 
 <dl class="function">
 <dt id="astrolyze.functions.units.JyBToErgsB">
-<tt class="descclassname">astrolyze.functions.units.</tt><tt class="descname">JyBToErgsB</tt><big>(</big><em>input_flux</em>, <em>distance</em>, <em>wavelength</em>, <em>invert=False</em>, <em>map_use=False</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/units.html#JyBToErgsB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.JyBToErgsB" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">JyBToErgsB</code><span class="sig-paren">(</span><em>input_flux</em>, <em>distance</em>, <em>wavelength</em>, <em>invert=False</em>, <em>map_use=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#JyBToErgsB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.JyBToErgsB" title="Permalink to this definition">¶</a></dt>
 <dd><p>Conversion between Jy/beam and ergs/beam.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -974,7 +996,7 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
 
 <dl class="function">
 <dt id="astrolyze.functions.units.JyBToWKpc2">
-<tt class="descclassname">astrolyze.functions.units.</tt><tt class="descname">JyBToWKpc2</tt><big>(</big><em>input_flux</em>, <em>distance</em>, <em>major</em>, <em>minor</em>, <em>wavelength</em>, <em>invert=False</em>, <em>map_use=False</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/units.html#JyBToWKpc2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.JyBToWKpc2" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">JyBToWKpc2</code><span class="sig-paren">(</span><em>input_flux</em>, <em>distance</em>, <em>major</em>, <em>minor</em>, <em>wavelength</em>, <em>invert=False</em>, <em>map_use=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#JyBToWKpc2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.JyBToWKpc2" title="Permalink to this definition">¶</a></dt>
 <dd><p>Conversion from JyB to W kpc^-2.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1002,7 +1024,7 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
 
 <dl class="function">
 <dt id="astrolyze.functions.units.JyBToWM2Kpc2">
-<tt class="descclassname">astrolyze.functions.units.</tt><tt class="descname">JyBToWM2Kpc2</tt><big>(</big><em>input_flux</em>, <em>distance</em>, <em>major</em>, <em>minor</em>, <em>wavelength</em>, <em>invert=False</em>, <em>map_use=False</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/units.html#JyBToWM2Kpc2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.JyBToWM2Kpc2" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">JyBToWM2Kpc2</code><span class="sig-paren">(</span><em>input_flux</em>, <em>distance</em>, <em>major</em>, <em>minor</em>, <em>wavelength</em>, <em>invert=False</em>, <em>map_use=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#JyBToWM2Kpc2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.JyBToWM2Kpc2" title="Permalink to this definition">¶</a></dt>
 <dd><p>Conversion between Jy/beam and W m^-2 kpc^-2</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1030,7 +1052,7 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
 
 <dl class="function">
 <dt id="astrolyze.functions.units.WmToKkms">
-<tt class="descclassname">astrolyze.functions.units.</tt><tt class="descname">WmToKkms</tt><big>(</big><em>x</em>, <em>resolution=0</em>, <em>sterad=False</em>, <em>ToKKms=False</em>, <em>m2_or_cm2='m'</em>, <em>nu_or_lambda='nu'</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/units.html#WmToKkms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.WmToKkms" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">WmToKkms</code><span class="sig-paren">(</span><em>x</em>, <em>resolution=0</em>, <em>sterad=False</em>, <em>ToKKms=False</em>, <em>m2_or_cm2='m'</em>, <em>nu_or_lambda='nu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#WmToKkms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.WmToKkms" title="Permalink to this definition">¶</a></dt>
 <dd><p>Conversion between W/m2 and K km/s.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1041,11 +1063,12 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
 <li><strong>resolution</strong> (<em>float</em>) &#8211; </li>
 <li><strong>ToKKms</strong> (<em>True or False</em>) &#8211; Direction of the conversion.</li>
 <li><strong>sterad</strong> (<em>True or False</em>) &#8211; If False convert from per beam to per sterad.</li>
-<li><strong>m2_or_cm2</strong> (<em>string</em>) &#8211; Choose if conversion to/from W m-2 oder W cm-2. <tt class="docutils literal"><span class="pre">'m2'</span></tt> or <tt class="docutils literal"><span class="pre">'cm2'</span></tt>.</li>
+<li><strong>m2_or_cm2</strong> (<em>string</em>) &#8211; Choose if conversion to/from W m-2 oder W cm-2. <code class="docutils literal"><span class="pre">'m2'</span></code> or <code class="docutils literal"><span class="pre">'cm2'</span></code>.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>factor</strong> &#8211; The conversion factor.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>factor</strong> &#8211;
+The conversion factor.</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
@@ -1057,7 +1080,7 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
 
 <dl class="function">
 <dt id="astrolyze.functions.units.ergToKkms">
-<tt class="descclassname">astrolyze.functions.units.</tt><tt class="descname">ergToKkms</tt><big>(</big><em>x</em>, <em>toErg=False</em>, <em>nu_or_lambda='nu'</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/units.html#ergToKkms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.ergToKkms" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">ergToKkms</code><span class="sig-paren">(</span><em>x</em>, <em>toErg=False</em>, <em>nu_or_lambda='nu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#ergToKkms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.ergToKkms" title="Permalink to this definition">¶</a></dt>
 <dd><p>Conversion between ergs/cm2/s/sr and K km/s.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1066,11 +1089,12 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>x</strong> (<em>float</em>) &#8211; wavelenght/frequency [GHZ],</li>
 <li><strong>toErg</strong> (<em>True or False</em>) &#8211; True converts the other direction, i.e. from K km/s to ergs/cm2/s/sr.</li>
-<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Choose type of x: frequency = <tt class="docutils literal"><span class="pre">'nu'</span></tt> or wavelenght = <tt class="docutils literal"><span class="pre">'lambda'</span></tt>.</li>
+<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Choose type of x: frequency = <code class="docutils literal"><span class="pre">'nu'</span></code> or wavelenght = <code class="docutils literal"><span class="pre">'lambda'</span></code>.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>factor</strong> &#8211; The conversion factor.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>factor</strong> &#8211;
+The conversion factor.</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
@@ -1084,7 +1108,7 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
 
 <dl class="function">
 <dt id="astrolyze.functions.units.jansky_to_kelvin">
-<tt class="descclassname">astrolyze.functions.units.</tt><tt class="descname">jansky_to_kelvin</tt><big>(</big><em>x</em>, <em>major</em>, <em>minor</em>, <em>nu_or_lambda='nu'</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/units.html#jansky_to_kelvin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.jansky_to_kelvin" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">jansky_to_kelvin</code><span class="sig-paren">(</span><em>x</em>, <em>major</em>, <em>minor</em>, <em>nu_or_lambda='nu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#jansky_to_kelvin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.jansky_to_kelvin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Conversion from Jy/beam to K.km/s (Tmb).</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1094,19 +1118,19 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
 <li><strong>x</strong> (<em>float</em>) &#8211; wavelength/frequency [GHZ],</li>
 <li><strong>major</strong> (<em>float</em>) &#8211; Major Axis Beam (arcsec).</li>
 <li><strong>minor</strong> (<em>float</em>) &#8211; Minor Axis Beam(arcsec).</li>
-<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Choose type of x: frequency = <tt class="docutils literal"><span class="pre">'nu'</span></tt> or wavelength = <tt class="docutils literal"><span class="pre">'lambda'</span></tt>.</li>
+<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Choose type of x: frequency = <code class="docutils literal"><span class="pre">'nu'</span></code> or wavelength = <code class="docutils literal"><span class="pre">'lambda'</span></code>.</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
 <p class="rubric">Notes</p>
-<p>Same as <a class="reference internal" href="#astrolyze.functions.units.kelvin_to_jansky" title="astrolyze.functions.units.kelvin_to_jansky"><tt class="xref py py-func docutils literal"><span class="pre">kelvin_to_jansky()</span></tt></a></p>
+<p>Same as <a class="reference internal" href="#astrolyze.functions.units.kelvin_to_jansky" title="astrolyze.functions.units.kelvin_to_jansky"><code class="xref py py-func docutils literal"><span class="pre">kelvin_to_jansky()</span></code></a></p>
 </dd></dl>
 
 <dl class="function">
 <dt id="astrolyze.functions.units.kelvin_to_jansky">
-<tt class="descclassname">astrolyze.functions.units.</tt><tt class="descname">kelvin_to_jansky</tt><big>(</big><em>x</em>, <em>major</em>, <em>minor</em>, <em>nu_or_lambda='nu'</em><big>)</big><a class="reference internal" href="_modules/astrolyze/functions/units.html#kelvin_to_jansky"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.kelvin_to_jansky" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">kelvin_to_jansky</code><span class="sig-paren">(</span><em>x</em>, <em>major</em>, <em>minor</em>, <em>nu_or_lambda='nu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#kelvin_to_jansky"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.functions.units.kelvin_to_jansky" title="Permalink to this definition">¶</a></dt>
 <dd><p>Conversion from K.km/s (Tmb) and Jy/beam.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1116,7 +1140,7 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
 <li><strong>x</strong> (<em>float</em>) &#8211; wavelength/frequency [GHZ],</li>
 <li><strong>major</strong> (<em>float</em>) &#8211; Major Axis Beam (arcsec),</li>
 <li><strong>minor</strong> (<em>float</em>) &#8211; Minor Axis Beam(arcsec),</li>
-<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Choose type of x: frequency = <tt class="docutils literal"><span class="pre">'nu'</span></tt> or wavelength = <tt class="docutils literal"><span class="pre">'lambda'</span></tt>.</li>
+<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Choose type of x: frequency = <code class="docutils literal"><span class="pre">'nu'</span></code> or wavelength = <code class="docutils literal"><span class="pre">'lambda'</span></code>.</li>
 </ul>
 </td>
 </tr>
@@ -1147,7 +1171,7 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -1159,12 +1183,12 @@ m^2 = <tt class="docutils literal"><span class="pre">'m'</span></tt>.</li>
         <li class="right" >
           <a href="lte.html" title="LTE"
              >previous</a> |</li>
-        <li><a href="index.html">astrolyze 0.0.2 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">astrolyze 0.0.2 documentation</a> &raquo;</li> 
       </ul>
     </div>
-    <div class="footer">
+    <div class="footer" role="contentinfo">
         &copy; Copyright 2015, Christof Buchbender.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>
