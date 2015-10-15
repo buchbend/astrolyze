@@ -275,7 +275,7 @@ texinfo_documents = [
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
-            return Mock() 
+            return Mock()
 
-MOCK_MODULES = ['pysqlite']
+MOCK_MODULES = ['pysqlite2']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
