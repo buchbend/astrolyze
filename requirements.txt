@@ -1,6 +1,5 @@
 numpy
 pyfits
-matplotlib
 scipy
 pywcs
 pysqlite
