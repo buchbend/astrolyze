@@ -126,7 +126,7 @@ setup(
               'astrolyze/database'
              ],
     package_data={'astrolyze': ['database/parameter.db']},
-    url='http://www.strange-associations.de/astrolyze/',
+    url='',
     license='LICENSE.txt',
     description=('Reduction and analysing tools for (mainly)'
                  'Radioastronomical Data.'),
