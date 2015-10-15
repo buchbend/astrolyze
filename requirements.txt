@@ -1,4 +1,2 @@
-scipy
 pywcs
-pysqlite
 pyfits
