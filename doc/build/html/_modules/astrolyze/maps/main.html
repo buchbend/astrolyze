@@ -1,0 +1,597 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>astrolyze.maps.main &mdash; astrolyze 0.0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="astrolyze 0.0.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo1.jpg" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for astrolyze.maps.main</h1><div class="highlight"><pre>
+ <span class="c"># Copyright (C) 2012, Christof Buchbender</span>
+<span class="c"># BSD License (License.txt)</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">pyfits</span>
+<span class="kn">import</span> <span class="nn">pywcs</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">pysqlite2</span> <span class="kn">import</span> <span class="n">dbapi2</span> <span class="k">as</span> <span class="n">sqlite</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
+
+<span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
+<span class="kn">from</span> <span class="nn">astrolyze.functions</span> <span class="kn">import</span> <span class="n">units</span>
+
+<span class="kn">from</span> <span class="nn">astrolyze.database</span> <span class="kn">import</span> <span class="n">prefix_database</span>
+
+
+<div class="viewcode-block" id="Map"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map">[docs]</a><span class="k">class</span> <span class="nc">Map</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    ``Map`` is the parent Class for the ``maps``-package. It contains all</span>
+<span class="sd">    functions that are common to all supported map-formats, i.e. Fits,</span>
+<span class="sd">    GILDAS and Miriad. This class is only supposed to be called through</span>
+<span class="sd">    the FitsMap, GildasMap, and MiriadMap classes.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    map_name : string</span>
+<span class="sd">        The name and path of the file that is to be initialized to the maps</span>
+<span class="sd">        package.</span>
+<span class="sd">    name_convention : True or False</span>
+<span class="sd">        Only files following the name_convention are supported.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Initialize a map to maps.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c"># Definition of the unit nomenclatures.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jansky_beam_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;JYB&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jansky_pixel_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;JYPIX&#39;</span><span class="p">,</span> <span class="s">&#39;JYP&#39;</span><span class="p">,</span> <span class="s">&#39;JY/PIXEL&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tmb_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;TMB&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="s">&#39;KKMS&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MJy_per_sterad_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;MJPSR&#39;</span><span class="p">,</span> <span class="s">&#39;MJY/SR&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_pixel_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;ERGPSECPPIX&#39;</span><span class="p">,</span> <span class="s">&#39;ERGPSECPPIXEL&#39;</span><span class="p">,</span>
+                                    <span class="s">&#39;ERG-S-1-Pixel&#39;</span><span class="p">,</span> <span class="s">&#39;ERG-S-1&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_beam_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;ERGPSECPBEAM&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_sterad_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;ERGPERSTER&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">known_units</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">jansky_beam_names</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">jansky_pixel_names</span> <span class="o">+</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">tmb_names</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">MJy_per_sterad_names</span> <span class="o">+</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_beam_names</span> <span class="o">+</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_sterad_names</span> <span class="o">+</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_pixel_names</span><span class="p">)</span>
+        <span class="c"># Definition of possible data format endings for the different</span>
+        <span class="c"># programs.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;gdf&#39;</span><span class="p">,</span> <span class="s">&#39;mean&#39;</span><span class="p">,</span> <span class="s">&#39;velo&#39;</span><span class="p">,</span> <span class="s">&#39;width&#39;</span><span class="p">,</span> <span class="s">&#39;lmv&#39;</span><span class="p">,</span>
+                               <span class="s">&#39;lmv-clean&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;fits&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">miriad_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">class_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;30m&#39;</span><span class="p">,</span> <span class="s">&#39;apex&#39;</span><span class="p">]</span>
+        <span class="c"># name_convention is not needed anymore. Only kept for backward</span>
+        <span class="c"># compatibality.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name_convention</span> <span class="o">=</span> <span class="n">name_convention</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="n">map_name</span>
+        <span class="c"># Test if the file exists. Directory for Miriad.</span>
+        <span class="c"># File for Fits and GILDAS.</span>
+        <span class="k">if</span> <span class="p">((</span><span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+             <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">))):</span>
+            <span class="k">print</span> <span class="s">&#39;Exiting: &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">+</span> <span class="s">&#39; does not exist&#39;</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+        <span class="c"># Get Informations from the file name.</span>
+        <span class="k">if</span> <span class="n">name_convention</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span> <span class="o">=</span> <span class="n">map_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span> <span class="o">=</span> <span class="n">map_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span><span class="p">,</span> <span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">species</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolveSpecies</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="c"># Check dataFormat.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.fits&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="s">&#39;fits&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.fits&#39;</span><span class="p">,</span>
+                                                                      <span class="s">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="n">i</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span>
+                                                                          <span class="n">i</span><span class="p">,</span>
+                                                                          <span class="s">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_formats</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="n">i</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span>
+                                                                          <span class="n">i</span><span class="p">,</span>
+                                                                          <span class="s">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">):</span>
+                <span class="c"># Miriad Data Format uses directories</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolveResolution</span><span class="p">()</span>
+            <span class="c"># Entries after the fifth are considered comments.</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">)</span> <span class="o">-</span> <span class="mi">6</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">5</span><span class="p">]]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="c"># Only load the File if no Name Convention is given</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name_convention</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&#39;Only Files with correct naming are supported!!!&#39;</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+        <span class="c"># Getting information from the databases.</span>
+        <span class="c">#!!!!!  TODO: Bas implementation. Try should only contain very short</span>
+        <span class="c"># parts of the program otherwise errors in the program are camouflaged.</span>
+        <span class="c"># print  str(prefix_database) + &#39;parameter.db&#39;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix_database</span><span class="p">)</span> <span class="o">+</span>
+                                             <span class="s">&#39;parameter.db&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT * FROM Galaxies WHERE Name = ?&quot;</span><span class="p">,</span>
+                                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">upper</span><span class="p">(),))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">distance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vlsr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">centralPosition</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inclination</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">R25</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">distance</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vlsr</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">centralPosition</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pa</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inclination</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">R25</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix_database</span><span class="p">)</span> <span class="o">+</span>
+                                             <span class="s">&#39;parameter.db&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT * FROM Lines WHERE Name = ?&quot;</span><span class="p">,</span>
+                                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="o">.</span><span class="n">upper</span><span class="p">(),))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix_database</span><span class="p">)</span> <span class="o">+</span>
+                                             <span class="s">&#39;parameter.db&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT * FROM cal_error WHERE Telescope = &quot;</span>
+                                <span class="s">&quot; ? AND Species = ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
+                                                       <span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="o">.</span><span class="n">upper</span><span class="p">()))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">calibrationError</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">calibrationError</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_beam_size</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_resolveSpecies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Gets the frequency from a database on basis of the map name if</span>
+<span class="sd">        possible.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">species</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s">&#39;mum&#39;</span> <span class="ow">in</span> <span class="n">species</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">species</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;mum&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">))</span> <span class="o">*</span> <span class="mf">1e-6</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="mi">299792356</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">elif</span> <span class="s">&#39;mm&#39;</span> <span class="ow">in</span> <span class="n">species</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">species</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;mm&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">))</span> <span class="o">*</span> <span class="mf">1e-3</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="mi">299792356</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">elif</span> <span class="s">&#39;GHz&#39;</span> <span class="ow">in</span> <span class="n">species</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">species</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;GHz&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">))</span> <span class="o">*</span> <span class="mf">1e9</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">=</span> <span class="mi">299792356</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">return</span> <span class="n">species</span>
+
+    <span class="k">def</span> <span class="nf">_resolveResolution</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Reads the resolution string from the map name.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c"># TODO: include handling of &#39;uk&#39;</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+        <span class="c"># Test if there is a digit after the last point.</span>
+        <span class="c"># To exclude file endings like .fits.gdf.</span>
+        <span class="c"># In this the dataFormat would be &#39;gdf&#39;.</span>
+        <span class="c"># but self.map_nameList[4] storing the resolution</span>
+        <span class="c"># Still does contain points only due to numbers.</span>
+        <span class="n">test</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">while</span> <span class="n">x</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s">&#39;uk&#39;</span> <span class="ow">in</span> <span class="n">string</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">test</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">test</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">test</span> <span class="o">=</span> <span class="n">test</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s">&#39;uk&#39;</span> <span class="ow">in</span> <span class="n">string</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">string</span>
+        <span class="c"># Resolve the resolution naming scheme explained above.</span>
+        <span class="k">if</span> <span class="s">&#39;x&#39;</span> <span class="ow">in</span> <span class="n">string</span> <span class="ow">and</span> <span class="s">&#39;a&#39;</span> <span class="ow">in</span> <span class="n">string</span><span class="p">:</span>
+            <span class="n">major</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;x&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">minor</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;x&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">pa</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;x&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="s">&#39;x&#39;</span> <span class="ow">in</span> <span class="n">string</span> <span class="ow">and</span> <span class="s">&#39;a&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">string</span><span class="p">:</span>
+            <span class="n">major</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;x&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">minorData</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;x&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">pa</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="k">if</span> <span class="s">&#39;x&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">string</span> <span class="ow">and</span> <span class="s">&#39;a&#39;</span> <span class="ow">in</span> <span class="n">string</span><span class="p">:</span>
+            <span class="n">major</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">minor</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">paData</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="s">&#39;x&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">string</span> <span class="ow">and</span> <span class="s">&#39;a&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">string</span><span class="p">:</span>
+            <span class="n">major</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+            <span class="n">minor</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+            <span class="n">pa</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">,</span> <span class="n">pa</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Map.resolutionToString"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map.resolutionToString">[docs]</a>    <span class="k">def</span> <span class="nf">resolutionToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot; Converts the resolution list to a string to be printed and</span>
+<span class="sd">        included in the file names.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">resolution</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">string</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;x&#39;</span> <span class="o">+</span>
+                              <span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;a&#39;</span> <span class="o">+</span>
+                              <span class="s">&quot;</span><span class="si">%1.1f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;x&#39;</span> <span class="o">+</span>
+                              <span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;a&#39;</span> <span class="o">+</span>
+                              <span class="s">&quot;</span><span class="si">%1.1f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">resolution</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">string</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;x&#39;</span> <span class="o">+</span>
+                              <span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;a&#39;</span> <span class="o">+</span>
+                              <span class="s">&quot;</span><span class="si">%1.1f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;x&#39;</span> <span class="o">+</span>
+                              <span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;a&#39;</span> <span class="o">+</span>
+                              <span class="s">&quot;</span><span class="si">%1.1f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">=</span> <span class="n">resolution</span>
+        <span class="k">return</span> <span class="n">string</span>
+</div>
+<div class="viewcode-block" id="Map.get_beam_size"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map.get_beam_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_beam_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot; Calculates the beam-size in steradians and in m^2. Fot the latter</span>
+<span class="sd">        the distance to the source has to be given.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        Initialization if the variables:</span>
+<span class="sd">        self.beamSizeSterad and self.beamSizeM2</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        The formula used is:</span>
+
+<span class="sd">        .. math:</span>
+
+<span class="sd">            \Omega = 1.133 * FWHM(rad)^2 \cdot (Distance(m)^2)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span> <span class="o">!=</span> <span class="s">&#39;uk&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">beamSizeSterad</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.133</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">a2r</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                                   <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">distance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">beamSizeM2</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.133</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distance</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">a2r</span> <span class="o">*</span>
+                                            <span class="n">const</span><span class="o">.</span><span class="n">pcInM</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">beamSize</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+</div>
+<div class="viewcode-block" id="Map.change_map_name"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map.change_map_name">[docs]</a>    <span class="k">def</span> <span class="nf">change_map_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">telescope</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">species</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                        <span class="n">fluxUnit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                        <span class="n">dataFormat</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This function can be used to change the names of the maps and make a</span>
+<span class="sd">        copy of the file to the new name and/or location.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">source</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span>
+        <span class="n">telescope</span> <span class="o">=</span> <span class="n">telescope</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span>
+        <span class="n">species</span> <span class="o">=</span> <span class="n">species</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">species</span>
+        <span class="n">fluxUnit</span> <span class="o">=</span> <span class="n">fluxUnit</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span>
+        <span class="n">resolution</span> <span class="o">=</span> <span class="n">resolution</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span>
+        <span class="k">if</span> <span class="n">dataFormat</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
+            <span class="n">dataFormat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">comments</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">comments</span> <span class="o">=</span> <span class="n">comments</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span> <span class="o">=</span> <span class="n">telescope</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">species</span> <span class="o">=</span> <span class="n">species</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">species</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="n">fluxUnit</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span> <span class="o">=</span> <span class="n">resolution</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span>
+        <span class="k">if</span> <span class="n">dataFormat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">False</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="n">dataFormat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">comments</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">comments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+</span> <span class="n">comments</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+</span> <span class="n">comments</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span>  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                                       <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span>
+                                       <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                                       <span class="nb">str</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span>
+                                       <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">)):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                          <span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span>
+                          <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span>
+                          <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span>
+                          <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                                 <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                                 <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span>
+                                 <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                 <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span>
+                 <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span>
+                 <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">))):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span>
+                          <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                          <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                          <span class="s">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">))</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                                 <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                                 <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span>
+                                 <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">)</span> <span class="o">+</span>
+                                 <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="Map.returnName"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map.returnName">[docs]</a>    <span class="k">def</span> <span class="nf">returnName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">telescope</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">species</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                   <span class="n">fluxUnit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                   <span class="n">dataFormat</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the Name corresponding to the Name convention. Single keywords</span>
+<span class="sd">        can be changed.</span>
+
+<span class="sd">        This function is useful to generate a writeout name for a changed file</span>
+<span class="sd">        without overwriting the current ``self.map_name``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        All possible parameters from the &quot;Naming Convention&quot; plus the new</span>
+<span class="sd">        prefix.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">source</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span>
+        <span class="n">telescope</span> <span class="o">=</span> <span class="n">telescope</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span>
+        <span class="n">species</span> <span class="o">=</span> <span class="n">species</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">species</span>
+        <span class="n">fluxUnit</span> <span class="o">=</span> <span class="n">fluxUnit</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span>
+        <span class="n">resolution</span> <span class="o">=</span> <span class="n">resolution</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">dataFormat</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
+            <span class="n">dataFormat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span>
+        <span class="k">if</span> <span class="n">comments</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">comments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span>
+        <span class="k">elif</span> <span class="n">comments</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">comments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+</span> <span class="n">comments</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">comments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dataFormat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span>
+                        <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">dataFormat</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span>
+                        <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="n">resolution</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">comments</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dataFormat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span>
+                        <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                        <span class="s">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">comments</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">dataFormat</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span>
+                        <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                        <span class="s">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">comments</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="Map.flux_conversion"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map.flux_conversion">[docs]</a>    <span class="k">def</span> <span class="nf">flux_conversion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">major</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                        <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Calulates conversion between K.km/s and Jy/beam and vise versa.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        x : float [GHz]</span>
+<span class="sd">            Wavelength/frequency. Defaults to the frequency of the loaded map,</span>
+<span class="sd">            i.e. self.frequency</span>
+<span class="sd">        major : float</span>
+<span class="sd">            Major Axis Beam (arcsec). Default None, i.e. using self.resolution.</span>
+<span class="sd">        minor : float</span>
+<span class="sd">            Minor Axis Beam(arcsec). Default None, i.e. using self.resolution.</span>
+<span class="sd">        nu_or_lambda : string</span>
+<span class="sd">            Choose type of x: frequency = ``&#39;nu&#39;`` or wavelength =</span>
+<span class="sd">            ``&#39;lambda&#39;``.</span>
+<span class="sd">        direction : string</span>
+<span class="sd">            choose conversion direction ``&#39;kelvin_to_jansky&#39;``</span>
+<span class="sd">            means Kelvin to Jansky; ``&#39;jansky_to_kelvin&#39;`` Jansky to Kelvin.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        If self.frequency and self.resolution are correctly set, this functions</span>
+<span class="sd">        does not need any input. Otherwise this has to be given explicitly.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">direction</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">direction</span> <span class="o">!=</span> <span class="s">&#39;kelvin_to_jansky&#39;</span>
+                                      <span class="ow">or</span> <span class="n">direction</span> <span class="o">!=</span> <span class="s">&#39;jansky_to_kelvin&#39;</span><span class="p">):</span>
+            <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Keyword Error direction has to be kelvin_to_jansky or&#39;</span>
+                   <span class="s">&#39;jansky_to_kelvin -&gt; Exit!&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;JyB&#39;</span><span class="p">,</span> <span class="s">&#39;Jy/Beam&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">direction</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">direction</span> <span class="o">=</span> <span class="s">&#39;jansky_to_kelvin&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;Tmb&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="s">&#39;Kkms&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">direction</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">direction</span> <span class="o">=</span> <span class="s">&#39;kelvin_to_jansky&#39;</span>
+        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span>
+        <span class="k">if</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;JyB&#39;</span><span class="p">,</span> <span class="s">&#39;Jy/Beam&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span>
+             <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;Tmb&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="s">&#39;Kkms&#39;</span><span class="p">])):</span>
+                <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Map is not in the right units has to be Jy/beam or &#39;</span>
+                       <span class="s">&#39;Kelvin something. -&gt; Exit!&#39;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;lambda&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s">&#39;jansky_to_kelvin&#39;</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">fcon</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">units</span><span class="o">.</span><span class="n">jansky_to_kelvin</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span>
+                                                  <span class="n">minor</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;lambda&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s">&#39;kelvin_to_jansky&#39;</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">fcon</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">units</span><span class="o">.</span><span class="n">kelvin_to_jansky</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span>
+                                                  <span class="n">minor</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;lambda&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;nu&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s">&#39;jansky_to_kelvin&#39;</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">fcon</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">units</span><span class="o">.</span><span class="n">jansky_to_kelvin</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span>
+                                                  <span class="n">minor</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s">&#39;kelvin_to_jansky&#39;</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">fcon</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">units</span><span class="o">.</span><span class="n">kelvin_to_jansky</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span>
+                                                  <span class="n">minor</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">/</span> <span class="mf">1e9</span>
+            <span class="k">elif</span>  <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">:</span>
+                <span class="k">print</span> <span class="s">&#39;No frequency information present. Can not proceed.&#39;</span>
+        <span class="k">if</span> <span class="n">major</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">major</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">minor</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">minor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">fcon</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Christof Buchbender.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

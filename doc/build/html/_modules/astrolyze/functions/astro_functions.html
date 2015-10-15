@@ -1,0 +1,1489 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>astrolyze.functions.astro_functions &mdash; astrolyze 0.0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="astrolyze 0.0.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo1.jpg" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for astrolyze.functions.astro_functions</h1><div class="highlight"><pre>
+<span class="c"># Copyright (C) 2012, Christof Buchbender</span>
+<span class="c"># BSD Licencse</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">leastsq</span> <span class="k">as</span> <span class="n">least</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">asarray</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="p">,</span> <span class="n">where</span><span class="p">,</span> <span class="n">exp</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">sqrt</span><span class="p">,</span> <span class="n">arange</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span> <span class="k">as</span> <span class="n">copy</span>
+<span class="kn">import</span> <span class="nn">random</span> <span class="kn">as</span> <span class="nn">rnd</span>
+
+<span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
+<span class="kn">import</span> <span class="nn">astrolyze.functions.units</span>
+
+
+<div class="viewcode-block" id="black_body"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.black_body">[docs]</a><span class="k">def</span> <span class="nf">black_body</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Calculation of the flux density of a black body at a temperature T and a</span>
+<span class="sd">    wavelenght/frequency x.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : float or numpy array</span>
+<span class="sd">        wavelength [GHz] or frequency [micron];  specify type in nu_or_lambda</span>
+<span class="sd">    T : float [Kelvin]</span>
+<span class="sd">        Temperature of the black_body</span>
+<span class="sd">    nu_or_lambda : string</span>
+<span class="sd">        Specify whether x is a frequency :math:`\nu` ``&#39;nu&#39;`` or a wavelenght</span>
+<span class="sd">        :math:`\lambda` ``&#39;lambda&#39;``; default is ``&#39;nu&#39;``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        Flux density in Jansky : float [Jy]</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This functions resembles the following formulas for input in frequency:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        B_{\nu} = \frac{2 h \nu^3}{c^2} (e^{\frac{h \nu}{k T}} - 1)^{-1}</span>
+
+<span class="sd">    and for input in wavelenght:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        B_{\lambda} = \frac{2 h c^2}{\lambda^5} (e^{\frac{h \lambda}{k T}} -</span>
+<span class="sd">        1)^{-1}</span>
+
+<span class="sd">    Both formulas are scaled by 1e26, thus returning the flux in Jansky.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    The function works with linear numpy arrays. Thus the black_body can be</span>
+<span class="sd">    evaluated at many points at the same time. Using matplotlib it can</span>
+<span class="sd">    also be plotted:</span>
+
+<span class="sd">    .. plot::</span>
+<span class="sd">       :include-source:</span>
+
+<span class="sd">       import numpy as np</span>
+<span class="sd">       import matplotlib.pyplot as plt</span>
+<span class="sd">       import astrolyze.functions.astro_functions as astFunc</span>
+
+<span class="sd">       frequency_range = np.arange(1e4, 1e7, 1e4)</span>
+<span class="sd">       temperature_1 = 6000</span>
+<span class="sd">       temperature_2 = 12000  # Kelvin</span>
+<span class="sd">       blackbody_1 = astFunc.black_body(frequency_range, temperature_1)</span>
+<span class="sd">       blackbody_2 = astFunc.black_body(frequency_range, temperature_2)</span>
+<span class="sd">       figure = plt.figure()</span>
+<span class="sd">       axis = figure.add_subplot(111)</span>
+<span class="sd">       pl = axis.loglog(frequency_range, blackbody_1, label=&#39;T = 6000 K&#39;)</span>
+<span class="sd">       pl = axis.loglog(frequency_range, blackbody_2, label=&#39;T = 12000 K&#39;)</span>
+<span class="sd">       pl = axis.legend()</span>
+<span class="sd">       plt.savefig(&#39;black_body.eps&#39;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;nu&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">h</span> <span class="o">*</span> <span class="p">((</span><span class="n">x</span> <span class="o">*</span> <span class="mf">1e9</span><span class="p">)</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">*</span>
+                <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">e</span> <span class="o">**</span> <span class="p">((</span><span class="n">const</span><span class="o">.</span><span class="n">h</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="mf">1e9</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">const</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">T</span><span class="p">)))</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="mf">1e-26</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;lambda&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">h</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">((</span><span class="n">x</span> <span class="o">*</span> <span class="mf">1e-6</span><span class="p">)</span> <span class="o">**</span> <span class="mi">5</span><span class="p">))</span> <span class="o">*</span>
+                <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">e</span> <span class="o">**</span> <span class="p">((</span><span class="n">const</span><span class="o">.</span><span class="n">h</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span><span class="p">)</span> <span class="o">/</span>
+                <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mf">1e-6</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">T</span><span class="p">)))</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span>
+                <span class="mf">1e-26</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="grey_body"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.grey_body">[docs]</a><span class="k">def</span> <span class="nf">grey_body</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mf">840e3</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot; Calculation of the flux density in Jansky of a grey_body under</span>
+<span class="sd">    assumption of optically thin emission. Please see Notes below for an</span>
+<span class="sd">    detailed description assumptions and equations used.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    p : list</span>
+<span class="sd">        List of the parameters defining a grey_body, being Temperature [K],</span>
+<span class="sd">        column density or mass (dependent on the kappa used) and the grey_body</span>
+<span class="sd">        slope index beta, respectively (refer to notes for more information):</span>
+<span class="sd">        p = [T, N, beta]</span>
+<span class="sd">    x : float or numpy array</span>
+<span class="sd">        Wavelength [GHz] or frequency [micron];</span>
+<span class="sd">        specify type in nu_or_lambda</span>
+<span class="sd">    kappa : string</span>
+<span class="sd">        Chooses the dust extinction coefficient to use:</span>
+<span class="sd">            * ``&quot;easy&quot;`` -&gt; kappa = nu^beta; tau = N * kappa</span>
+<span class="sd">            * ``&quot;Kruegel&quot;`` -&gt; kappa = 0.04*(nu/250Ghz)^beta;</span>
+<span class="sd">              tau = M/D^2 * kappa</span>
+
+<span class="sd">        Please refer to Notes below, for further explanation.</span>
+<span class="sd">    distance : float</span>
+<span class="sd">        The distance to the source that is to be modeled if kappa</span>
+<span class="sd">        ``&quot;Kruegel&quot;`` is used.</span>
+
+<span class="sd">    Other Parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    nu_or_lambda : string</span>
+<span class="sd">        Specify whether x is a frequency :math:`\nu` ``&#39;nu&#39;`` or a wavelength</span>
+<span class="sd">        :math:`\lambda` ``&#39;lambda&#39;``; default is ``&#39;nu&#39;``. if lambda the input</span>
+<span class="sd">        converted to a frequency in [GHz].</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The general equation for a grey_body is:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        S(x, \tau) = (black_body(x, T)) * [1 - e^\tau] \Omega</span>
+
+<span class="sd">    describing the flux coming from an solid angle</span>
+<span class="sd">    :math:`\Omega` while :math:`\tau` is:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \tau_{\nu} = \frac{ \kappa_d(\nu) * M_{dust}}{D^2 \Omega} .</span>
+
+<span class="sd">    Here we assume optically thin emission and a source filling factor of</span>
+<span class="sd">    unity. This simplifies the equation of the grey_body to:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        S(x, \tau) = \tau * (black_body(x, T))</span>
+
+<span class="sd">    This script supports two versions of the dust extinction coefficient.::</span>
+<span class="sd">    A simple version without a lot of physics put into, kappa = ``&#39;easy&#39;``</span>
+<span class="sd">    which defaults to the following grey_body equation:</span>
+
+<span class="sd">    ..  math::</span>
+
+<span class="sd">        S(x, \tau) = N * x^{\beta} * black_body(x,T) ,</span>
+
+<span class="sd">    with N being a column density scaling factor.</span>
+
+<span class="sd">    The second version, kappa = ``&#39;Kruegel&#39;`` uses the dust extinction</span>
+<span class="sd">    coefficient reported in [KS] which renders the used equation to:</span>
+
+<span class="sd">    ..  math::</span>
+
+<span class="sd">        \kappa = 0.04 * (\frac{x\,[GHz]}{250\,GHz})^{\beta}</span>
+
+<span class="sd">        S_{\nu} = M[kg] / D^2[m^2] * \kappa * black_body(x,T) .</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    The same examples as for :func:`black_body` apply.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [KS] Kruegel, E. &amp; Siebenmorgen, R. 1994, A&amp;A, 288, 929</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">T</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">beta</span> <span class="o">=</span> <span class="n">p</span>
+    <span class="c"># Switch to choose kappa</span>
+    <span class="k">if</span> <span class="n">kappa</span> <span class="o">==</span> <span class="s">&#39;easy&#39;</span><span class="p">:</span>
+        <span class="c"># Here N is an arbitrary fitParameter with no direct physical meaning.</span>
+        <span class="n">kappa</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mf">1e9</span><span class="p">)</span> <span class="o">**</span> <span class="n">beta</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="n">kappa</span> <span class="o">*</span> <span class="n">N</span>
+    <span class="k">if</span> <span class="n">kappa</span> <span class="o">==</span> <span class="s">&#39;Kruegel&#39;</span><span class="p">:</span>
+        <span class="c"># Be careful, for kappa=&#39;Kruegel&#39; the start Parameter N is actually</span>
+        <span class="c"># the Mass of the specific component in sun masses.</span>
+        <span class="n">kappa</span> <span class="o">=</span> <span class="mf">0.04</span> <span class="o">*</span> <span class="p">((</span><span class="n">x</span> <span class="o">*</span> <span class="mf">1e9</span> <span class="o">/</span> <span class="mf">250e9</span><span class="p">)</span> <span class="o">**</span> <span class="n">beta</span><span class="p">)</span>  <span class="c"># [KS]</span>
+        <span class="n">distance_in_m</span> <span class="o">=</span> <span class="n">distance</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">parsec_in_m</span>  <span class="c"># M33.distance is 840e3 in</span>
+                                                         <span class="c"># parsec. pcInM from</span>
+                                                         <span class="c"># constants</span>
+        <span class="n">D2</span> <span class="o">=</span> <span class="n">distance_in_m</span> <span class="o">**</span> <span class="mi">2</span>  <span class="c"># calculate the Distance squared [m^2]</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">N</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">m_sun</span>  <span class="c"># Convert the Mass which is given as a start</span>
+                          <span class="c"># Parameter in Msun to kg</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="n">kappa</span> <span class="o">*</span> <span class="p">(</span><span class="n">M</span> <span class="o">/</span> <span class="n">D2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;lambda&#39;</span><span class="p">:</span>
+        <span class="c"># Conversion of x in wavelenght [micron] to frequency [GHz].</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mf">1e-6</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e9</span>
+        <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;nu&#39;</span>
+    <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;nu&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tau</span> <span class="o">*</span> <span class="n">black_body</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="p">)</span>
+<span class="c">#    if nu_or_lambda == &#39;lambda&#39;:</span>
+<span class="c">#        # Not used anymore</span>
+<span class="c">#        print &#39;Warning: This part of the script is not up to date&#39;</span>
+<span class="c">#        return N * ((c/(x * 1e-6))**beta) * black_body(x,T,nu_or_lambda)</span>
+</div>
+<div class="viewcode-block" id="multi_component_grey_body"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.multi_component_grey_body">[docs]</a><span class="k">def</span> <span class="nf">multi_component_grey_body</span><span class="p">(</span><span class="n">pMulti</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Combines multiple grey_body functions and returns the flux density in</span>
+<span class="sd">    Jansky for the input frequency/wavelenght.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pMulti : nested lists</span>
+<span class="sd">        Similar to p from</span>
+<span class="sd">        :py:func:`grey_body` but the three entries are</span>
+<span class="sd">        lists, i.e.::</span>
+<span class="sd">        pMulti = [[T1, T2, T3, ...Tn], [N1, N2, N3,...Nn], [beta]]</span>
+<span class="sd">    x : float or numpy array</span>
+<span class="sd">        frequency [micron] (or wavelenght **Not maintained**, specify type in</span>
+<span class="sd">        nu_or_lambda)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    sum(snu) : float</span>
+<span class="sd">        All dust components summed.</span>
+<span class="sd">    snu :</span>
+<span class="sd">        A list with the fluxes of the individual components.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    black_body, grey_body</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Only one common beta for all components can be used. May be expanded to</span>
+<span class="sd">    mutliple betas if needed.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    Same as for black_body, but all returned grey_bodies may be plotted.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">T</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">beta</span> <span class="o">=</span> <span class="n">pMulti</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">snu</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">T</span><span class="p">)):</span>
+        <span class="n">pOne</span> <span class="o">=</span> <span class="p">[</span><span class="n">T</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">N</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">beta</span><span class="p">]</span>
+        <span class="n">snu</span> <span class="o">+=</span> <span class="p">[</span><span class="n">grey_body</span><span class="p">(</span><span class="n">pOne</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="n">kappa</span><span class="p">)]</span>
+    <span class="n">snu</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">snu</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">snu</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">snu</span>
+
+</div>
+<div class="viewcode-block" id="grey_body_fit"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.grey_body_fit">[docs]</a><span class="k">def</span> <span class="nf">grey_body_fit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">start_parameter</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">fit_beta</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                <span class="n">fix_temperature</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">rawChiSq</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">,</span>
+                <span class="n">residuals</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mf">1e9</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    This function fits a multi component grey body model to an observed SED for</span>
+<span class="sd">    the optical thin case.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : array</span>
+<span class="sd">        The obseved data. Array of shape(3, x) first row has to be the X values</span>
+<span class="sd">        (Frequency in [GHz]) of the measurements, second row the Y values</span>
+<span class="sd">        (Flux [Jy]), and the third row  the Z values the errors on the</span>
+<span class="sd">        fluxes i.e.:</span>
+<span class="sd">        data = array([[X1, X2, X3, ...], [Y1, Y2, Y3,...], [Z1, Z2,</span>
+<span class="sd">        Z3, ...]])</span>
+<span class="sd">    start_parameter : array</span>
+<span class="sd">        Array of a first guess of the parameters of the grey_body components.</span>
+<span class="sd">        The number of components is arbitrary.</span>
+<span class="sd">        start_parameter = [[T1, T2, T3,...], [N1, N2, N3, ...], beta]</span>
+
+<span class="sd">    fit_beta : True or False</span>
+<span class="sd">        If True Beta is allowed to vary. Default is False.</span>
+
+<span class="sd">    fix_temperature : True or False</span>
+<span class="sd">        If True the Temperature is fixed allowed to vary.</span>
+
+<span class="sd">    rawChiSq :</span>
+<span class="sd">        if None the function gives the reduced chisq Value. If True the</span>
+<span class="sd">        function gives chisq without dividing it by the dof</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    p2 : list</span>
+<span class="sd">        The final grey_body parameters that reduce the least squares for the</span>
+<span class="sd">        given dataset.</span>
+<span class="sd">    chisq/rawChiSq :</span>
+<span class="sd">        chisq is reduced chisq with degrees of freedom:</span>
+<span class="sd">            dof= #dataPoints-#freeFitParameters-1</span>
+
+<span class="sd">    Other Parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    nu_or_lambda : string</span>
+<span class="sd">        Specify whether x is a frequency :math:`\nu` ``&#39;nu&#39;`` or</span>
+<span class="sd">        a wavelenght :math:`\lambda` ``&#39;lambda&#39;``; default is ``&#39;nu&#39;``.::</span>
+<span class="sd">        **Don&#39;t** use ``&#39;lambda&#39;`` as this part of the</span>
+<span class="sd">        :py:func:`grey_body` is not up-to-date.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    scipy.optimize.leastsq: This function is used to perform the least squares</span>
+<span class="sd">    fit.</span>
+<span class="sd">    multi_component_grey_body, grey_body, black_body: Defining the function to</span>
+<span class="sd">    be fittet to the data.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    A one component fit has four free parameters if beta is allowed to vary or</span>
+<span class="sd">    three if beta is fixed (one more than parameters to fit). Each additional</span>
+<span class="sd">    component adds two more free paramters to fit.</span>
+<span class="sd">    Assure that:</span>
+<span class="sd">    number of data points &gt; number of free parameters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Distinguish between the different options and build the parameter list</span>
+    <span class="c"># needed by optimize.leastsq()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">fit_beta</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fix_temperature</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">beta</span> <span class="o">=</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">fix_temperature</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">Temps</span> <span class="o">=</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">beta</span> <span class="o">=</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">fit_beta</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fix_temperature</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">fix_temperature</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">Temps</span> <span class="o">=</span> <span class="n">start_parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_err</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The function to be minimized by scipy.optimize.leastsq. It returns the</span>
+<span class="sd">        difference between the measured fluxes, y, and the calculated fluxes</span>
+<span class="sd">        for the parameters p of the SED at the given frequency x.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        p : list</span>
+<span class="sd">            same start start_parameter as in grey_body_fit</span>
+<span class="sd">        x and y :</span>
+<span class="sd">         The two rows, data[0] and data[1] of the data variable from</span>
+<span class="sd">         grey_body_fit.</span>
+<span class="sd">        y_error : The absolute error on the flux measurement.</span>
+
+<span class="sd">        Other Parameters</span>
+<span class="sd">        ----------------</span>
+<span class="sd">        nu_or_lambda : string</span>
+<span class="sd">            Specify whether x is a frequency :math:`\nu` ``&#39;nu&#39;`` or</span>
+<span class="sd">            a wavelenght :math:`\lambda` ``&#39;lambda&#39;``; default is ``&#39;nu&#39;``.::</span>
+<span class="sd">            **Don&#39;t** use ``&#39;lambda&#39;`` as this part of the</span>
+<span class="sd">            :py:func:`grey_body` is not up-to-date.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This function caluclates the residuals that are minimized by</span>
+<span class="sd">        :func:`leastsq`, thus it calculates:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            (model-measurement)/\sigma</span>
+
+<span class="sd">        Note the :math:`\chi^2` is defined as:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \chi^2 = \frac{1}{N} \sum{(model-measurement)/\sigma}</span>
+
+<span class="sd">        :warning:`Formula has to be checked.`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fit_beta</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">fix_temperature</span><span class="p">:</span>
+                <span class="n">numberOfComponents</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+                <span class="n">pMulti</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">numberOfComponents</span><span class="p">]),</span>
+                          <span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">numberOfComponents</span><span class="p">:</span><span class="n">numberOfComponents</span> <span class="o">*</span> <span class="mi">2</span><span class="p">])]</span>
+                <span class="n">pMulti</span> <span class="o">+=</span> <span class="p">[</span><span class="n">beta</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">fix_temperature</span><span class="p">:</span>
+                <span class="n">pMulti</span> <span class="o">=</span> <span class="p">[</span><span class="n">Temps</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">beta</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">fit_beta</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">fix_temperature</span><span class="p">:</span>
+                <span class="n">numberOfComponents</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+                <span class="n">pMulti</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">numberOfComponents</span><span class="p">]),</span>
+                          <span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">numberOfComponents</span><span class="p">:</span><span class="n">numberOfComponents</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]),</span>
+                          <span class="n">p</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
+
+            <span class="k">if</span> <span class="n">fix_temperature</span><span class="p">:</span>
+                <span class="n">numberOfComponents</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">pMulti</span> <span class="o">=</span> <span class="p">[</span><span class="n">Temps</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">numberOfComponents</span><span class="p">]),</span> <span class="n">p</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
+
+        <span class="k">return</span> <span class="p">(((</span><span class="n">multi_component_grey_body</span><span class="p">(</span><span class="n">pMulti</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="p">,</span>
+                <span class="n">kappa</span><span class="o">=</span><span class="n">kappa</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">y_error</span><span class="p">)</span>
+    <span class="c"># The actual fit</span>
+    <span class="c"># maxfev : Number of integrations</span>
+    <span class="c"># full_output: Additional informations</span>
+    <span class="c"># args: X and Y data</span>
+    <span class="n">p2</span><span class="p">,</span> <span class="n">cov</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">mesg</span><span class="p">,</span> <span class="n">success</span> <span class="o">=</span> <span class="n">least</span><span class="p">(</span><span class="n">_err</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                         <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">nu_or_lambda</span><span class="p">),</span>
+                                         <span class="n">maxfev</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">iterations</span><span class="p">),</span> <span class="n">full_output</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c"># return of the optimized parameters</span>
+    <span class="n">dof</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c"># degrees of Freedom</span>
+    <span class="n">chisq</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">dof</span>  <span class="c"># see above</span>
+    <span class="n">rawchisq</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">fit_beta</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fix_temperature</span><span class="p">:</span>
+            <span class="n">numberOfComponents</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="n">p2</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">numberOfComponents</span><span class="p">]),</span>
+                  <span class="nb">list</span><span class="p">(</span><span class="n">p2</span><span class="p">[</span><span class="n">numberOfComponents</span><span class="p">:</span><span class="n">numberOfComponents</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]),</span> <span class="n">beta</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">fix_temperature</span><span class="p">:</span>
+            <span class="n">numberOfComponents</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="n">p2</span> <span class="o">=</span> <span class="p">[</span><span class="n">Temps</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">beta</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">fit_beta</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fix_temperature</span><span class="p">:</span>
+            <span class="n">numberOfComponents</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="n">p2</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">numberOfComponents</span><span class="p">]),</span>
+                  <span class="nb">list</span><span class="p">(</span><span class="n">p2</span><span class="p">[</span><span class="n">numberOfComponents</span><span class="p">:</span><span class="n">numberOfComponents</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]),</span>
+                  <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]]</span>
+        <span class="k">if</span> <span class="n">fix_temperature</span><span class="p">:</span>
+            <span class="n">numberOfComponents</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">p2</span> <span class="o">=</span> <span class="p">[</span><span class="n">Temps</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">numberOfComponents</span><span class="p">]),</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]]</span>
+    <span class="k">if</span> <span class="n">residuals</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">p2</span><span class="p">,</span> <span class="n">chisq</span><span class="p">,</span> <span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">rawChiSq</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">p2</span><span class="p">,</span> <span class="n">chisq</span>
+    <span class="k">if</span> <span class="n">rawChiSq</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">p2</span><span class="p">,</span> <span class="n">rawchisq</span>
+
+</div>
+<span class="k">def</span> <span class="nf">_grid_fit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">fit_beta</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">rawChiSq</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+             <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Different approach to find the best fitting SED using certain ranges of</span>
+<span class="sd">    temperatures and masses to avoid unreasonably high values.</span>
+
+<span class="sd">    Not sure about the functionality and the code is badly written with the</span>
+<span class="sd">    temperature and mass ranges hard coded. Thats why its not public.</span>
+<span class="sd">    Once approved it may be made public again.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : array</span>
+<span class="sd">        Same format as in grey_body_fit.</span>
+<span class="sd">    beta :</span>
+<span class="sd">        The beta value. If fit_beta=True this is varied in the fits.</span>
+<span class="sd">    kappa :</span>
+<span class="sd">        As in :func:`greybody`.</span>
+
+<span class="sd">    Other Parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    fit_beta: True or False</span>
+<span class="sd">        Steers if beta is fittet or not.</span>
+<span class="sd">    rawChisq: True or False</span>
+<span class="sd">        Returns chi square without normalisation, or not.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_err</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The function to be minimized by scipy.optimize.leastsq. It returns the</span>
+<span class="sd">        difference between the measured fluxes, y, and the calculated fluxes</span>
+<span class="sd">        for the parameters p of the SED at the given frequency x.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        p : list</span>
+<span class="sd">            same start start_parameter as in grey_body_fit</span>
+<span class="sd">        x and y :</span>
+<span class="sd">         The two rows, data[0] and data[1] of the data variable from</span>
+<span class="sd">         grey_body_fit.</span>
+<span class="sd">        y_error : The absolute error on the flux measurement.</span>
+
+<span class="sd">        Other Parameters</span>
+<span class="sd">        ----------------</span>
+<span class="sd">        nu_or_lambda : string</span>
+<span class="sd">            Specify whether x is a frequency :math:`\nu` ``&#39;nu&#39;`` or</span>
+<span class="sd">            a wavelenght :math:`\lambda` ``&#39;lambda&#39;``; default is ``&#39;nu&#39;``.::</span>
+<span class="sd">            **Don&#39;t** use ``&#39;lambda&#39;`` as this part of the</span>
+<span class="sd">            :py:func:`grey_body` is not up-to-date.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This function caluclates the residuals that are minimized by</span>
+<span class="sd">        :func:`leastsq`, thus it calculates:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            (model-measurement)/\sigma</span>
+
+<span class="sd">        Note the :math:`\chi^2` is defined as:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \chi^2 = \frac{1}{N} \sum{(model-measurement)/\sigma}</span>
+
+<span class="sd">        :warning:`Formula has to be checked.`</span>
+
+<span class="sd">        This functions is different from the _err functions in grey_body_fit</span>
+<span class="sd">        because the start parameters are handles differently.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fit_beta</span><span class="p">:</span>
+            <span class="n">pMulti</span> <span class="o">=</span> <span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">beta</span><span class="p">]</span>
+            <span class="k">print</span> <span class="n">pMulti</span>
+        <span class="k">if</span> <span class="n">fit_beta</span><span class="p">:</span>
+            <span class="n">pMulti</span> <span class="o">=</span> <span class="p">[</span><span class="n">Temps</span><span class="p">,</span> <span class="n">p</span><span class="p">]</span>
+            <span class="k">print</span> <span class="n">pMulti</span>
+        <span class="k">return</span> <span class="p">(((</span><span class="n">multi_component_grey_body</span><span class="p">(</span><span class="n">pMulti</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="p">,</span> <span class="n">kappa</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">y_error</span><span class="p">)</span>
+    <span class="n">beta</span> <span class="o">=</span> <span class="p">[</span><span class="n">beta</span><span class="p">]</span>
+    <span class="n">T1</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">T2</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">chisqList</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">chisqList1</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">T1</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">T2</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+            <span class="n">N</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">fit_beta</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="k">if</span> <span class="n">fit_beta</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">N</span> <span class="o">+</span> <span class="n">beta</span>
+            <span class="n">p2</span><span class="p">,</span> <span class="n">cov</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">mesg</span><span class="p">,</span> <span class="n">success</span> <span class="o">=</span> <span class="n">least</span><span class="p">(</span><span class="n">_err</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                                 <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                                                 <span class="n">nu_or_lambda</span><span class="p">),</span>
+                                                 <span class="n">maxfev</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e9</span><span class="p">),</span>
+                                                 <span class="n">full_output</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">dof</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c"># Degrees of Freedom</span>
+            <span class="n">chisq</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">dof</span>  <span class="c"># see above</span>
+            <span class="n">rawchisq</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">])</span>
+            <span class="n">chisqList</span><span class="p">[</span><span class="n">chisq</span><span class="p">]</span> <span class="o">=</span> <span class="p">[[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">p2</span><span class="p">]</span>
+            <span class="n">chisqList1</span> <span class="o">+=</span> <span class="p">[</span><span class="n">chisq</span><span class="p">]</span>
+    <span class="n">chisq</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">chisqList</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">T</span><span class="p">,</span> <span class="n">p2</span> <span class="o">=</span> <span class="n">chisqList</span><span class="p">[</span><span class="nb">sorted</span><span class="p">(</span><span class="n">chisqList</span><span class="p">)[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">fit_beta</span><span class="p">:</span>
+        <span class="n">numberOfComponents</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">p2</span> <span class="o">=</span> <span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">beta</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">fit_beta</span><span class="p">:</span>
+        <span class="n">numberOfComponents</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">p2</span> <span class="o">=</span> <span class="p">[</span><span class="n">Temps</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">numberOfComponents</span><span class="p">]),</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">rawChiSq</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">p2</span><span class="p">,</span> <span class="n">chisq</span>
+    <span class="k">if</span> <span class="n">rawChiSq</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">p2</span><span class="p">,</span> <span class="n">rawchisq</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">chisq</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="LTIR"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.LTIR">[docs]</a><span class="k">def</span> <span class="nf">LTIR</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">,</span> <span class="n">xmin</span><span class="o">=</span><span class="mf">3.</span><span class="p">,</span> <span class="n">xmax</span><span class="o">=</span><span class="mf">1100.</span><span class="p">,</span> <span class="n">beamConv</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+         <span class="n">distance</span><span class="o">=</span><span class="mf">847e3</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;JyB&#39;</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Integration of a multi-component greybody model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    p2 : list</span>
+<span class="sd">        The parameters defining the multi-component greybody model. Same format</span>
+<span class="sd">        as p in</span>
+<span class="sd">        :py:func:`astrolyze.functions.astroFunctions.multi_component_grey_body`</span>
+<span class="sd">    kappa : string</span>
+<span class="sd">        The dust extinction coefficient used to describe the greybodies. See:</span>
+<span class="sd">        py:func:`grey_body`</span>
+<span class="sd">    xmin, xmax : float</span>
+<span class="sd">        The integration range in units of micron. Defaults to 3 -- 110 micron.</span>
+<span class="sd">        The definition of LTIR from [DA]</span>
+<span class="sd">    beamConv : True or False</span>
+<span class="sd">        For units in Lsun the code is not well written. Hardcoded conversion</span>
+<span class="sd">        between an 28&quot; and 40&quot; beam. !! CHANGE !!</span>
+<span class="sd">    unit : string</span>
+<span class="sd">        If ``&#39;Lsun&#39;`` the returned integrated flux is in units of solar</span>
+<span class="sd">        luminosities (erg s^-1). For this a distance is needed. If ``&#39;JyB&#39;``</span>
+<span class="sd">        the units are Jy/beam; distance is not used.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Needs some work to be generally usable. For units in Jy/beam the code seems</span>
+<span class="sd">    to be safe.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [DA] Dale et al. 2001; ApJ; 549:215-227</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c">#Convert the input xmin/xmax from micron to m and to frequency in</span>
+    <span class="c">#GHz</span>
+    <span class="n">xmin</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="p">(</span><span class="n">xmin</span> <span class="o">*</span> <span class="mf">1e-6</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e9</span>        <span class="c"># GHz</span>
+    <span class="n">xmax</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="p">(</span><span class="n">xmax</span> <span class="o">*</span> <span class="mf">1e-6</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e9</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="n">floor</span><span class="p">(</span><span class="n">xmax</span><span class="p">),</span> <span class="n">floor</span><span class="p">(</span><span class="n">xmin</span><span class="p">),</span> <span class="n">step</span><span class="p">)</span>
+    <span class="c"># multi_component_grey_body needs input (x) in GHz</span>
+    <span class="n">model</span><span class="p">,</span> <span class="n">grey</span> <span class="o">=</span> <span class="n">multi_component_grey_body</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">kappa</span><span class="p">)</span>
+    <span class="c"># integrate the SED</span>
+    <span class="n">LTIR1</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">model</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">step</span> <span class="o">*</span> <span class="mf">1e9</span><span class="p">)</span>  <span class="c"># Jy/Beam*Hz</span>
+    <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="s">&#39;Lsun&#39;</span><span class="p">:</span>
+        <span class="c"># conversion factor between 40 and 28 arcsc beam</span>
+        <span class="n">beamsize_conversion</span> <span class="o">=</span> <span class="p">(</span><span class="mf">28.</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">40</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">beamConv</span><span class="p">:</span>
+            <span class="n">conv</span> <span class="o">=</span> <span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">JanskyToErgs_m</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">Int2Lum</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span>
+                    <span class="n">cm_or_m</span><span class="o">=</span><span class="s">&#39;m&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="n">beamsize_conversion</span><span class="p">)</span>
+        <span class="c"># convert to erg s-1 /beam in terms of 1e6*Lsun</span>
+        <span class="n">conv</span> <span class="o">=</span> <span class="n">Jy_to_FluxDensityInErg_s</span> <span class="o">*</span> <span class="n">units</span><span class="o">.</span><span class="n">Int2Lum</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">cm_or_m</span><span class="o">=</span><span class="s">&#39;m&#39;</span><span class="p">)</span>
+        <span class="n">LTIR1</span> <span class="o">=</span> <span class="n">LTIR1</span> <span class="o">*</span> <span class="n">conv</span> <span class="o">/</span> <span class="n">luminositySun</span> <span class="o">/</span> <span class="mf">1e6</span>
+    <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="s">&#39;JyB&#39;</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">LTIR1</span>
+
+</div>
+<div class="viewcode-block" id="generate_monte_carlo_data_sed"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.generate_monte_carlo_data_sed">[docs]</a><span class="k">def</span> <span class="nf">generate_monte_carlo_data_sed</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MonteCarlo Simulation of a set of flux measurements, assuming that the</span>
+<span class="sd">    measurement data follows a gauss distribution.</span>
+
+<span class="sd">    This function makes use of the :func:`random.gauss` function to generate a</span>
+<span class="sd">    data point from a gauss distribution, that has a mean equal to the Flux</span>
+<span class="sd">    measurement and a standard deviation correponding to the error of the</span>
+<span class="sd">    measurement.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : array</span>
+<span class="sd">         Same format as in grey_body_fit function:</span>
+<span class="sd">            data= [[x1, x2, x3, ...][y1, y2, y3, ...][z1, z2, z3, ...]]</span>
+
+<span class="sd">         with x = wavelenght/frequency, y = flux, z = error on flux.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    newData : array in same format as data.</span>
+<span class="sd">        The Monte-Carlo simulated measurement.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    random.gauss</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">newData</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+        <span class="n">newData</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnd</span><span class="o">.</span><span class="n">gauss</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">newData</span>
+
+</div>
+<div class="viewcode-block" id="grey_body_monte_carlo"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.grey_body_monte_carlo">[docs]</a><span class="k">def</span> <span class="nf">grey_body_monte_carlo</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to evaluate the errors in the parameters fitted with the</span>
+<span class="sd">    grey_body_fit function.</span>
+
+<span class="sd">    It uses Monte Carlo Simulated data (from</span>
+<span class="sd">    :func:`generate_monte_carlo_data_sed`) and performs a fit to this new data</span>
+<span class="sd">    giving back the results of the fit parameters.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    p : list</span>
+<span class="sd">        The parameters defining the multi component grey_body model to be</span>
+<span class="sd">        fitted. Same format as p in :py:func:`multi_component_grey_body`</span>
+<span class="sd">    data : array</span>
+<span class="sd">        The actual measured data of the SED, same format as for</span>
+<span class="sd">        :py:func:`grey_body_fitFunction`</span>
+<span class="sd">    iterations : int</span>
+<span class="sd">        Number of times new data is generated and fitted.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    string :</span>
+<span class="sd">        Containing the mean, standard deviation of the fit parameters, ready</span>
+<span class="sd">        to print out.</span>
+<span class="sd">    betaTlist : List of all fit results. Name misleading since it may not</span>
+<span class="sd">        include the beta.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Define the variables that store the MOnte Carlo T and N values</span>
+    <span class="n">TList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">NList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">chisqList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">betaList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+        <span class="n">TList</span> <span class="o">+=</span> <span class="p">[[]]</span>
+        <span class="n">NList</span> <span class="o">+=</span> <span class="p">[[]]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">betaTList</span> <span class="o">=</span> <span class="p">[[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">betaTList</span> <span class="o">=</span> <span class="p">[[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]]</span>
+    <span class="n">string</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="k">print</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s">&#39;</span><span class="se">\\</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">iterations</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="n">MCData</span> <span class="o">=</span> <span class="n">generate_monte_carlo_data_sed</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">p2</span><span class="p">,</span> <span class="n">chisq</span> <span class="o">=</span> <span class="n">grey_body_fit</span><span class="p">(</span><span class="n">MCData</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">fit_beta</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                                   <span class="n">fix_temperature</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">p2</span><span class="p">,</span> <span class="n">chisq</span> <span class="o">=</span> <span class="n">grey_body_fit</span><span class="p">(</span><span class="n">MCData</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">fit_beta</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                                   <span class="n">fix_temperature</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="n">chisqList</span> <span class="o">+=</span> <span class="p">[</span><span class="n">chisq</span><span class="p">]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">betaTList</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">MCData</span><span class="p">]</span>
+            <span class="n">betaTList</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">betaTList</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">MCData</span><span class="p">]</span>
+            <span class="n">betaTList</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">betaTList</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
+                <span class="n">betaTList</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
+                <span class="n">betaTList</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">betaTList</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
+                <span class="n">betaTList</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
+                <span class="c">#if float(p2[0][0]) &lt; 100:</span>
+                    <span class="c">#if float(p2[0][1]) &lt; 100:</span>
+                <span class="n">TList</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
+                <span class="n">NList</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
+                <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">betaList</span> <span class="o">+=</span> <span class="n">p2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c">#if float(p2[0][i]) &lt; 100:</span>
+                <span class="n">TList</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
+                <span class="n">NList</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
+                <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">betaList</span> <span class="o">+=</span> <span class="n">p2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">betaList</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">betaList</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+        <span class="n">string</span> <span class="o">+=</span> <span class="p">(</span><span class="s">&#39;T&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;: &#39;</span> <span class="o">+</span>
+                   <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">mean</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">TList</span><span class="p">[</span><span class="n">i</span><span class="p">])))</span> <span class="o">+</span>
+                   <span class="s">&#39; +/- &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">std</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">TList</span><span class="p">[</span><span class="n">i</span><span class="p">])))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">string</span> <span class="o">+=</span> <span class="p">(</span><span class="s">&#39;N&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;: &#39;</span> <span class="o">+</span>
+                   <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2e</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">mean</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">NList</span><span class="p">[</span><span class="n">i</span><span class="p">])))</span> <span class="o">+</span>
+                   <span class="s">&#39; +/- &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2e</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">std</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">NList</span><span class="p">[</span><span class="n">i</span><span class="p">])))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+    <span class="n">string</span> <span class="o">+=</span> <span class="p">(</span><span class="s">&#39;Beta: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">mean</span><span class="p">(</span><span class="n">betaList</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39; +/- &#39;</span> <span class="o">+</span>
+               <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">std</span><span class="p">(</span><span class="n">betaList</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+    <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;Number of Fits &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">TList</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">string</span><span class="p">,</span> <span class="n">betaTList</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">string</span><span class="p">,</span> <span class="n">betaTList</span>
+
+</div>
+<div class="viewcode-block" id="line"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.line">[docs]</a><span class="k">def</span> <span class="nf">line</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Line `y = m*x + b` equation. Returns y value at point x.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    p : list</span>
+<span class="sd">        Contains the slope and the y-axis intersection of the line [m, b].</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    y : value of y corresponding to x.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+</div>
+<div class="viewcode-block" id="anti_line"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.anti_line">[docs]</a><span class="k">def</span> <span class="nf">anti_line</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Inverse of a line returning the x value corresponding to a y value, i.e.</span>
+<span class="sd">    `x = y/m - b`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    p : list</span>
+<span class="sd">        Contains the slope and the y-axis intersection of the line [m, b].</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    y : value of x corresponding to y.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">y</span> <span class="o">/</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+</div>
+<div class="viewcode-block" id="linear_error_function"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.linear_error_function">[docs]</a><span class="k">def</span> <span class="nf">linear_error_function</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">x_error</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Error function, i.e. residual from the measured value, which has to be</span>
+<span class="sd">    minimised in the least square fit taking X and Y Error into account.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    p : list</span>
+<span class="sd">        Same as in :func:`line` and :func:`anti_line`.</span>
+<span class="sd">    x : float or list</span>
+<span class="sd">        x measurements. Data.</span>
+<span class="sd">    y : float or list</span>
+<span class="sd">        y measurements. Data.</span>
+<span class="sd">    x_error : float or list</span>
+<span class="sd">        The x measurment errors.</span>
+<span class="sd">    y_error : float or list</span>
+<span class="sd">        The y measurment errors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">x_error</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">sqrt</span><span class="p">(((</span><span class="n">line</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">y_error</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">anti_line</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="n">x_error</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">x_error</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">sqrt</span><span class="p">(((</span><span class="n">line</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">y_error</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="line_fit"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.line_fit">[docs]</a><span class="k">def</span> <span class="nf">line_fit</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">x_error</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Linear Fit to data, taking either errors in y or both in x and y into</span>
+<span class="sd">    account.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    p : list</span>
+<span class="sd">        Containg slope (m) and y-axis intersection (b) p=[m, b]. Same as in</span>
+<span class="sd">        :func:`line` and :func:`antiline`.</span>
+<span class="sd">    x : float or list</span>
+<span class="sd">        x measurements. Data.</span>
+<span class="sd">    y : float or list</span>
+<span class="sd">        y measurements. Data.</span>
+<span class="sd">    y_error : float or list</span>
+<span class="sd">        The y measurment errors.</span>
+<span class="sd">    x_error : float or list</span>
+<span class="sd">        The x measurment errors. If unset only errors in y are taken into</span>
+<span class="sd">        account.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p1</span><span class="p">,</span> <span class="n">cov</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">mesg</span><span class="p">,</span> <span class="n">success</span> <span class="o">=</span> <span class="n">least</span><span class="p">(</span><span class="n">linear_error_function</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span>
+                                         <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">x_error</span><span class="p">),</span>
+                                         <span class="n">maxfev</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">iterations</span><span class="p">),</span> <span class="n">full_output</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">dof</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c"># degrees of Freedom</span>
+    <span class="n">chisq</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">dof</span>
+    <span class="n">Error</span> <span class="o">=</span> <span class="n">std</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s">&#39;fvec&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">p1</span><span class="p">,</span> <span class="n">chisq</span><span class="p">,</span> <span class="n">Error</span>
+
+</div>
+<div class="viewcode-block" id="analytic_linear_fit"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.analytic_linear_fit">[docs]</a><span class="k">def</span> <span class="nf">analytic_linear_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_error</span><span class="p">,</span> <span class="n">y_error</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    This function resembles the analytical solution following chaper 8 from</span>
+<span class="sd">    [TA].</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    x : float or list</span>
+<span class="sd">        x measurements. Data.</span>
+<span class="sd">    y : float or list</span>
+<span class="sd">        y measurements. Data.</span>
+<span class="sd">    y_error : float or list</span>
+<span class="sd">        The y measurment errors.</span>
+<span class="sd">    x_error : float or list</span>
+<span class="sd">        The x measurment errors. If unset only errors in y are taken into</span>
+<span class="sd">        account.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Without errors the following holds:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        y = A + B x</span>
+
+<span class="sd">        A = \frac{\Sigma(x^2) \cdot \Sigma(y) - \Sigma(x) \cdot</span>
+<span class="sd">        \Sigma(x \cdot y)}{\Delta}</span>
+
+<span class="sd">        B = N \frac{\Sigma(x \cdot y) - \Sigma (x) \cdot \Sigma(y)}{\Delta}</span>
+
+<span class="sd">        \Delta = N \cdot \Sigma(x^2) - (\Sigma(x))^2</span>
+
+<span class="sd">    .. warning:: This has to be checked.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [TA] &quot;An introduction to the study of uncertainties in physical</span>
+<span class="sd">        measurement&quot; by John R. Taylor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># first calculate a least squares fit ignoring the errors since B is</span>
+    <span class="c"># needed for the more complex issue including errors</span>
+    <span class="n">sumX</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">sumY</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">sumXY</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">sumXSq</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">Delta</span> <span class="o">=</span> <span class="n">N</span> <span class="o">*</span> <span class="n">sumXSq</span> <span class="o">-</span> <span class="p">(</span><span class="n">sumX</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="p">(</span><span class="n">sumXSq</span> <span class="o">*</span> <span class="n">sumY</span> <span class="o">-</span> <span class="n">sumX</span> <span class="o">*</span> <span class="n">sumXY</span><span class="p">)</span> <span class="o">/</span> <span class="n">Delta</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="p">(</span><span class="n">N</span> <span class="o">*</span> <span class="n">sumXY</span> <span class="o">-</span> <span class="n">sumX</span> <span class="o">*</span> <span class="n">sumY</span><span class="p">)</span> <span class="o">/</span> <span class="n">Delta</span>
+    <span class="k">print</span> <span class="s">&#39;m = &#39;</span> <span class="o">+</span> <span class="s">&#39;</span><span class="si">%1.2f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">A</span> <span class="o">+</span> <span class="s">&#39; b = &#39;</span> <span class="o">+</span> <span class="s">&#39;</span><span class="si">%1.2f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">B</span>
+    <span class="c"># now make use of the idea of a equivalent error only in y defined by</span>
+    <span class="c"># equivalentError =  sqrt(y_error**2+(B*x_error)**2)</span>
+    <span class="n">equivalentError</span> <span class="o">=</span> <span class="n">y_error</span>  <span class="c"># sqrt(y_error**2+(B*x_error)**2)</span>
+    <span class="c"># and use wheighted least square fit see definition for A and B and</span>
+    <span class="c"># their errors below</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="n">equivalentError</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">sumWeightX</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">weight</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span>
+    <span class="n">sumWeightY</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">weight</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">sumWeightXY</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">weight</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">sumWeightXSq</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">weight</span> <span class="o">*</span> <span class="n">x</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">sumWeight</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+    <span class="n">WeightDelta</span> <span class="o">=</span> <span class="p">(</span><span class="n">sumWeight</span> <span class="o">*</span> <span class="n">sumWeightXSq</span><span class="p">)</span> <span class="o">-</span> <span class="p">((</span><span class="n">sumWeightX</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="p">(((</span><span class="n">sumWeightXSq</span> <span class="o">*</span> <span class="n">sumWeightY</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">sumWeightX</span> <span class="o">*</span> <span class="n">sumWeightXY</span><span class="p">))</span> <span class="o">/</span>
+         <span class="n">WeightDelta</span><span class="p">)</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="p">((</span><span class="n">sumWeight</span> <span class="o">*</span> <span class="n">sumWeightXY</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">sumWeightX</span> <span class="o">*</span> <span class="n">sumWeightY</span><span class="p">))</span> <span class="o">/</span> <span class="n">WeightDelta</span>
+    <span class="n">SigmaA</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">sumWeightXSq</span> <span class="o">/</span> <span class="n">WeightDelta</span><span class="p">)</span>
+    <span class="n">SigmaB</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">sumWeight</span> <span class="o">/</span> <span class="n">WeightDelta</span><span class="p">)</span>
+    <span class="n">Chisq</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">((</span><span class="n">y</span> <span class="o">-</span> <span class="n">A</span> <span class="o">-</span> <span class="n">B</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">equivalentError</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">print</span> <span class="p">(</span><span class="s">&#39;m = &#39;</span> <span class="o">+</span> <span class="s">&#39;</span><span class="si">%1.2f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">A</span> <span class="o">+</span> <span class="s">&#39;+/-&#39;</span> <span class="o">+</span> <span class="s">&#39;</span><span class="si">%1.2f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">SigmaA</span> <span class="o">+</span> <span class="s">&#39; b = &#39;</span> <span class="o">+</span> <span class="s">&#39;</span><span class="si">%1.2f</span><span class="s">&#39;</span>
+           <span class="o">%</span> <span class="n">B</span> <span class="o">+</span> <span class="s">&#39;+/-&#39;</span> <span class="o">+</span> <span class="s">&#39;</span><span class="si">%1.2f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">SigmaB</span> <span class="o">+</span> <span class="s">&#39; chisq:&#39;</span> <span class="o">+</span> <span class="s">&#39;</span><span class="si">%1.2f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">Chisq</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">SigmaA</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">SigmaB</span><span class="p">,</span> <span class="n">Chisq</span>
+
+</div>
+<div class="viewcode-block" id="generate_monte_carlo_data_line"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.generate_monte_carlo_data_line">[docs]</a><span class="k">def</span> <span class="nf">generate_monte_carlo_data_line</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function makes a Monte Carlo Simulation of a data Set of measurements</span>
+<span class="sd">    it uses the random.gauss() function to generate a data point</span>
+<span class="sd">    from a gauss distribution, that has a mean equal to the measurement</span>
+<span class="sd">    and its standard deviation corresonding to the error of the measurement.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    data : list</span>
+<span class="sd">        A list of original measurements.</span>
+<span class="sd">    errors : list</span>
+<span class="sd">        A list of the corresponding errors.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    newData : array in same format as data.</span>
+<span class="sd">        The monte carlo simulated measurement.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    random.gauss</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">newData</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+        <span class="n">newData</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnd</span><span class="o">.</span><span class="n">gauss</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">errors</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">newData</span>
+
+</div>
+<div class="viewcode-block" id="line_monte_carlo"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.line_monte_carlo">[docs]</a><span class="k">def</span> <span class="nf">line_monte_carlo</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_error</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">iterations</span><span class="p">,</span>
+                              <span class="n">fitIterations</span><span class="o">=</span><span class="mf">1e9</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gererate an estimate of the errors of the fitted parameters determined by</span>
+<span class="sd">    the :py:func:`line_fit` function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    p : list</span>
+<span class="sd">        Containg slope (m) and y-axis intersection (b) p=[m, b]. Same as in</span>
+<span class="sd">        :func:`line` and :func:`antiline`.</span>
+<span class="sd">    x : float or list</span>
+<span class="sd">        x measurements. Data.</span>
+<span class="sd">    y : float or list</span>
+<span class="sd">        y measurements. Data.</span>
+<span class="sd">    y_error : float or list</span>
+<span class="sd">        The y measurment errors.</span>
+<span class="sd">    x_error : float or list</span>
+<span class="sd">        The x measurment errors. If unset only errors in y are taken into</span>
+<span class="sd">        account.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    string : A string containing the results.</span>
+<span class="sd">    BList : A list containing the fittet y-Axis intersections.</span>
+<span class="sd">    MList : A list containing the fitted slopes.</span>
+<span class="sd">    chisqList : A list with the chisq values.</span>
+<span class="sd">    resultArray : Array with the mean and the standard deviations of</span>
+<span class="sd">        slopes and y-axis intersections, i.e. [mean(M), std(M), mean(B),</span>
+<span class="sd">        std(B)]</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    grey_body_fit, generate_monte_carlo_data_line</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Define the variables that store the MOnte Carlo B and M values y= mx+b</span>
+    <span class="n">BList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">MList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">chisqList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">FitList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">string</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\\</span><span class="s">&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">iterations</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\r</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="n">xMCData</span> <span class="o">=</span> <span class="n">generate_monte_carlo_data_line</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_error</span><span class="p">)</span>
+        <span class="n">yMCData</span> <span class="o">=</span> <span class="n">generate_monte_carlo_data_line</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_error</span><span class="p">)</span>
+        <span class="n">p2</span><span class="p">,</span> <span class="n">chisq</span><span class="p">,</span> <span class="n">Error</span> <span class="o">=</span> <span class="n">line_fit</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">xMCData</span><span class="p">,</span> <span class="n">yMCData</span><span class="p">,</span> <span class="n">x_error</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span>
+                                 <span class="n">XY_or_Y</span><span class="o">=</span><span class="s">&#39;XY&#39;</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+        <span class="n">chisqList</span> <span class="o">+=</span> <span class="p">[</span><span class="n">chisq</span><span class="p">]</span>
+        <span class="n">BList</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">MList</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="n">string</span> <span class="o">+=</span> <span class="p">(</span><span class="s">&#39;B: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">mean</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">BList</span><span class="p">)))</span> <span class="o">+</span> <span class="s">&#39; +/- &#39;</span> <span class="o">+</span>
+               <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">std</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">BList</span><span class="p">)))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+    <span class="n">string</span> <span class="o">+=</span> <span class="p">(</span><span class="s">&#39;M: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">mean</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">MList</span><span class="p">)))</span> <span class="o">+</span> <span class="s">&#39; +/- &#39;</span> <span class="o">+</span>
+               <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">std</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">MList</span><span class="p">)))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+    <span class="n">string</span> <span class="o">+=</span> <span class="p">(</span><span class="s">&#39;Chi: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">mean</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">chisqList</span><span class="p">)))</span> <span class="o">+</span> <span class="s">&#39; +/- &#39;</span> <span class="o">+</span>
+               <span class="nb">str</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">std</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">chisqList</span><span class="p">)))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+    <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;Number of Fits &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">BList</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+    <span class="n">resultArray</span> <span class="o">=</span> <span class="p">[</span><span class="n">mean</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">MList</span><span class="p">)),</span> <span class="n">std</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">MList</span><span class="p">)),</span>
+                   <span class="n">mean</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">BList</span><span class="p">)),</span> <span class="n">std</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">BList</span><span class="p">))]</span>
+    <span class="k">return</span> <span class="n">string</span><span class="p">,</span> <span class="n">BList</span><span class="p">,</span> <span class="n">MList</span><span class="p">,</span> <span class="n">chisqList</span><span class="p">,</span> <span class="n">resultArray</span>
+
+</div>
+<div class="viewcode-block" id="gauss1D"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.gauss1D">[docs]</a><span class="k">def</span> <span class="nf">gauss1D</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fwhm</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Calulcates 1D Gaussian.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : float or numpy.ndarray</span>
+<span class="sd">        the x-axis value/values where the Gaussian is to be caluclated.</span>
+<span class="sd">    fwhm : float</span>
+<span class="sd">        The width of the Gaussian.</span>
+<span class="sd">    offset :</span>
+<span class="sd">        The offset in x direction from 0. Default is 0.</span>
+<span class="sd">    amplitude :</span>
+<span class="sd">        The height of the Gaussian. Default is 1.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gauss : float or np.ndarray</span>
+<span class="sd">        The y value for the specified Gaussian distribution evaluated at x.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The function used to describe the Gaussian is:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        f = \frac{1}{fwhm * sqrt(2 * \pi)} * e^{-1/2 (\frac{x-x0}{fwhm})^2}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gauss</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">offset</span><span class="p">)</span> <span class="o">/</span> <span class="n">fwhm</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">gauss</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">gauss</span><span class="p">)</span>
+    <span class="n">gauss</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">fwhm</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span> <span class="o">*</span> <span class="n">gauss</span>
+    <span class="k">return</span> <span class="n">gauss</span>
+
+</div>
+<div class="viewcode-block" id="gauss2D"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.gauss2D">[docs]</a><span class="k">def</span> <span class="nf">gauss2D</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">,</span> <span class="n">pa</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">xOffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">yOffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Calculates a 2D Gaussian at position x y.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : float or numpy.ndarray</span>
+<span class="sd">        the x-axis value/values where the Gaussian is to be caluclated.</span>
+<span class="sd">    y : float or numpy.ndarray</span>
+<span class="sd">        the y-axis value/values where the Gaussian is to be calculated.</span>
+
+<span class="sd">    major, minor : float</span>
+<span class="sd">        The fwhm of the Gaussian in x and y direction.</span>
+<span class="sd">    pa : float</span>
+<span class="sd">        The position angle of the Gaussian in degrees. Default is 0.</span>
+<span class="sd">    xOffset, yOffset:</span>
+<span class="sd">        The offset in x and y direction from 0. Default is 0.</span>
+<span class="sd">    amplitude :</span>
+<span class="sd">        The height of the Gaussian. Default is 1.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gauss : float or np.ndarray</span>
+<span class="sd">        The y value for the specified Gaussian distribution evaluated at x.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The function used to describe the Gaussian is :</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        f = (amplitude * exp (-1 (a*(x-xOffset)^2 + 2*b*(x-xOffset)*(y-yOffset)</span>
+<span class="sd">            + c*(y-yOffset)^2)))</span>
+
+<span class="sd">    where:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        a = cos(pa)**2/(2*major**2) + sin(pa)**2/(2*minor**2) \\</span>
+<span class="sd">        b = (-1*sin(2*pa)/(4*major**2))+(sin(2*pa)/(4*minor**2)) \\</span>
+<span class="sd">        c = sin(pa)**2/(2*major**2) + cos(pa)**2/(2*minor**2) \\</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pa</span> <span class="o">=</span> <span class="n">pa</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">pa</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">major</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">sin</span><span class="p">(</span><span class="n">pa</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">minor</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="p">((</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pa</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">major</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="p">(</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pa</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">minor</span> <span class="o">**</span>
+         <span class="mi">2</span><span class="p">)))</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">pa</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">major</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">cos</span><span class="p">(</span><span class="n">pa</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">minor</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">gauss</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">xOffset</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">gauss</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">xOffset</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">yOffset</span><span class="p">)</span>
+    <span class="n">gauss</span> <span class="o">+=</span> <span class="n">c</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">yOffset</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">gauss</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">gauss</span><span class="p">)</span>
+    <span class="n">gauss</span> <span class="o">=</span> <span class="n">amplitude</span> <span class="o">*</span> <span class="n">gauss</span>
+
+</div>
+<div class="viewcode-block" id="degrees_to_equatorial"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.degrees_to_equatorial">[docs]</a><span class="k">def</span> <span class="nf">degrees_to_equatorial</span><span class="p">(</span><span class="n">degrees</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Converts RA, DEC coordinates in degrees to equatorial notation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    degrees : list</span>
+<span class="sd">        The coordinates in degrees in the format of: [23.4825, 30.717222]</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    equatorial : list</span>
+<span class="sd">        The coordinates in equatorial notation, e.g.</span>
+<span class="sd">        corresponding [&#39;1:33:55.80&#39;, &#39;+30:43:2.00&#39;].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">coordinate</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">coordinate</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">degrees</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">15</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(((</span><span class="n">degrees</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">15</span><span class="p">)</span>
+              <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">degrees</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">15</span><span class="p">))</span> <span class="o">*</span> <span class="mi">60</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;:&#39;</span> <span class="o">+</span> <span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span>
+              <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">str</span><span class="p">((((</span><span class="n">degrees</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">15</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">degrees</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">15</span><span class="p">))</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span> <span class="o">-</span>
+              <span class="nb">int</span><span class="p">((</span><span class="n">degrees</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">15</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">degrees</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">15</span><span class="p">))</span> <span class="o">*</span> <span class="mi">60</span><span class="p">))</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)))]</span>
+    <span class="n">coordinate</span> <span class="o">+=</span> <span class="p">[(</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">degrees</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span> <span class="o">+</span> <span class="s">&#39;:&#39;</span> <span class="o">+</span>
+              <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="nb">int</span><span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">degrees</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">degrees</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span> <span class="o">*</span>
+              <span class="mi">60</span><span class="p">))))</span> <span class="o">+</span> <span class="s">&#39;:&#39;</span> <span class="o">+</span> <span class="s">&quot;</span><span class="si">%1.2f</span><span class="s">&quot;</span> <span class="o">%</span>
+              <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(((</span><span class="nb">float</span><span class="p">(</span><span class="n">degrees</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">degrees</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+              <span class="o">*</span> <span class="mi">60</span><span class="p">)</span> <span class="o">-</span> <span class="nb">int</span><span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">degrees</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">degrees</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span> <span class="o">*</span> <span class="mi">60</span><span class="p">))</span> <span class="o">*</span>
+              <span class="mi">60</span><span class="p">)))))]</span>
+    <span class="k">return</span> <span class="n">coordinate</span>
+
+</div>
+<div class="viewcode-block" id="equatorial_to_degrees"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.equatorial_to_degrees">[docs]</a><span class="k">def</span> <span class="nf">equatorial_to_degrees</span><span class="p">(</span><span class="n">equatorial</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Converts RA, DEC coordinates in equatorial notation to degrees.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    equatorial : list</span>
+<span class="sd">        The coordinates in degress in equatorial notation, e.g.</span>
+<span class="sd">        [&#39;1:33:55.80&#39;, &#39;+30:43:2.00&#39;]</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    degrees : list</span>
+<span class="sd">        The coordinates in degreees, e.g. [23.4825, 30.717222].</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    SystemExit</span>
+<span class="sd">        If ``equatorial`` is not a list of strings in the above format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">CoordsplitRA</span> <span class="o">=</span> <span class="n">equatorial</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+        <span class="n">CoordsplitDec</span> <span class="o">=</span> <span class="n">equatorial</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="s">&#39;Input has to be equatorial coordinates.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitDec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">degrees</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitRA</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mf">360.</span> <span class="o">/</span> <span class="mi">24</span><span class="p">)</span> <span class="o">+</span>
+                  <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitRA</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mf">360.</span> <span class="o">/</span> <span class="mi">24</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span> <span class="o">+</span>
+                  <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitRA</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mf">360.</span> <span class="o">/</span> <span class="mi">24</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitDec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitDec</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span>
+                  <span class="mi">60</span><span class="p">)</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitDec</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitDec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">degrees</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitRA</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mf">360.</span> <span class="o">/</span> <span class="mi">24</span><span class="p">)</span> <span class="o">+</span>
+                  <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitRA</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mf">360.</span> <span class="o">/</span> <span class="mi">24</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span> <span class="o">+</span>
+                  <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitRA</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mf">360.</span> <span class="o">/</span> <span class="mi">24</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitDec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitDec</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span>
+                  <span class="mi">60</span><span class="p">)</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitDec</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">degrees</span>
+
+</div>
+<div class="viewcode-block" id="calc_offset"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.calc_offset">[docs]</a><span class="k">def</span> <span class="nf">calc_offset</span><span class="p">(</span><span class="n">central_coordinate</span><span class="p">,</span> <span class="n">offset_coordinate</span><span class="p">,</span> <span class="n">angle</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="n">output_unit</span><span class="o">=</span><span class="s">&#39;farcsec&#39;</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the offset between two coordinates.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    central_coordinate : list</span>
+<span class="sd">        The reference coordinate in degrees or equatorial.</span>
+<span class="sd">    offset_coordinate : list</span>
+<span class="sd">        The second coordinate, the offset will be with rescpect to</span>
+<span class="sd">        central_coordinate.</span>
+<span class="sd">    angle : float</span>
+<span class="sd">        The angle in degrees, allowing rotated systems.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    rotated_offset : list</span>
+<span class="sd">        The offsets, rotated only if angle given.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This functions includes a correction of the RA offset with declination:</span>
+
+<span class="sd">    .. math:</span>
+
+<span class="sd">        ra_corrected = ra cos(dec)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">possible_units</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;DEGREE&#39;</span><span class="p">,</span> <span class="s">&#39;DEGREES&#39;</span><span class="p">,</span> <span class="s">&#39;ARCMINUTE&#39;</span><span class="p">,</span> <span class="s">&#39;ARCMINUTES&#39;</span><span class="p">,</span> <span class="s">&#39;ARCSEC&#39;</span><span class="p">,</span>
+                      <span class="s">&#39;ARCSECS&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">output_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">possible_units</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;Unit has to be one of the following. &quot;&#39;</span> <span class="o">+</span>
+                         <span class="s">&#39;&quot; &quot;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">possible_units</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">+</span> <span class="s">&#39;&quot;&#39;</span><span class="p">)</span>
+    <span class="n">angle</span> <span class="o">=</span>  <span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+    <span class="n">central_in_degrees</span> <span class="o">=</span> <span class="n">equatorial_to_degrees</span><span class="p">(</span><span class="n">central_coordinate</span><span class="p">)</span>
+    <span class="n">offset_in_degrees</span> <span class="o">=</span> <span class="n">equatorial_to_degrees</span><span class="p">(</span><span class="n">offset_coordinate</span><span class="p">)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="p">[</span><span class="n">offset_in_degrees</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">central_in_degrees</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">,</span>
+              <span class="n">offset_in_degrees</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">central_in_degrees</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="c"># correction for declination</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="p">[</span><span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">offset_in_degrees</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span>
+              <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="c"># Rotate the offsets.</span>
+    <span class="n">rotated_offset</span> <span class="o">=</span> <span class="n">rotation_2d</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">angle</span><span class="p">)</span>
+    <span class="n">rotated_offset</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">rotated_offset</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;DEGREE&#39;</span><span class="p">,</span> <span class="s">&#39;DEGREES&#39;</span><span class="p">]:</span>
+        <span class="k">pass</span>
+    <span class="k">if</span> <span class="n">output_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;ARCMINUTE&#39;</span><span class="p">,</span> <span class="s">&#39;ARCMINUTES&#39;</span><span class="p">]:</span>
+        <span class="n">rotated_offset</span> <span class="o">=</span> <span class="n">rotated_offset</span> <span class="o">*</span> <span class="mi">60</span>
+    <span class="k">if</span> <span class="n">output_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;ARCSEC&#39;</span><span class="p">,</span> <span class="s">&#39;ARCSECS&#39;</span><span class="p">]:</span>
+        <span class="n">rotated_offset</span> <span class="o">=</span> <span class="n">rotated_offset</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span>
+    <span class="k">return</span> <span class="n">rotated_offset</span>
+
+</div>
+<div class="viewcode-block" id="rotation_2d"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.rotation_2d">[docs]</a><span class="k">def</span> <span class="nf">rotation_2d</span><span class="p">(</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">angle</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of the rotation matrix in two dimensions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    coordinates : list of floats</span>
+<span class="sd">        Coordinates in the unrotated system [x, y].</span>
+<span class="sd">    angle : float</span>
+<span class="sd">        The rotation angle</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    [x_rotated, y_rotated]: list of floats</span>
+<span class="sd">        Coordinates in the rotated system.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">coordinate</span>
+    <span class="n">x_rotated</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span>
+    <span class="n">y_rotated</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">x_rotated</span><span class="p">,</span> <span class="n">y_rotated</span><span class="p">]</span>
+
+</div>
+<div class="viewcode-block" id="vel_to_freq_resolution"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.vel_to_freq_resolution">[docs]</a><span class="k">def</span> <span class="nf">vel_to_freq_resolution</span><span class="p">(</span><span class="n">center_frequency</span><span class="p">,</span> <span class="n">velocity_resolution</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot; Converts a velocity resolution to frequency resolution for a given</span>
+<span class="sd">    center frequency.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    center_frequency : float</span>
+<span class="sd">        Center frequency in GHz.</span>
+<span class="sd">    velocity_resolution :</span>
+<span class="sd">        Velocity resolution in km/s.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    frequency_resolution : float</span>
+<span class="sd">        The corresponding frequency resolution in Mhz</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Approved!</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Conversion from km/s to m/s</span>
+    <span class="n">velocity_resolution</span> <span class="o">=</span> <span class="n">velocity_resolution</span> <span class="o">*</span> <span class="mf">1e3</span>
+    <span class="c"># Conversion from GHz to Hz</span>
+    <span class="n">center_frequency</span> <span class="o">=</span> <span class="n">center_frequency</span> <span class="o">*</span> <span class="mf">1e9</span>
+    <span class="c"># Calculation of the frequency_resolution in Hz</span>
+    <span class="n">frequency_resolution</span> <span class="o">=</span>  <span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">velocity_resolution</span> <span class="o">*</span>
+                              <span class="n">center_frequency</span> <span class="o">/</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+    <span class="c"># Conversion to MHz</span>
+    <span class="n">frequency_resolution</span> <span class="o">=</span> <span class="n">frequency_resolution</span> <span class="o">/</span> <span class="mf">1e6</span>
+    <span class="k">return</span> <span class="n">frequency_resolution</span>
+</div>
+<div class="viewcode-block" id="freq_to_vel_resolution"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.freq_to_vel_resolution">[docs]</a><span class="k">def</span> <span class="nf">freq_to_vel_resolution</span><span class="p">(</span><span class="n">center_frequency</span><span class="p">,</span> <span class="n">frequency_resolution</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot; Function to convert a frequency resolution to a velocity resolution</span>
+<span class="sd">    for a given center frequency.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    center_frequency : float</span>
+<span class="sd">        Center frequency in GHz.</span>
+<span class="sd">    frequency_resolution : float</span>
+<span class="sd">        The frequency resolution in MHz.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    velocity_resolution in km/s.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Uses the formula TODO v_LSR = c((nu0-nuObs)/nu0)</span>
+
+<span class="sd">    Approved!</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">center_frequency</span> <span class="o">=</span> <span class="n">center_frequency</span> <span class="o">*</span> <span class="mf">1e9</span>
+    <span class="n">frequency_resolution</span> <span class="o">=</span> <span class="n">frequency_resolution</span> <span class="o">*</span> <span class="mf">1e6</span>
+    <span class="n">observation_frequency</span> <span class="o">=</span> <span class="n">center_frequency</span> <span class="o">+</span> <span class="n">frequency_resolution</span>
+    <span class="n">velocity_resolution</span> <span class="o">=</span> <span class="n">v_lsr</span><span class="p">(</span><span class="n">center_frequency</span><span class="p">,</span>
+                                          <span class="n">observation_frequency</span><span class="p">)</span>
+    <span class="c"># Difference between nu0 and nuObs is the velocity resolution</span>
+    <span class="k">return</span> <span class="n">velocity_resolution</span>
+</div>
+<div class="viewcode-block" id="v_lsr"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.v_lsr">[docs]</a><span class="k">def</span> <span class="nf">v_lsr</span><span class="p">(</span><span class="n">center_frequency</span><span class="p">,</span> <span class="n">observation_frequency</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot; Calculates the velocity that corresponds to a certain frequency shift</span>
+<span class="sd">    between two frequencies.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    center_frequency : float</span>
+<span class="sd">        center_frequency in GHz</span>
+<span class="sd">    observation_frequency : float</span>
+<span class="sd">        The observation frequency in GHz.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    v_lsr : float</span>
+<span class="sd">        The velocity corresponding to the frequency shift in km/s</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Approved!</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">center_frequency</span> <span class="o">=</span> <span class="n">center_frequency</span> <span class="o">*</span> <span class="mf">1e9</span>
+    <span class="n">observation_frequency</span> <span class="o">=</span> <span class="n">observation_frequency</span> <span class="o">*</span> <span class="mf">1e9</span>
+    <span class="n">v_lsr</span> <span class="o">=</span> <span class="p">(</span><span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">*</span> <span class="p">((</span><span class="n">center_frequency</span> <span class="o">-</span> <span class="n">observation_frequency</span><span class="p">)</span> <span class="o">/</span>
+                        <span class="n">center_frequency</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e3</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">v_lsr</span>
+</div>
+<div class="viewcode-block" id="redshifted_frequency"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.redshifted_frequency">[docs]</a><span class="k">def</span> <span class="nf">redshifted_frequency</span><span class="p">(</span><span class="n">rest_frequency</span><span class="p">,</span> <span class="n">v_lsr</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot; Calculates the sky frequency corresponding to a rest frequency for a</span>
+<span class="sd">    source with a velocity v_lsr.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rest_frequency : float</span>
+<span class="sd">        The frequency of the line at rest in Ghz (More often state the obvious</span>
+<span class="sd">        :)).</span>
+<span class="sd">    v_lsr : float</span>
+<span class="sd">        The velocity of the source in km/s.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    redshifted_frequency : float</span>
+<span class="sd">       The sky frequency in GHz.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The formula used is:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \nu_{sky} = \nu_{rest} * \frac{-1 v_{lsr}}{c + 1}</span>
+
+<span class="sd">    Approved!</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Convert frequency to Hz,</span>
+    <span class="n">rest_frequency</span> <span class="o">=</span>  <span class="n">rest_frequency</span> <span class="o">*</span> <span class="mf">1e9</span>
+    <span class="c"># Convert velocity to m/s,</span>
+    <span class="n">v_lsr</span> <span class="o">=</span> <span class="n">v_lsr</span> <span class="o">*</span> <span class="mf">1e3</span>
+    <span class="c"># Calculate the sky frequency,</span>
+    <span class="n">redshifted_frequency</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.</span> <span class="o">*</span> <span class="n">v_lsr</span> <span class="o">/</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">rest_frequency</span>
+    <span class="c"># Convert to GHz.</span>
+    <span class="n">redshifted_frequency</span> <span class="o">=</span> <span class="n">redshifted_frequency</span> <span class="o">/</span> <span class="mf">1e9</span>
+    <span class="k">return</span> <span class="n">redshifted_frequency</span>
+
+</div>
+<div class="viewcode-block" id="frequency_to_wavelength"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.frequency_to_wavelength">[docs]</a><span class="k">def</span> <span class="nf">frequency_to_wavelength</span><span class="p">(</span><span class="n">frequency</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Converting frequency to wavelength.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    frequency : float [GHZ]</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">   -------</span>
+<span class="sd">    wavelength : float [micron]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Conversion from GHz to Hz</span>
+    <span class="n">frequency</span> <span class="o">=</span> <span class="n">frequency</span> <span class="o">*</span> <span class="mf">1e9</span>
+    <span class="n">wavelength</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="n">frequency</span>
+    <span class="c"># Conversion from m to micron (mum).</span>
+    <span class="n">wavelength</span> <span class="o">=</span> <span class="n">wavelength</span> <span class="o">/</span> <span class="mf">1e-6</span>
+    <span class="k">return</span> <span class="n">wavelength</span>
+
+</div>
+<span class="k">def</span> <span class="nf">_equatorial2DegFile</span><span class="p">(</span><span class="n">inputFile</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Old Functions if needed can be made public...</span>
+<span class="sd">    converts equatorial coordinates to degrees</span>
+<span class="sd">    format of input File must be:</span>
+<span class="sd">    sourcName Ra Dec</span>
+<span class="sd">    with Space/tab between the entries</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">filein</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;positions.txt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">filein</span><span class="p">:</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">coords</span><span class="o">+=</span><span class="p">[[</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">i</span><span class="p">[</span><span class="mi">2</span><span class="p">]]]</span>
+    <span class="k">print</span> <span class="n">coords</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>
+        <span class="k">print</span> <span class="p">(</span><span class="n">filein</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">equatorial2Deg</span><span class="p">(</span><span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="s">&#39;,&#39;</span><span class="p">,</span>
+               <span class="n">equatorial2Deg</span><span class="p">(</span><span class="n">i</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">x</span><span class="o">+=</span><span class="mi">1</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">doctest</span>
+    <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Christof Buchbender.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

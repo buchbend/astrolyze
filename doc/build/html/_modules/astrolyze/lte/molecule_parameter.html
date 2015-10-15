@@ -1,0 +1,259 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>astrolyze.lte.molecule_parameter &mdash; astrolyze 0.0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="astrolyze 0.0.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo1.jpg" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for astrolyze.lte.molecule_parameter</h1><div class="highlight"><pre>
+<span class="c"># Copyright (C) 2012, Christof Buchbender</span>
+<span class="c"># BSD Licencse</span>
+<span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">This script generates a dictionary storing the information of molecular</span>
+<span class="sd">transitions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">interp</span>
+
+<span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
+
+<div class="viewcode-block" id="Molecule"><a class="viewcode-back" href="../../../lte.html#astrolyze.lte.molecule_parameter.Molecule">[docs]</a><span class="k">class</span> <span class="nc">Molecule</span><span class="p">:</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    A class holding attributes that define the characteristics of an</span>
+<span class="sd">    individual tansition of a molecules.</span>
+
+<span class="sd">    The :py:func:`astrolyze.functions.astro_functions.calc_N` routine</span>
+<span class="sd">    depends on this class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    nu : float</span>
+<span class="sd">    Q : list</span>
+<span class="sd">        The partition function of the molecule evaluated at discreet</span>
+<span class="sd">        temperatures. Given in T.</span>
+<span class="sd">    T : list</span>
+<span class="sd">        The temperatures at which the partition functions was evaluated. The</span>
+<span class="sd">        value of Q used finally is interpolated to the excitation_temperature</span>
+<span class="sd">        give.</span>
+<span class="sd">    Eu : float</span>
+<span class="sd">        Energy of the upper state of the transition.</span>
+<span class="sd">    Aul : float</span>
+<span class="sd">        The Einstein coefficient. For the transition of upper-to-lower state.</span>
+<span class="sd">    gu : float</span>
+<span class="sd">        ADD DESCRIPTION.</span>
+<span class="sd">    mu : float</span>
+<span class="sd">        ADD DESCRIPTION.</span>
+<span class="sd">    name : string</span>
+<span class="sd">        The name of the molecule. </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Eu</span><span class="p">,</span> <span class="n">Aul</span><span class="p">,</span> <span class="n">gu</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nu</span> <span class="o">=</span> <span class="n">nu</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="n">Q</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="n">T</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Eu</span> <span class="o">=</span> <span class="n">Eu</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Aul</span> <span class="o">=</span> <span class="n">Aul</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gu</span> <span class="o">=</span> <span class="n">gu</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mu</span> <span class="o">=</span> <span class="n">mu</span>
+</div>
+<span class="n">molecule_dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="c"># HCO+ (1-0)</span>
+<span class="n">nu</span>  <span class="o">=</span>  <span class="mf">89.1885247e9</span>   <span class="c"># Hz</span>
+<span class="c"># Z the partition function has to be interpolated to the desired value of T </span>
+<span class="n">Q</span> <span class="o">=</span> <span class="p">[</span><span class="mf">2.4426</span><span class="p">,</span> <span class="mf">2.1638</span><span class="p">,</span> <span class="mf">2.0276</span><span class="p">,</span> <span class="mf">1.8481</span><span class="p">,</span> <span class="mf">1.5488</span><span class="p">,</span> <span class="mf">1.2519</span><span class="p">,</span> <span class="mf">0.9592</span><span class="p">,</span> <span class="mf">0.6748</span><span class="p">,</span> <span class="mf">0.4315</span><span class="p">,</span>
+     <span class="mf">0.2225</span><span class="p">]</span>
+<span class="n">T</span>   <span class="o">=</span> <span class="p">[</span><span class="mf">500.0</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">,</span> <span class="mf">225.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">,</span> <span class="mf">37.50</span><span class="p">,</span> <span class="mf">18.75</span><span class="p">,</span> <span class="mf">9.375</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">2.725</span><span class="p">]</span>
+<span class="n">Eu</span>  <span class="o">=</span> <span class="mf">2.9750</span>
+<span class="n">Aul</span> <span class="o">=</span>  <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">2.2608</span><span class="p">)</span>
+<span class="n">gu</span>  <span class="o">=</span> <span class="mf">3.</span>
+<span class="n">mu</span>  <span class="o">=</span> <span class="mf">3.9</span><span class="o">*</span><span class="n">const</span><span class="o">.</span><span class="n">debye_to_EsuCm</span>
+<span class="n">HCO</span> <span class="o">=</span> <span class="n">Molecule</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Eu</span><span class="p">,</span> <span class="n">Aul</span><span class="p">,</span> <span class="n">gu</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="s">&#39;HCO+(1-0)&#39;</span><span class="p">)</span>
+<span class="n">molecule_dictionary</span><span class="p">[</span><span class="s">&#39;HCO&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">HCO</span> 
+
+<span class="c"># HOC+ (1-0)</span>
+<span class="n">nu</span>  <span class="o">=</span>  <span class="mf">89.4874140e9</span>  <span class="c"># Hz</span>
+<span class="c"># Z the partition function has to be interpolated to the desired value of T </span>
+<span class="n">Q</span>   <span class="o">=</span> <span class="p">[</span><span class="mf">2.3558</span><span class="p">,</span> <span class="mf">2.1739</span><span class="p">,</span> <span class="mf">1.9228</span><span class="p">,</span> <span class="mf">1.5554</span><span class="p">,</span> <span class="mf">1.2505</span><span class="p">,</span> <span class="mf">0.9578</span><span class="p">,</span> <span class="mf">0.6735</span><span class="p">,</span> <span class="mf">0.4303</span><span class="p">,</span> <span class="mf">0.2214</span><span class="p">]</span>
+<span class="n">T</span>   <span class="o">=</span> <span class="p">[</span><span class="mf">300.0</span><span class="p">,</span> <span class="mf">225.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">,</span> <span class="mf">37.50</span><span class="p">,</span> <span class="mf">18.75</span><span class="p">,</span> <span class="mf">9.375</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">2.725</span><span class="p">]</span>
+<span class="n">Eu</span>  <span class="o">=</span> <span class="mf">2.9850</span>
+<span class="n">Aul</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">2.7467</span><span class="p">)</span>
+<span class="n">gu</span>  <span class="o">=</span> <span class="mf">3.</span>
+<span class="n">mu</span>  <span class="o">=</span> <span class="mf">2.77</span><span class="o">*</span><span class="n">const</span><span class="o">.</span><span class="n">debye_to_EsuCm</span>
+<span class="n">HOC</span> <span class="o">=</span> <span class="n">Molecule</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Eu</span><span class="p">,</span> <span class="n">Aul</span><span class="p">,</span> <span class="n">gu</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="s">&#39;HOC+(1-0)&#39;</span><span class="p">)</span>
+<span class="n">molecule_dictionary</span><span class="p">[</span><span class="s">&#39;HOC&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">HOC</span> 
+
+<span class="c"># HCN (1-0)</span>
+<span class="n">nu</span>  <span class="o">=</span> <span class="mf">88.6316022e9</span>  <span class="c"># Hz</span>
+<span class="n">Q</span> <span class="o">=</span> <span class="p">[</span><span class="mf">2.9688</span><span class="p">,</span> <span class="mf">2.6566</span><span class="p">,</span> <span class="mf">2.5122</span><span class="p">,</span> <span class="mf">2.3286</span><span class="p">,</span> <span class="mf">2.0286</span><span class="p">,</span> <span class="mf">1.7317</span><span class="p">,</span> <span class="mf">1.4389</span><span class="p">,</span> <span class="mf">1.1545</span><span class="p">,</span> <span class="mf">0.9109</span><span class="p">,</span>
+     <span class="mf">0.7016</span><span class="p">]</span>
+<span class="n">T</span>   <span class="o">=</span> <span class="p">[</span><span class="mf">500.0</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">,</span> <span class="mf">225.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">,</span> <span class="mf">37.50</span><span class="p">,</span> <span class="mf">18.75</span><span class="p">,</span> <span class="mf">9.375</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">2.725</span><span class="p">]</span>
+<span class="n">Eu</span>  <span class="o">=</span> <span class="mf">2.9564</span>
+<span class="n">Aul</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">2.5140</span><span class="p">)</span>
+<span class="n">gu</span>  <span class="o">=</span> <span class="mf">9.</span>
+<span class="n">mu</span>  <span class="o">=</span> <span class="mf">2.985</span><span class="o">*</span><span class="n">const</span><span class="o">.</span><span class="n">debye_to_EsuCm</span>
+<span class="n">HCN</span> <span class="o">=</span> <span class="n">Molecule</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Eu</span><span class="p">,</span> <span class="n">Aul</span><span class="p">,</span> <span class="n">gu</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="s">&#39;HCN(1-0)&#39;</span><span class="p">)</span>
+<span class="n">molecule_dictionary</span><span class="p">[</span><span class="s">&#39;HCN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">HCN</span> 
+
+<span class="c"># HNC (1-0)</span>
+<span class="n">nu</span>  <span class="o">=</span> <span class="mf">90.6635680e9</span>  <span class="c"># Hz</span>
+<span class="n">Q</span> <span class="o">=</span> <span class="p">[</span><span class="mf">2.5455</span><span class="p">,</span> <span class="mf">2.2255</span><span class="p">,</span> <span class="mf">2.0585</span><span class="p">,</span> <span class="mf">1.8507</span><span class="p">,</span> <span class="mf">1.5419</span><span class="p">,</span> <span class="mf">1.2449</span><span class="p">,</span> <span class="mf">0.9523</span><span class="p">,</span> <span class="mf">0.6683</span><span class="p">,</span> <span class="mf">0.4254</span><span class="p">,</span>
+     <span class="mf">0.2174</span><span class="p">]</span>
+<span class="n">T</span>   <span class="o">=</span> <span class="p">[</span><span class="mf">500.0</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">,</span> <span class="mf">225.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">,</span> <span class="mf">37.50</span><span class="p">,</span> <span class="mf">18.75</span><span class="p">,</span> <span class="mf">9.375</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">2.725</span><span class="p">]</span>
+<span class="n">Eu</span>  <span class="o">=</span> <span class="mf">3.0242</span>
+<span class="n">Aul</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">2.5218</span><span class="p">)</span>
+<span class="n">gu</span>  <span class="o">=</span> <span class="mf">3.</span>
+<span class="n">mu</span>  <span class="o">=</span> <span class="mf">3.05</span><span class="o">*</span><span class="n">const</span><span class="o">.</span><span class="n">debye_to_EsuCm</span>
+<span class="n">HNC</span> <span class="o">=</span> <span class="n">Molecule</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Eu</span><span class="p">,</span> <span class="n">Aul</span><span class="p">,</span> <span class="n">gu</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="s">&#39;HNC(1-0)&#39;</span><span class="p">)</span>
+<span class="n">molecule_dictionary</span><span class="p">[</span><span class="s">&#39;HNC&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">HNC</span> 
+
+<span class="c"># 12CO (1-0)</span>
+<span class="n">nu</span>  <span class="o">=</span>  <span class="mf">115.271e9</span>  <span class="c"># Hz</span>
+<span class="n">Q</span> <span class="o">=</span> <span class="p">[</span><span class="mf">2.2584</span><span class="p">,</span> <span class="mf">2.0369</span><span class="p">,</span> <span class="mf">1.9123</span><span class="p">,</span> <span class="mf">1.7370</span><span class="p">,</span> <span class="mf">1.4386</span><span class="p">,</span> <span class="mf">1.1429</span><span class="p">,</span> <span class="mf">0.8526</span><span class="p">,</span> <span class="mf">0.5733</span><span class="p">,</span> <span class="mf">0.3389</span><span class="p">,</span>
+     <span class="mf">0.1478</span><span class="p">]</span>
+<span class="n">T</span>   <span class="o">=</span> <span class="p">[</span><span class="mf">500.0</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">,</span> <span class="mf">225.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">,</span> <span class="mf">37.50</span><span class="p">,</span> <span class="mf">18.75</span><span class="p">,</span> <span class="mf">9.375</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">2.725</span><span class="p">]</span>
+<span class="n">Eu</span>  <span class="o">=</span> <span class="mf">3.8450</span>
+<span class="n">Aul</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">5.0105</span><span class="p">)</span>
+<span class="n">gu</span>  <span class="o">=</span> <span class="mf">3.</span>
+<span class="n">mu</span>  <span class="o">=</span> <span class="mf">0.11011</span><span class="o">*</span><span class="n">const</span><span class="o">.</span><span class="n">debye_to_EsuCm</span>
+<span class="n">CO1210</span> <span class="o">=</span> <span class="n">Molecule</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Eu</span><span class="p">,</span> <span class="n">Aul</span><span class="p">,</span> <span class="n">gu</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="s">&#39;12(1-0)&#39;</span><span class="p">)</span>
+<span class="n">molecule_dictionary</span><span class="p">[</span><span class="s">&#39;CO1210&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">CO1210</span> 
+
+<span class="c"># 13CO (1-0)</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="mf">110.2013543e9</span>   <span class="c"># Hz</span>
+<span class="n">Q</span> <span class="o">=</span> <span class="p">[</span><span class="mf">2.5789</span><span class="p">,</span> <span class="mf">2.3574</span><span class="p">,</span> <span class="mf">2.2328</span><span class="p">,</span> <span class="mf">2.0575</span><span class="p">,</span> <span class="mf">1.7589</span><span class="p">,</span> <span class="mf">1.4630</span><span class="p">,</span> <span class="mf">1.1722</span><span class="p">,</span> <span class="mf">0.8919</span><span class="p">,</span> <span class="mf">0.6558</span><span class="p">,</span>
+     <span class="mf">0.4611</span><span class="p">]</span>
+<span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="mf">500.0</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">,</span> <span class="mf">225.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">,</span> <span class="mf">37.50</span><span class="p">,</span> <span class="mf">18.75</span><span class="p">,</span> <span class="mf">9.375</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">2.725</span><span class="p">]</span>
+<span class="n">Eu</span> <span class="o">=</span> <span class="mf">3.6759</span>
+<span class="n">Aul</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">5.0662</span><span class="p">)</span>
+<span class="n">gu</span> <span class="o">=</span> <span class="mi">6</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="mf">0.11046</span><span class="o">*</span><span class="n">const</span><span class="o">.</span><span class="n">debye_to_EsuCm</span>
+<span class="n">CO1310</span> <span class="o">=</span> <span class="n">Molecule</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Eu</span><span class="p">,</span> <span class="n">Aul</span><span class="p">,</span> <span class="n">gu</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="s">&#39;13CO(1-0)&#39;</span><span class="p">)</span>
+<span class="n">molecule_dictionary</span><span class="p">[</span><span class="s">&#39;CO1310&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">CO1310</span>
+<span class="n">molecule_dictionary</span><span class="p">[</span><span class="s">&#39;13CO&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">CO1310</span>
+
+<span class="c"># 12CO (2-1)</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="mf">230.537990e9</span>   <span class="c"># Hz</span>
+<span class="n">Q</span> <span class="o">=</span> <span class="p">[</span><span class="mf">2.2584</span><span class="p">,</span> <span class="mf">2.0369</span><span class="p">,</span> <span class="mf">1.9123</span><span class="p">,</span> <span class="mf">1.7370</span><span class="p">,</span> <span class="mf">1.4386</span><span class="p">,</span> <span class="mf">1.1429</span><span class="p">,</span> <span class="mf">0.8526</span><span class="p">,</span> <span class="mf">0.5733</span><span class="p">,</span> <span class="mf">0.3389</span><span class="p">,</span>
+     <span class="mf">0.1478</span><span class="p">]</span>
+<span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="mf">500.0</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">,</span> <span class="mf">225.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">,</span> <span class="mf">37.50</span><span class="p">,</span> <span class="mf">18.75</span><span class="p">,</span> <span class="mf">9.375</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">2.725</span><span class="p">]</span>
+<span class="n">Eu</span> <span class="o">=</span> <span class="mf">11.5350</span>
+<span class="n">Aul</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">4.1197</span><span class="p">)</span>
+<span class="n">gu</span> <span class="o">=</span> <span class="mf">5.</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="mf">0.11011</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">debye_to_EsuCm</span> 
+<span class="n">CO1221</span> <span class="o">=</span> <span class="n">Molecule</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Eu</span><span class="p">,</span> <span class="n">Aul</span><span class="p">,</span> <span class="n">gu</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="s">&#39;12CO(2-1)&#39;</span><span class="p">)</span>
+<span class="n">molecule_dictionary</span><span class="p">[</span><span class="s">&#39;CO1221&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">CO1221</span> 
+<span class="n">molecule_dictionary</span><span class="p">[</span><span class="s">&#39;12CO&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">CO1221</span> 
+
+<span class="c"># CN </span>
+<span class="n">nu</span> <span class="o">=</span> <span class="mf">112.1016560e9</span>   <span class="c"># Hz</span>
+<span class="n">Q</span> <span class="o">=</span> <span class="p">[</span><span class="mf">3.0450</span><span class="p">,</span> <span class="mf">2.8222</span><span class="p">,</span> <span class="mf">2.6976</span><span class="p">,</span> <span class="mf">2.5223</span><span class="p">,</span> <span class="mf">2.2238</span><span class="p">,</span> <span class="mf">1.9280</span><span class="p">,</span> <span class="mf">1.6376</span><span class="p">,</span> <span class="mf">1.3579</span><span class="p">,</span> <span class="mf">1.1228</span><span class="p">,</span>
+     <span class="mf">0.9303</span><span class="p">]</span>
+<span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="mf">500.0</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">,</span> <span class="mf">225.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">,</span> <span class="mf">37.50</span><span class="p">,</span> <span class="mf">18.75</span><span class="p">,</span> <span class="mf">9.375</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">2.725</span><span class="p">]</span>
+<span class="n">Eu</span> <span class="o">=</span> <span class="mf">2042.4222</span>
+<span class="n">Aul</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">8.0612</span><span class="p">)</span>
+<span class="n">gu</span> <span class="o">=</span> <span class="mf">2.</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="mf">1.45</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">debye_to_EsuCm</span> 
+<span class="n">CN</span> <span class="o">=</span> <span class="n">Molecule</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Eu</span><span class="p">,</span> <span class="n">Aul</span><span class="p">,</span> <span class="n">gu</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="s">&#39;12CO(2-1)&#39;</span><span class="p">)</span>
+<span class="n">molecule_dictionary</span><span class="p">[</span><span class="s">&#39;CN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">CN</span>
+
+<span class="c"># CCH </span>
+<span class="c"># CCH has six hyperfine transitions, the values given here correspond to the</span>
+<span class="c"># strongest transition.</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="mf">87.3168980e9</span>  <span class="c"># Hz</span>
+<span class="n">Q</span> <span class="o">=</span> <span class="p">[</span><span class="mf">3.9556</span><span class="p">,</span> <span class="mf">3.3192</span><span class="p">,</span> <span class="mf">2.9114</span><span class="p">,</span> <span class="mf">2.7164</span><span class="p">,</span> <span class="mf">2.4836</span><span class="p">,</span> <span class="mf">2.1605</span><span class="p">,</span> <span class="mf">1.8628</span><span class="p">,</span> <span class="mf">1.5699</span><span class="p">,</span> <span class="mf">1.2852</span><span class="p">,</span>
+     <span class="mf">1.0411</span><span class="p">,</span> <span class="mf">0.8308</span><span class="p">]</span>
+<span class="n">T</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1000.0</span><span class="p">,</span> <span class="mf">500.0</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">,</span> <span class="mf">225.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">,</span> <span class="mf">37.50</span><span class="p">,</span> <span class="mf">18.75</span><span class="p">,</span> <span class="mf">9.375</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">2.725</span><span class="p">]</span>
+<span class="n">Eu</span> <span class="o">=</span> <span class="mf">2.914</span>
+<span class="n">Aul</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">5.2060</span><span class="p">)</span>
+<span class="n">gu</span> <span class="o">=</span> <span class="mf">5.</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="mf">0.77</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">debye_to_EsuCm</span> 
+<span class="n">CCH</span> <span class="o">=</span> <span class="n">Molecule</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">Eu</span><span class="p">,</span> <span class="n">Aul</span><span class="p">,</span> <span class="n">gu</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="s">&#39;CCH(1-0)&#39;</span><span class="p">)</span>
+<span class="n">molecule_dictionary</span><span class="p">[</span><span class="s">&#39;CCH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">CCH</span>  
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Christof Buchbender.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

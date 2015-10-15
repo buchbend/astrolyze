@@ -1,0 +1,1195 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>astrolyze.maps.fits &mdash; astrolyze 0.0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="astrolyze 0.0.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo1.jpg" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for astrolyze.maps.fits</h1><div class="highlight"><pre>
+<span class="c"># Copyright (C) 2009-2012, Christof Buchbender</span>
+<span class="c"># BSD License (License.txt)</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">pyfits</span>
+<span class="kn">import</span> <span class="nn">pywcs</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">from</span> <span class="nn">pysqlite2</span> <span class="kn">import</span> <span class="n">dbapi2</span> <span class="k">as</span> <span class="n">sqlite</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">main</span>
+<span class="kn">import</span> <span class="nn">gildas</span>
+<span class="kn">import</span> <span class="nn">miriad</span>
+
+<span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
+<span class="kn">from</span> <span class="nn">astrolyze.functions</span> <span class="kn">import</span> <span class="n">astro_functions</span> <span class="k">as</span> <span class="n">astFunc</span>
+<span class="kn">from</span> <span class="nn">astrolyze.functions</span> <span class="kn">import</span> <span class="n">units</span>
+
+
+<div class="viewcode-block" id="FitsMap"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap">[docs]</a><span class="k">class</span> <span class="nc">FitsMap</span><span class="p">(</span><span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Fits Map manipulation making extensive use of the</span>
+<span class="sd">    pyfits package.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&#39;Exiting: not the right format&#39;</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__get_data</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__get_header</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wcs</span> <span class="o">=</span> <span class="n">pywcs</span><span class="o">.</span><span class="n">WCS</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headerKeywords</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headerKeywords</span><span class="p">[</span><span class="s">&#39;source&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;OBJECT&#39;</span><span class="p">,</span> <span class="s">&#39;SOURCE&#39;</span><span class="p">,</span> <span class="s">&#39;TARNAME&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headerKeywords</span><span class="p">[</span><span class="s">&#39;telescope&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;TELESCOP&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headerKeywords</span><span class="p">[</span><span class="s">&#39;species&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;LINE&#39;</span><span class="p">,</span> <span class="s">&#39;FREQUENCY&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headerKeywords</span><span class="p">[</span><span class="s">&#39;fluxUnit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;BUNIT&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headerKeywords</span><span class="p">[</span><span class="s">&#39;resolution&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;BMAJ&#39;</span><span class="p">,</span> <span class="s">&#39;BMIN&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_pixel_size</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Creates a self.data variable containing an array with the maps data.</span>
+<span class="sd">        This function is automatically executed every time a Fits map is opened</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">__get_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Creates a self.header variable containing a dictionary with the header</span>
+<span class="sd">        information of the map. This function is automatically executed every</span>
+<span class="sd">        time a Fits map is opened.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span>
+
+<div class="viewcode-block" id="FitsMap.update_file"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.update_file">[docs]</a>    <span class="k">def</span> <span class="nf">update_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Writing changes to the self.data and/or self.header to the current</span>
+<span class="sd">        file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        backup : True or False</span>
+<span class="sd">            If True a copy of the original file is created having the extension</span>
+<span class="sd">            ``&quot;_old&quot;`` after the file endind, i.e. some_name.fits -&gt; some_name.</span>
+<span class="sd">            fits_old.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        --------</span>
+<span class="sd">        FitsMap : Instance</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        If all variables that define the map name () are unchanged the current</span>
+<span class="sd">        file is overwritten else</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">map_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">backup</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_old&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">map_name</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">pyfits</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">map_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&#39;Problem with the header or data format. -&gt; Exit!&#39;</span>
+            <span class="k">raise</span> <span class="ne">SystemExit</span>
+        <span class="k">return</span> <span class="n">FitsMap</span><span class="p">(</span><span class="n">map_name</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">updateHeader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_header</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">changemap_name</span><span class="p">()</span>
+        <span class="c"># Print source</span>
+        <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;source&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">)</span>
+                <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">updateCheck</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;source&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+                               <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">))</span>
+        <span class="c"># Print telescope</span>
+        <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;telescope&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span><span class="p">)</span>
+                <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">updateCheck</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;telescope&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+                               <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">telescope</span><span class="p">))</span>
+        <span class="c"># Print species</span>
+        <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;species&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">)</span>
+                <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">updateCheck</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;species&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+                               <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">))</span>
+        <span class="c"># Update fluxUnit</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;fluxUnit&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="p">)</span>
+                <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">updateCheck</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;fluxUnit&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+                               <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="p">))</span>
+        <span class="c"># Update resolution</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;resolution&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span>
+                                   <span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">))</span>
+                <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">updateCheck</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;resolution&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+                               <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="c"># update header information about the minimum and maximum of the map</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;DATAMIN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">-</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;DATAMIN&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">-</span> <span class="mf">0.1</span> <span class="o">*</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;DATAMAX&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;DATAMAX&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_old&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">))</span>
+        <span class="n">pyfits</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FitsMap.get_pixel_size"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.get_pixel_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_pixel_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot; Calculates the Area of a pixel in m^2 and steradians if distance</span>
+<span class="sd">        is given. If not only  steradians are calculated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_pixSize</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT1&#39;</span><span class="p">])</span> <span class="o">*</span>
+                                     <span class="n">const</span><span class="o">.</span><span class="n">d2r</span><span class="p">),</span>
+                               <span class="nb">float</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT2&#39;</span><span class="p">])</span>
+                                     <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">d2r</span><span class="p">)])</span>
+        <span class="n">_pixSizeSterad</span> <span class="o">=</span> <span class="n">_pixSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">_pixSize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixelSizeSterad</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">_pixSizeSterad</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">distance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">_pixSize</span> <span class="o">=</span> <span class="n">_pixSize</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">distance</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">pcInM</span>
+            <span class="n">_pixSize</span> <span class="o">=</span> <span class="n">_pixSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">_pixSize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixelSizeM2</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">_pixSize</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">__smooth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">newRes</span><span class="p">,</span> <span class="n">oldRes</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="s">&#39;0.0&#39;</span><span class="p">):</span>
+        <span class="c"># TODO: In Development. It&#39;s not sure if it ever will be finished.</span>
+        <span class="c"># No need to reinvent the wheel!</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        ..  warning::</span>
+
+<span class="sd">            Still in Development. Maybe Never finished.</span>
+<span class="sd">            **Do Not Use**</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">oldRes</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">oldMajor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">oldMinor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">pa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">oldRes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">float</span><span class="p">(</span><span class="n">newRes</span><span class="p">):</span>
+            <span class="k">print</span> <span class="s">&#39;Error old Resolution bigger than new one!&#39;</span>
+        <span class="c"># calculate the fwhm for the convolving gaussian</span>
+        <span class="n">newRes</span> <span class="o">=</span> <span class="n">newRes</span> <span class="o">*</span> <span class="mf">4.848e-6</span>
+        <span class="n">oldRes</span> <span class="o">=</span> <span class="n">oldRes</span> <span class="o">*</span> <span class="mf">4.848e-6</span>
+        <span class="n">fwhmMajor</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">newRes</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">oldMajor</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">fwhmMinor</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">newRes</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">oldMinor</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">resolution</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">newRes</span><span class="p">))))</span>
+        <span class="c"># Have to check for Scaling!!!!!!</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">gaussian_filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">fwhm</span><span class="p">)</span>
+        <span class="c"># set the map_name and the resolution to the new values&lt;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">resolution</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">newRes</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span> <span class="o">=</span> <span class="n">newRes</span>
+
+    <span class="k">def</span> <span class="nf">_cut_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1y1</span><span class="p">,</span> <span class="n">x2y2</span><span class="p">,</span> <span class="n">pix_or_coord</span><span class="o">=</span><span class="s">&#39;coord&#39;</span><span class="p">):</span>
+        <span class="c"># TODO: Check if still valid!!!!</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Cutting an rectangle out of a map. Giving the corners in</span>
+<span class="sd">        coordinates or in pixels.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x1y1 : list</span>
+<span class="sd">            The upper right corner of the rectangle to cut out.</span>
+<span class="sd">            Either in:</span>
+<span class="sd">                * pixel coordinated [x1, y1]</span>
+<span class="sd">            Or:</span>
+<span class="sd">                * equatorial coordinates [&#39;RA&#39;,&#39;DEC&#39;]</span>
+<span class="sd">        x2y2 : list</span>
+<span class="sd">            The lower left corner in the same format as x1y1.</span>
+<span class="sd">        pix_or_coord : string</span>
+<span class="sd">            Either ``&quot;pix&quot;`` or ``&quot;coord&quot;`` choosing what **x1y1**</span>
+<span class="sd">            and **x2y2** represents.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This procedure cuts only rectangles paralell to the sides of the map.</span>
+
+<span class="sd">        ..  warning::</span>
+<span class="sd">            Old function. Functionality not guaranteed. maybe not really</span>
+<span class="sd">            useful. Test or remove.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span>  <span class="n">pix_or_coord</span> <span class="o">==</span> <span class="s">&#39;coord&#39;</span><span class="p">:</span>
+            <span class="n">x1y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">x1y1</span><span class="p">)</span>
+            <span class="k">print</span> <span class="s">&#39;x1y1&#39;</span><span class="p">,</span> <span class="n">x1y1</span>
+            <span class="n">x2y2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">x2y2</span><span class="p">)</span>
+            <span class="k">print</span> <span class="s">&#39;x2y2&#39;</span><span class="p">,</span> <span class="n">x2y2</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">x1y1</span> <span class="ow">or</span> <span class="n">x2y2</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;Error&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s">&#39;Coordinates are not correct&#39;</span>
+        <span class="k">if</span> <span class="n">pix_or_coord</span> <span class="o">==</span> <span class="s">&#39;pix&#39;</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">print</span> <span class="n">x1y1</span><span class="p">,</span> <span class="n">x2y2</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x1y1</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">x2</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x2y2</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">y1</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x1y1</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">y2</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x2y2</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="c"># needed if to check the dimension of the data array</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">print</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">y2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cutData</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">x1</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span> <span class="n">y1</span><span class="p">:</span><span class="n">y2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">NewCRVal1</span> <span class="o">=</span> <span class="p">((</span><span class="n">x1</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRPIX1&#39;</span><span class="p">]))</span>
+                          <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT1&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRVAL1&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRVAL1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">NewCRVal1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">NewCRVal2</span> <span class="o">=</span> <span class="p">((</span><span class="n">y1</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRPIX2&#39;</span><span class="p">]))</span>
+                          <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT2&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRVAL2&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRVAL2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">NewCRVal2</span>
+        <span class="k">print</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">x2</span><span class="p">)))),</span>
+               <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">y1</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">y2</span><span class="p">)))))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;NAXIS1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x1</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">x2</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;NAXIS2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">y1</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">y2</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRPIX2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRPIX2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutData</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;cut&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">radial</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">centerCoord</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c"># TODO: OLD code. Check or remove.</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Extracts a linear cut trough a map between two coordinates.</span>
+
+<span class="sd">        Distance in kpc.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        ..  warning:</span>
+
+<span class="sd">            Old code. Test and document or remove.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">centerCoord</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">centx</span><span class="p">,</span> <span class="n">centy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">centerCoord</span><span class="p">)</span>
+            <span class="k">print</span> <span class="n">centy</span><span class="p">,</span> <span class="n">centx</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[[],</span> <span class="p">[]]</span>
+        <span class="c"># in arcsec</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT1&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixSize2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT2&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x1</span> <span class="o">!=</span> <span class="n">x2</span> <span class="ow">and</span> <span class="n">y1</span> <span class="o">!=</span> <span class="n">y2</span><span class="p">:</span>
+            <span class="k">print</span> <span class="p">(</span><span class="s">&#39;This version of strip only supports linear cuts.&#39;</span>
+                   <span class="s">&#39;Please rotate your map.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x1</span> <span class="o">==</span> <span class="n">x2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">y1</span> <span class="o">&gt;</span> <span class="n">y2</span><span class="p">:</span>
+                <span class="n">loop</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">y2</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">y1</span> <span class="o">&lt;</span> <span class="n">y2</span><span class="p">:</span>
+                <span class="n">loop</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">y1</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">loop</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">x1</span><span class="p">]]</span>
+                <span class="k">if</span> <span class="n">radial</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">i</span> <span class="o">-</span> <span class="n">centy</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixSize2</span> <span class="o">/</span> <span class="mi">60</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">y1</span> <span class="o">==</span> <span class="n">y2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">x1</span> <span class="o">&gt;</span> <span class="n">x2</span><span class="p">:</span>
+                <span class="n">loop</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">x1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x1</span> <span class="o">&lt;</span> <span class="n">x2</span><span class="p">:</span>
+                <span class="n">loop</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">loop</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">y1</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
+                <span class="k">if</span> <span class="n">radial</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+                    <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">i</span> <span class="o">-</span> <span class="n">centx</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span> <span class="o">/</span> <span class="mi">60</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">values</span>
+
+<div class="viewcode-block" id="FitsMap.read_flux"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.read_flux">[docs]</a>    <span class="k">def</span> <span class="nf">read_flux</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Returns the value of the pixel that corresponds to the</span>
+<span class="sd">        given positions of RA, DEC (J2000) in units of equatorial</span>
+<span class="sd">        coordinates or degrees.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        position : list</span>
+<span class="sd">            The position in RA,DEC where the aperture is to be applied.</span>
+<span class="sd">            The Format has to be either:</span>
+
+<span class="sd">                * [&#39;RA&#39;,&#39;DEC&#39;] with strings representing equatorial</span>
+<span class="sd">                  coordinates, e.g. [&#39;01:34:32.8&#39;, &#39;+30:47:00.6&#39;].</span>
+<span class="sd">            or:</span>
+<span class="sd">                * [RA, DEC] where RA and DEC being the coordinates in Grad.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        flux : float</span>
+<span class="sd">            The flux at the given position.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        sky2pix, astFunc.equatorial_to_degrees, wcs.wcs_sky2pix</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="n">x</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="FitsMap.read_aperture"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.read_aperture">[docs]</a>    <span class="k">def</span> <span class="nf">read_aperture</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">apertureSize</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">backgroundSize</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                      <span class="n">output</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">annotation</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">newAnnotation</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="c"># TODO: needs better scheme for the header keywords. Migth not work</span>
+        <span class="c"># with all maps.</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Extract the sum and mean flux inside an aperture of a given size</span>
+<span class="sd">        and at a given position..</span>
+
+<span class="sd">        This function can be used to read the flux in the area of a circular</span>
+<span class="sd">        aperture, as well as to correct for the background flux.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        position : list</span>
+<span class="sd">            The position in RA,DEC where the aperture is to be applied.</span>
+<span class="sd">            The Format has to be either:</span>
+
+<span class="sd">                * [&#39;RA&#39;,&#39;DEC&#39;] with strings representing equatorial</span>
+<span class="sd">                  coordinates, e.g. [&#39;01:34:32.8&#39;, &#39;+30:47:00.6&#39;].</span>
+<span class="sd">            or:</span>
+<span class="sd">                * [RA, DEC] where RA and DEC being the coordinates in Grad.</span>
+
+<span class="sd">        apertureSize : float [arcsec]</span>
+<span class="sd">            The diameter of the aperture to be applied.</span>
+
+<span class="sd">        backgroundSize : float [arcsec]</span>
+<span class="sd">            The Size of the Anulli in which the background is to be</span>
+<span class="sd">            estimated. The number to be given here correspond to the diameter</span>
+<span class="sd">            of the circle in [arcsec ] descibing the outer border of the</span>
+<span class="sd">            annuli, measured from the position given in position. Thus, the</span>
+<span class="sd">            background is measurd in the ring described by apertureSize and</span>
+<span class="sd">            backgroundSize. Default is 0 and thus **no background substaction**</span>
+<span class="sd">            is applied.</span>
+
+<span class="sd">        output : True or False</span>
+<span class="sd">            If True the function reports the calculated values during</span>
+<span class="sd">            execution.</span>
+
+<span class="sd">        annotion : logical</span>
+<span class="sd">            If True a kvis annotation file ``&quot;apertures.ann&quot;`` containing the</span>
+<span class="sd">            aperture used to integrate the flux is created. Default is False,</span>
+<span class="sd">            i.e. not to create the aperture.</span>
+
+<span class="sd">        newAnnotation : logical</span>
+<span class="sd">            If True ``&quot;apertures.ann&quot;`` is overwritten. If False an old</span>
+<span class="sd">            ``&quot;apertures.ann&quot;`` is used to append the new apertures. If it not</span>
+<span class="sd">            exists a new one is created. The latter is the default.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        List :  [Sum, Mean, Number of pixels]</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        The pixel sizes have to be quadratic for the algorithm to work. It</span>
+<span class="sd">        measures a circle by counting the pixels from the central pixel</span>
+<span class="sd">        corresponding to the given coordinate.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Calculate the x,y Pixel coordinate of the position.</span>
+        <span class="n">xCenter</span><span class="p">,</span> <span class="n">yCenter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+        <span class="c"># Read the pixel Size (normaly in Grad FITS-Standard)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT1&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixSize2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT2&#39;</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="c"># sometimes the header keywords are different.</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;XPIXSIZE&#39;</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pixSize2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;YPIXSIZE&#39;</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pixSize2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixSize2</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">print</span> <span class="s">&#39;No Header keyword for the pixsize found&#39;</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+         <span class="c"># Check if the pixel size is quadratic, if not the function does not</span>
+         <span class="c"># work correctly (yet)</span>
+        <span class="k">if</span> <span class="p">((((</span><span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixSize2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">&lt;</span>
+             <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.01</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">output</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+                <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Pixel Size X: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">))</span>
+                       <span class="o">+</span> <span class="s">&#39; arcsec&#39;</span><span class="p">)</span>
+                <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Pixel Size Y: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixSize2</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">))</span>
+                       <span class="o">+</span> <span class="s">&#39; arcsec&#39;</span><span class="p">)</span>
+                <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Pixel Size quadratic to 1%, Go on with &#39;</span>
+                       <span class="s">&#39;calculation of Apertures&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">output</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+                <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixSize2</span>
+                <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Pixel Size *NOT* quadratic: Exit the program, &#39;</span>
+                       <span class="s">&#39;please regrid!&#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+        <span class="c"># Convert the apertureSizes to Grad f</span>
+        <span class="n">apertureSizeInGrad</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">apertureSize</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="c"># Calculate how many pixels are needed to cover the radius of the</span>
+        <span class="c"># aperture</span>
+        <span class="n">apertureSteps</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">apertureSizeInGrad</span> <span class="o">/</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="c"># same for the backround annuli</span>
+        <span class="k">if</span> <span class="n">backgroundSize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">backgroundSizeInGrad</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">backgroundSize</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="n">backgroundSteps</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">backgroundSizeInGrad</span> <span class="o">/</span>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">x_max</span><span class="p">,</span> <span class="n">x_min</span> <span class="o">=</span> <span class="n">xCenter</span> <span class="o">+</span> <span class="n">backgroundSteps</span><span class="p">,</span> <span class="n">xCenter</span> <span class="o">-</span> <span class="n">backgroundSteps</span>
+            <span class="n">y_max</span><span class="p">,</span> <span class="n">y_min</span> <span class="o">=</span> <span class="n">yCenter</span> <span class="o">+</span> <span class="n">backgroundSteps</span><span class="p">,</span> <span class="n">yCenter</span> <span class="o">-</span> <span class="n">backgroundSteps</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_max</span><span class="p">,</span> <span class="n">x_min</span> <span class="o">=</span> <span class="n">xCenter</span> <span class="o">+</span> <span class="n">apertureSteps</span><span class="p">,</span> <span class="n">xCenter</span> <span class="o">-</span> <span class="n">apertureSteps</span>
+            <span class="n">y_max</span><span class="p">,</span> <span class="n">y_min</span> <span class="o">=</span> <span class="n">yCenter</span> <span class="o">+</span> <span class="n">apertureSteps</span><span class="p">,</span> <span class="n">yCenter</span> <span class="o">-</span> <span class="n">apertureSteps</span>
+        <span class="c"># calculate the x and y range in Pixel coordinates that are needed at</span>
+        <span class="c"># most for the calculation of the aperture and background</span>
+        <span class="c"># Now: Initialize variables</span>
+        <span class="nb">sum</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c"># will store the sum of all Pixels in the aperture</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="mi">0</span>   <span class="c"># counts the number of pixels in the aperture to be able to</span>
+                <span class="c"># calculate the mean</span>
+        <span class="n">sumBackgnd</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c"># the sum of all pixels in the background</span>
+        <span class="n">NBackgnd</span> <span class="o">=</span> <span class="mi">0</span>   <span class="c"># number of pixels in the background</span>
+        <span class="c"># calculate the background</span>
+        <span class="k">if</span> <span class="n">backgroundSize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x_min</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">x_max</span><span class="p">)):</span>
+                <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">y_min</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">y_max</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="p">((</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">xCenter</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span>
+                                              <span class="p">(</span><span class="n">yCenter</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">&lt;</span>
+                         <span class="n">backgroundSteps</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">xCenter</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span>
+                                                                  <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span>
+                                                                  <span class="p">(</span><span class="n">yCenter</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span>
+                                                                  <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+                         <span class="o">&gt;</span> <span class="n">apertureSteps</span><span class="p">)):</span>
+                        <span class="n">sumBackgnd</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="n">x</span><span class="p">]</span>
+                        <span class="n">NBackgnd</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">backgndMean</span> <span class="o">=</span> <span class="n">sumBackgnd</span> <span class="o">/</span> <span class="n">NBackgnd</span>
+            <span class="k">print</span> <span class="n">backgndMean</span>
+        <span class="c"># caclulate the sum in the aperture</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x_min</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">x_max</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">y_min</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">y_max</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">xCenter</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">yCenter</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span>
+                                         <span class="mi">2</span><span class="p">))</span> <span class="o">&lt;</span> <span class="n">apertureSteps</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">backgroundSize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="nb">sum</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="n">x</span><span class="p">]</span> <span class="o">-</span> <span class="n">backgndMean</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="nb">sum</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="n">x</span><span class="p">]</span>
+                    <span class="n">N</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">backgroundSize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="p">(</span><span class="nb">sum</span> <span class="o">/</span> <span class="n">N</span><span class="p">)</span> <span class="o">-</span> <span class="n">backgndMean</span>
+            <span class="n">sumcorrected</span> <span class="o">=</span> <span class="nb">sum</span> <span class="o">-</span> <span class="p">(</span><span class="n">N</span> <span class="o">*</span> <span class="n">backgndMean</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="nb">sum</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">N</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">backgroundSize</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="p">(</span><span class="nb">sum</span> <span class="o">/</span> <span class="n">N</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="nb">sum</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">N</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">output</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Sum:&#39;</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">&#39;Mean:&#39;</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                   <span class="s">&#39;Number of Pixel:&#39;</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">newAnnotation</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
+            <span class="n">fileout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;apertures.ann&#39;</span><span class="p">,</span> <span class="s">&#39;a&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">newAnnotation</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="n">fileout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;apertures.ann&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">annotation</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="n">position</span> <span class="o">=</span> <span class="n">astFunc</span><span class="o">.</span><span class="n">equatorial_to_degrees</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+            <span class="n">apertureString</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;CROSS &#39;</span> <span class="o">+</span>
+                              <span class="nb">str</span><span class="p">(</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                              <span class="nb">str</span><span class="p">(</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39; 0.0008 0.001 </span><span class="se">\n</span><span class="s">&#39;</span>
+                              <span class="s">&#39;circle  &#39;</span> <span class="o">+</span>
+                              <span class="nb">str</span><span class="p">(</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                              <span class="nb">str</span><span class="p">(</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                              <span class="nb">str</span><span class="p">(</span><span class="n">apertureSize</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; </span><span class="se">\n</span><span class="s">&#39;</span>
+                              <span class="s">&#39;text &#39;</span> <span class="o">+</span>
+                              <span class="nb">str</span><span class="p">(</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                              <span class="nb">str</span><span class="p">(</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="n">fileout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">apertureString</span><span class="p">)</span>
+            <span class="n">fileout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span>
+</div>
+<div class="viewcode-block" id="FitsMap.sky2pix"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.sky2pix">[docs]</a>    <span class="k">def</span> <span class="nf">sky2pix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the Pixel corresponding to a given coordinate.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------</span>
+<span class="sd">        coordinate : list</span>
+<span class="sd">            Either [&#39;RA&#39;,&#39;DEC&#39;], e.g. [&#39;1:34:7.00&#39;, &#39;+30:47:52.00&#39;] in</span>
+<span class="sd">            equatorial coordinates or [RA, DEC] in GRAD.</span>
+<span class="sd">        origin : int</span>
+<span class="sd">           ``0`` or ``1``; this steers how the first pixel is counted</span>
+<span class="sd">           ``0`` is for usage with python as it starts to count from zero.</span>
+<span class="sd">           ``1`` is the fits standart.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        --------</span>
+<span class="sd">        pixel : List</span>
+<span class="sd">            [x, y]; the pixel coordinates of the map.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Equatorial_to_degrees is only possible to execute if coordinate is in</span>
+        <span class="c"># the correct form for RA DEC.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">coordinate</span> <span class="o">=</span> <span class="n">astFunc</span><span class="o">.</span><span class="n">equatorial_to_degrees</span><span class="p">(</span><span class="n">coordinate</span><span class="p">)</span>
+            <span class="k">print</span> <span class="n">coordinate</span>
+            <span class="k">print</span> <span class="p">[[</span><span class="n">coordinate</span><span class="p">[</span><span class="mi">0</span><span class="p">]],[</span><span class="n">coordinate</span><span class="p">[</span><span class="mi">1</span><span class="p">]]]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="n">coordinate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">coordinate</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">coordinate</span><span class="p">[</span><span class="mi">1</span><span class="p">]]],</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)</span>
+        <span class="n">pixel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">wcs_sky2pix</span><span class="p">(</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">origin</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c"># The pixels are floats. To get integers we get the floor value</span>
+        <span class="c"># of the floats</span>
+        <span class="n">pixel</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">pixel</span><span class="p">[</span><span class="mi">0</span><span class="p">]))),</span>
+                 <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">pixel</span><span class="p">[</span><span class="mi">1</span><span class="p">])))]</span>
+        <span class="k">return</span> <span class="n">pixel</span>
+</div>
+<div class="viewcode-block" id="FitsMap.pix2sky"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.pix2sky">[docs]</a>    <span class="k">def</span> <span class="nf">pix2sky</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixel</span><span class="p">,</span> <span class="n">degrees_or_equatorial</span><span class="o">=</span><span class="s">&#39;degrees&#39;</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the Coordinates of a given Pixel.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------</span>
+<span class="sd">        pixel : list</span>
+<span class="sd">            Pixel of the map; [x, y].</span>
+<span class="sd">        degrees_or_equatorial : string</span>
+<span class="sd">            Either ``&quot;degrees&quot;`` or ``&quot;equatorial&quot;``. Choosing the</span>
+<span class="sd">            Format of the coordintates to be returnes.</span>
+<span class="sd">            Defaults to ``&quot;degrees&quot;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        --------</span>
+<span class="sd">        coordinate : list</span>
+<span class="sd">            The coordinates corresponding to pixel. Either in Degrees or in</span>
+<span class="sd">            Equatorial coordinates, depending on the parameter</span>
+<span class="sd">            *degrees_or_equatorial*.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># equatorial_to_degrees is only possible to execute if coordinate</span>
+        <span class="c"># is in RA DEC</span>
+        <span class="n">coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">wcs_pix2sky</span><span class="p">([[</span><span class="nb">float</span><span class="p">(</span><span class="n">pixel</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                                            <span class="nb">float</span><span class="p">(</span><span class="n">pixel</span><span class="p">[</span><span class="mi">1</span><span class="p">])]],</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">degrees_or_equatorial</span> <span class="o">==</span> <span class="s">&#39;equatorial&#39;</span><span class="p">:</span>
+            <span class="n">coordinate</span> <span class="o">=</span> <span class="n">astFunc</span><span class="o">.</span><span class="n">degrees_to_equatorial</span><span class="p">(</span><span class="n">coordinate</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">coordinate</span>
+</div>
+<div class="viewcode-block" id="FitsMap.gauss_factor"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.gauss_factor">[docs]</a>    <span class="k">def</span> <span class="nf">gauss_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beamConv</span><span class="p">,</span> <span class="n">beamOrig</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dx1</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dy1</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Caluclates the scaling factor to be applied after convolving</span>
+<span class="sd">        a map in Jy/beam with a gaussian to get fluxes in Jy/beam again.</span>
+
+<span class="sd">        This function is a copy of the FORTRAN gaufac function from the Miriad</span>
+<span class="sd">        package, which determine the Gaussian parameters resulting from</span>
+<span class="sd">        convolving two gaussians. This function yields the same result as</span>
+<span class="sd">        the MIRIAD gaufac function.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        beamConv : list</span>
+<span class="sd">            A list of the [major axis, minor axis, position_angle]</span>
+<span class="sd">            of the gaussion used for convolution.</span>
+<span class="sd">        beamOrig :</span>
+<span class="sd">            Same format as beamConv but giving the parameters of the original</span>
+<span class="sd">            beam of the map. As Default the self.resolution list is used.</span>
+<span class="sd">        dx1, dy1 : floats</span>
+<span class="sd">            Being the pixel size in both dimensions of the map.</span>
+<span class="sd">            By default the ``CDELT1`` and ``CDELT2`` keywords from the</span>
+<span class="sd">            fits header are used.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fac :</span>
+<span class="sd">            Factor for the output Units.</span>
+<span class="sd">        amp :</span>
+<span class="sd">            Amplitude of resultant gaussian.</span>
+<span class="sd">        bmaj, bmin :</span>
+<span class="sd">            Major and minor axes of resultant gaussian.</span>
+<span class="sd">        bpa :</span>
+<span class="sd">            Position angle of the resulting gaussian.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c">#include &#39;mirconst.h&#39;</span>
+        <span class="c"># Define cosine and Sinus of the position Angles of the</span>
+        <span class="c"># Gaussians</span>
+        <span class="n">bmaj2</span><span class="p">,</span> <span class="n">bmin2</span><span class="p">,</span> <span class="n">bpa2</span> <span class="o">=</span> <span class="n">beamConv</span>
+        <span class="n">bmaj2</span><span class="p">,</span> <span class="n">bmin2</span><span class="p">,</span> <span class="n">bpa2</span> <span class="o">=</span> <span class="p">(</span><span class="n">bmaj2</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">arcsecInGrad</span><span class="p">,</span> <span class="n">bmin2</span> <span class="o">*</span>
+                              <span class="n">const</span><span class="o">.</span><span class="n">arcsecInGrad</span><span class="p">,</span> <span class="n">bpa2</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">arcsecInGrad</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">beamOrig</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">bmaj1</span><span class="p">,</span> <span class="n">bmin1</span><span class="p">,</span> <span class="n">bpa1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span>
+            <span class="n">bmaj1</span><span class="p">,</span> <span class="n">bmin1</span><span class="p">,</span> <span class="n">bpa1</span> <span class="o">=</span> <span class="p">(</span><span class="n">bmaj1</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">arcsecInGrad</span><span class="p">,</span>
+                                  <span class="n">bmin1</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">arcsecInGrad</span><span class="p">,</span>
+                                  <span class="n">bpa1</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">arcsecInGrad</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dx1</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">dx1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT1&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">dy1</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">dy1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT1&#39;</span><span class="p">]</span>
+        <span class="n">cospa1</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">bpa1</span><span class="p">)</span>
+        <span class="n">cospa2</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">bpa2</span><span class="p">)</span>
+        <span class="n">sinpa1</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">bpa1</span><span class="p">)</span>
+        <span class="n">sinpa2</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">bpa2</span><span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="p">((</span><span class="n">bmaj1</span> <span class="o">*</span> <span class="n">cospa1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+                 <span class="o">+</span> <span class="p">(</span><span class="n">bmin1</span> <span class="o">*</span> <span class="n">sinpa1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+                 <span class="o">+</span> <span class="p">(</span><span class="n">bmaj2</span> <span class="o">*</span> <span class="n">cospa2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+                 <span class="o">+</span> <span class="p">(</span><span class="n">bmin2</span> <span class="o">*</span> <span class="n">sinpa2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="p">((</span><span class="n">bmaj1</span> <span class="o">*</span> <span class="n">sinpa1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+                <span class="o">+</span> <span class="p">(</span><span class="n">bmin1</span> <span class="o">*</span> <span class="n">cospa1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+                <span class="o">+</span> <span class="p">(</span><span class="n">bmaj2</span> <span class="o">*</span> <span class="n">sinpa2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+                <span class="o">+</span> <span class="p">(</span><span class="n">bmin2</span> <span class="o">*</span> <span class="n">cospa2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">((</span><span class="n">bmin1</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">bmaj1</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                      <span class="o">*</span> <span class="n">sinpa1</span> <span class="o">*</span> <span class="n">cospa1</span>
+                      <span class="o">+</span> <span class="p">(</span><span class="n">bmin2</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">bmaj2</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                      <span class="o">*</span> <span class="n">sinpa2</span> <span class="o">*</span> <span class="n">cospa2</span><span class="p">))</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">+</span> <span class="n">beta</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">alpha</span> <span class="o">-</span> <span class="n">beta</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">bmaj</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">s</span> <span class="o">+</span> <span class="n">t</span><span class="p">))</span>
+        <span class="n">bmin</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="n">t</span><span class="p">))</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span> <span class="o">+</span> <span class="nb">abs</span><span class="p">(</span><span class="n">alpha</span> <span class="o">-</span> <span class="n">beta</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">bpa</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bpa</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">-</span> <span class="n">beta</span><span class="p">)</span>
+        <span class="c">#print math.pi/ (4.0*math.log(2.0))</span>
+        <span class="n">amp</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">2.0</span><span class="p">))</span> <span class="o">*</span> <span class="n">bmaj1</span> <span class="o">*</span> <span class="n">bmin1</span> <span class="o">*</span> <span class="n">bmaj2</span> <span class="o">*</span> <span class="n">bmin2</span>
+               <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">beta</span> <span class="o">-</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">))</span>
+        <span class="n">fac</span> <span class="o">=</span> <span class="p">((</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dx1</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dy1</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)))</span> <span class="o">/</span> <span class="n">amp</span>
+        <span class="c">#print fac</span>
+        <span class="k">return</span> <span class="n">fac</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">bmaj</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span> <span class="n">bmin</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span> <span class="n">bpa</span>
+</div>
+<div class="viewcode-block" id="FitsMap.change_unit"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.change_unit">[docs]</a>    <span class="k">def</span> <span class="nf">change_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">final_unit</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Changes the unit of a map in an automated way.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        final_unit : string</span>
+<span class="sd">            The unit to change the map to. Possible are:</span>
+<span class="sd">                1. Jy/beam: ``&quot;JyB&quot;`` ``&quot;JyBeam&quot;``</span>
+<span class="sd">                2. Jy/pixel: ``&quot;JyP&quot;``, ``&quot;JyPix&quot;``, ``&quot;JyPixel&quot;``</span>
+<span class="sd">                3. MJy/sterad: ``&quot;MJyPsr&quot;``, ``&quot;MJPSR&quot;``, ``&quot;MJy/sr&quot;``</span>
+<span class="sd">                4. Main Beam Temperature: ``&quot;Tmb&quot;``, ``&quot;T&quot;``, ``&quot;Kkms&quot;``</span>
+<span class="sd">                5. erg/s/pixel: ``&quot;ergs&quot;`` ``&quot;ERGPSECPPIX&quot;``,</span>
+<span class="sd">                                ``&quot;ERGPSECPPIXEL&quot;``, ``&quot;ERG-S-1-Pixel&quot;``,</span>
+<span class="sd">                                ``&quot;ERG-S-1&quot;``</span>
+<span class="sd">                6. erg/s/beam: ``&quot;ERGPSECPBEAM&quot;``</span>
+<span class="sd">                7. erg/s/sterad ``&quot;ERGPERSTER&quot;``</span>
+<span class="sd">        frequency : float</span>
+<span class="sd">            Can be used if self.frequency is NaN. The frequency (in GHz) is</span>
+<span class="sd">            needed for conversions between temperature and Jansky/Erg scale.</span>
+<span class="sd">            Other conversions don&#39;t need it.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        .. warning::</span>
+
+<span class="sd">            This function is still in development and not all</span>
+<span class="sd">            conversions may work properly.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Definition of the unit nomenclatures.</span>
+        <span class="c"># TODO!! This should be Uset input.</span>
+        <span class="n">_jansky_beam_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;JYB&#39;</span><span class="p">,</span> <span class="s">&#39;JyBeam&#39;</span><span class="p">]</span>
+        <span class="n">_jansky_pixel_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;JYPIX&#39;</span><span class="p">,</span> <span class="s">&#39;JYP&#39;</span><span class="p">,</span> <span class="s">&#39;JYPIXEL&#39;</span><span class="p">]</span>
+        <span class="n">_tmb_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;TMB&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="s">&#39;KKMS&#39;</span><span class="p">]</span>
+        <span class="n">_MJy_per_sterad_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;MJPSR&#39;</span><span class="p">,</span> <span class="s">&#39;MJYPSR&#39;</span><span class="p">,</span> <span class="s">&#39;MJY/SR&#39;</span><span class="p">]</span>
+        <span class="n">_erg_sec_pixel_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;ERGPSECPPIX&#39;</span><span class="p">,</span> <span class="s">&#39;ERGPSECPPIXEL&#39;</span><span class="p">,</span>
+                                <span class="s">&#39;ERG-S-1-Pixel&#39;</span><span class="p">,</span> <span class="s">&#39;ERG-S-1&#39;</span><span class="p">]</span>
+        <span class="n">_erg_sec_beam_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;ERGPSECPBEAM&#39;</span><span class="p">]</span>
+        <span class="n">_erg_sec_sterad_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;ERGPERSTER&#39;</span><span class="p">]</span>
+        <span class="n">_known_units</span> <span class="o">=</span> <span class="p">(</span><span class="n">_jansky_beam_names</span> <span class="o">+</span> <span class="n">_jansky_pixel_names</span> <span class="o">+</span>
+                        <span class="n">_tmb_names</span> <span class="o">+</span> <span class="n">_MJy_per_sterad_names</span><span class="p">)</span>
+
+        <span class="c"># If original and final unit are the same no conversion is needed.</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="c"># Jy/Pixel to Jy/B.</span>
+        <span class="k">def</span> <span class="nf">JyPix_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            This function converts between Jy/Pixel and Jy/Beam.</span>
+
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+
+<span class="sd">            invert : logic</span>
+<span class="sd">                If ``&quot;True&quot;`` the conversion is done from ``Jy/Beam``</span>
+<span class="sd">                to `` Jy/Pixel``. If ``&quot;False&quot;`` vice-versa.</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">invert</span><span class="p">:</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamSizeSterad</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelSizeSterad</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">factor</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;JyB&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;Jy/Beam&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">invert</span><span class="p">:</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelSize</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamSize</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">factor</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;JyPix&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;Jy/Pixel&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">MJyPSr_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">invert</span><span class="p">:</span>
+                <span class="c"># Working</span>
+                <span class="c"># fwhm 24micron - 6&quot;, 70micron - 18&quot;, 160micron - 40&quot;</span>
+                <span class="c"># MJy/sterad = 10^6 /(4.25*10^10/(1.133*fwhm[arcsec]^2)) J/beam</span>
+                <span class="c"># with 4.25 = 1/(4.848e-6)^2 -&gt; 1&#39;&#39; = 4.848e-6 rad</span>
+                <span class="c"># - &gt; Jy/beam = 2.6629e-5 * fwhm[arcsec]^2 MJy/sr</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="p">(</span><span class="mf">2.6629e-5</span>
+                          <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                          <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">factor</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;JyB&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;Jy/Beam&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">invert</span><span class="p">:</span>
+                <span class="c"># Working</span>
+                <span class="c"># fwhm 24micron - 6&quot;, 70micron - 18&quot;, 160micron - 40&quot;</span>
+                <span class="c"># MJy/sterad = 10^6 /(4.25*10^10/(1.133*fwhm[arcsec]^2)) J/beam</span>
+                <span class="c"># with 4.25 = 1/(4.848e-6)^2 -&gt; 1&#39;&#39; = 4.848e-6 rad</span>
+                <span class="c"># - &gt; Jy/beam = 2.6629e-5 * fwhm[arcsec]^2 MJy/sr</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="p">(</span><span class="mf">2.6629e-5</span>
+                          <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                          <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">factor</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">factor</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;MJpSr&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;MJy/sterad&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">Tmb_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">invert</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">flux_conversion</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;JyB&#39;</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;Jy/Beam&#39;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">frequency</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">factor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flux_conversion</span><span class="p">(</span><span class="n">frequency</span><span class="o">=</span><span class="n">frequency</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">factor</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;JyB&#39;</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;Jy/Beam&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Wavelength needed to convert between Jy and K.&#39;</span>
+                           <span class="s">&#39;</span><span class="se">\n</span><span class="s">Cannot continue -&gt; Exit!&#39;</span><span class="p">)</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">invert</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">:</span>
+                    <span class="n">factor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flux_conversion</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">factor</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;Tmb&#39;</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;K km/s&#39;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">frequency</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">factor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flux_conversion</span><span class="p">(</span><span class="n">frequency</span><span class="o">=</span><span class="n">frequency</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">factor</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;Tmb&#39;</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;K km/s&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Wavelength needed to convert between Jy and K.&#39;</span>
+                           <span class="s">&#39;</span><span class="se">\n</span><span class="s">Cannot continue -&gt; Exit!&#39;</span><span class="p">)</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+
+        <span class="k">def</span> <span class="nf">ErgSecBeam_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">invert</span><span class="p">:</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">JyBToErgsB</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span><span class="p">,</span>
+                                          <span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">map_use</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">factor</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;JyB&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;Jy/beam&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">invert</span><span class="p">:</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">JyBToErgsB</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wavelength</span><span class="p">,</span>
+                                          <span class="n">invert</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">map_use</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">factor</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;ErgPSecPBeam&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;ergs s^-1 beam^-1&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">ErgSecBeam_ErgSecPixel</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">invert</span><span class="p">:</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamSizeSterad</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelSizeSterad</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">factor</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;ErgPSecPPixel&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;ergs s^-1 pixel^-1&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">invert</span><span class="p">:</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelSizeSterad</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamSizeSterad</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">factor</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="s">&#39;ErgPSecPBeam&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;BUNIT&#39;</span><span class="p">,</span> <span class="s">&#39;ergs s^-1 beam^-1&#39;</span><span class="p">)</span>
+
+        <span class="c"># Conversions</span>
+        <span class="c"># Jy/pixel &lt;-&gt; Jy/beam</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_beam_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_pixel_names</span><span class="p">:</span>
+                <span class="n">JyPix_JyBeam</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_pixel_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_beam_names</span><span class="p">:</span>
+                <span class="n">JyPix_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="c"># Jy/beam &lt;-&gt; MJy/sterad.</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_beam_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_MJy_per_sterad_names</span><span class="p">:</span>
+                <span class="n">MJyPSr_JyBeam</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_MJy_per_sterad_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_beam_names</span><span class="p">:</span>
+                <span class="n">MJyPSr_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="c"># Jy/pixel &lt;-&gt; MJy/sterad.</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_pixel_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_MJy_per_sterad_names</span><span class="p">:</span>
+                <span class="n">MJyPSr_JyBeam</span><span class="p">()</span>
+                <span class="n">JyPix_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_MJy_per_sterad_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_pixel_names</span><span class="p">:</span>
+                <span class="n">JyPix_JyBeam</span><span class="p">()</span>
+                <span class="n">MJyPSr_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="c"># MJy/sterad &lt;-&gt; Tmb</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_tmb_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_MJy_per_sterad_names</span><span class="p">:</span>
+                <span class="n">MJyPSr_JyBeam</span><span class="p">()</span>
+                <span class="n">Tmb_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_MJy_per_sterad_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_tmb_names</span><span class="p">:</span>
+                <span class="n">Tmb_JyBeam</span><span class="p">()</span>
+                <span class="n">MJyPSr_JyBeam</span><span class="p">(</span><span class="n">inver</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="c"># Jy/Beam &lt;-&gt; Tmb (Main beam temperature).</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_tmb_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_beam_names</span><span class="p">:</span>
+                <span class="n">Tmb_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_beam_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_tmb_names</span><span class="p">:</span>
+                <span class="n">Tmb_JyBeam</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="c"># Tmb &lt;-&gt; Jy/pixel</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_tmb_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_pixel_names</span><span class="p">:</span>
+                <span class="n">JyPix_JyBeam</span><span class="p">()</span>
+                <span class="n">Tmb_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_pixel_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_tmb_names</span><span class="p">:</span>
+                <span class="n">Tmb_JyBeam</span><span class="p">()</span>
+                <span class="n">JyPix_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="c"># Jy/beam &lt;-&gt; Erg/s/beam</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_beam_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_beam_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_beam_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_beam_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+       <span class="c"># Jy/beam &lt;-&gt; Erg/s/pixel</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_pixel_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_beam_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="n">ErgSecBeam_ErgSecPixel</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_beam_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_pixel_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_ErgSecPixel</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+       <span class="c"># Jy/pixel &lt;-&gt; Erg/s/pixel</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_pixel_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_pixel_names</span><span class="p">:</span>
+                <span class="n">JyPix_JyBeam</span><span class="p">()</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="n">ErgSecBeam_ErgSecPixel</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_pixel_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_pixel_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_ErgSecPixel</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">()</span>
+                <span class="n">JyPix_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+       <span class="c"># Jy/pixel &lt;-&gt; Erg/s/beam</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_beam_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_pixel_names</span><span class="p">:</span>
+                <span class="n">JyPix_JyBeam</span><span class="p">()</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_jansky_pixel_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_beam_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">()</span>
+                <span class="n">JyPix_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="c"># MJy/sterad &lt;-&gt; Erg/s/pixel</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_pixel_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_MJy_per_sterad_names</span><span class="p">:</span>
+                <span class="n">MJyPSr_JyBeam</span><span class="p">()</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="n">ErgSecBeam_ErgSecPixel</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_MJy_per_sterad_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_pixel_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_ErgSecPixel</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">()</span>
+                <span class="n">MJyPSr_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="c"># MJy/sterad &lt;-&gt; Erg/s/beam</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_beam_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_MJy_per_sterad_names</span><span class="p">:</span>
+                <span class="n">MJyPSr_JyBeam</span><span class="p">()</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_MJy_per_sterad_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_beam_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">()</span>
+                <span class="n">MJyPSr_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="c"># MJy/sterad &lt;-&gt; Erg/s/beam</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_pixel_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_beam_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_ErgSecPixel</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_beam_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_pixel_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_ErgSecPixel</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+       <span class="c"># Tmb &lt;-&gt; Erg/s/pixel</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_pixel_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_tmb_names</span><span class="p">:</span>
+                <span class="n">Tmb_JyBeam</span><span class="p">()</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="n">ErgSecBeam_ErgSecPixel</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_tmb_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_pixel_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_ErgSecPixel</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">()</span>
+                <span class="n">Tmb_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+       <span class="c"># Tmb &lt;-&gt; Erg/s/beam</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_beam_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_tmb_names</span><span class="p">:</span>
+                <span class="n">Tmb_JyBeam</span><span class="p">()</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">final_unit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_tmb_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_erg_sec_beam_names</span><span class="p">:</span>
+                <span class="n">ErgSecBeam_JyBeam</span><span class="p">()</span>
+                <span class="n">Tmb_JyBeam</span><span class="p">(</span><span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+
+        <span class="c"># If the original flux unit is not known.</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_known_units</span><span class="p">:</span>
+            <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Flux unit not known to astrolyze - &#39;</span>
+                   <span class="s">&#39;Can not continue&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">debug</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">debug</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">FitsMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="FitsMap.toGildas"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.toGildas">[docs]</a>    <span class="k">def</span> <span class="nf">toGildas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Changes the current map to the Gildas Format.</span>
+
+<span class="sd">        The function takes changes to the map_name variables</span>
+<span class="sd">        made outside of functions into account via</span>
+<span class="sd">        :py:func:`astrolyze.maps.main.Map.returnName` into account.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        prefix: string or None</span>
+<span class="sd">            Path to location where the new gildas file will be stored.</span>
+<span class="sd">            The default is None which defaults to the current self.prefix.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        To continue working with the gildas map use:</span>
+
+<span class="sd">        &gt;&gt;&gt; map = map.toGildas()</span>
+
+<span class="sd">        To only store the current map in the gildas format and go on</span>
+<span class="sd">        working with the fits file use:</span>
+
+<span class="sd">        &gt;&gt;&gt; map.toGildas()</span>
+
+<span class="sd">        Here map is an Instance of the FitsMap class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="n">gildas_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;gdf&#39;</span><span class="p">)</span>
+        <span class="n">_conv_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">_conv_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;fits &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">+</span> <span class="s">&#39; to &#39;</span> <span class="o">+</span> <span class="n">gildas_name</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;exit</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">_conv_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm temp.greg&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">gildas</span><span class="o">.</span><span class="n">GildasMap</span><span class="p">(</span><span class="n">gildas_name</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="FitsMap.toMiriad"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.toMiriad">[docs]</a>    <span class="k">def</span> <span class="nf">toMiriad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Changes the current map to the Miriad Format.</span>
+
+<span class="sd">        The function takes changes to the map_name variables made outside of</span>
+<span class="sd">        functions into account via :py:func:`maps.main.Map.returnName` into</span>
+<span class="sd">        account.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        prefix : string or None</span>
+<span class="sd">            Path to location where the new gildas file will be stored.</span>
+<span class="sd">            The default is None which defaults to the current self.prefix.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        This function works like</span>
+<span class="sd">        :py:func:`maps.mapClassFits.FitsMap.toGildas` and the same</span>
+<span class="sd">        Examples apply.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="n">_fileout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;miriad.out&#39;</span><span class="p">,</span> <span class="s">&#39;a&#39;</span><span class="p">)</span>
+        <span class="n">_miriad_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">_prefix</span><span class="p">,</span> <span class="n">dataFormat</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span> <span class="n">_miriad_name</span><span class="p">)</span>
+        <span class="n">_fileout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;fits in=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; out=&#39;</span> <span class="o">+</span>
+                       <span class="n">_miriad_name</span> <span class="o">+</span> <span class="s">&#39; op=xyin</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;fits in=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; out=&#39;</span> <span class="o">+</span>
+                  <span class="n">_miriad_name</span> <span class="o">+</span> <span class="s">&#39; op=xyin&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm miriad.out&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">miriad</span><span class="o">.</span><span class="n">MiriadMap</span><span class="p">(</span><span class="n">_miriad_name</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">toFits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">():</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp -rf &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">fits</span><span class="o">.</span><span class="n">FitsMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Christof Buchbender.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

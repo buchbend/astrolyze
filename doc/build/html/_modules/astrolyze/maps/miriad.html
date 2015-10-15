@@ -1,0 +1,476 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>astrolyze.maps.miriad &mdash; astrolyze 0.0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="astrolyze 0.0.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo1.jpg" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for astrolyze.maps.miriad</h1><div class="highlight"><pre>
+<span class="c"># Copyright (C) 2012, Christof Buchbender</span>
+<span class="c"># BSD License (License.txt)</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">pyfits</span>
+<span class="kn">import</span> <span class="nn">pywcs</span>
+
+<span class="kn">from</span> <span class="nn">pysqlite2</span> <span class="kn">import</span> <span class="n">dbapi2</span> <span class="k">as</span> <span class="n">sqlite</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
+
+<span class="c"># My own modules</span>
+
+<span class="kn">import</span> <span class="nn">main</span>
+<span class="kn">import</span> <span class="nn">fits</span>
+<span class="kn">import</span> <span class="nn">gildas</span>
+
+<span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
+
+
+<div class="viewcode-block" id="MiriadMap"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.miriad.MiriadMap">[docs]</a><span class="k">class</span> <span class="nc">MiriadMap</span><span class="p">(</span><span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Calling the Map parent class and check that the file is really a</span>
+<span class="sd">        miriad map.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&#39;Exiting: not the right format&#39;</span>
+            <span class="k">print</span> <span class="nb">map</span><span class="o">.</span><span class="n">resolution</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MiriadMap.toFits"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.miriad.MiriadMap.toFits">[docs]</a>    <span class="k">def</span> <span class="nf">toFits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Converts the actual map to a Fits map.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        FitsMap Object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        With:</span>
+
+<span class="sd">        &gt;&gt;&gt; map = miriadMap(&#39;M33_MIPS_24mum_JyB_5&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; map = map.toFits()</span>
+
+<span class="sd">        it is possible to continue working with the Fits map, using</span>
+<span class="sd">        :class:`maps.fits.FitsMap` class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">)))</span>
+        <span class="k">print</span> <span class="s">&#39;rm &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">))</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;fits in=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; out=&#39;</span> <span class="o">+</span>
+                  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39; op=xyout&#39;</span><span class="p">)</span>
+        <span class="k">print</span> <span class="n">string</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitsName</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span> <span class="o">+</span> <span class="s">&#39;.fits&#39;</span>
+        <span class="k">return</span> <span class="n">fits</span><span class="o">.</span><span class="n">FitsMap</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span> <span class="o">+</span> <span class="s">&#39;.fits&#39;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="MiriadMap.toGildas"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.miriad.MiriadMap.toGildas">[docs]</a>    <span class="k">def</span> <span class="nf">toGildas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Converts the actual map to a Gildas map.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        GildasMap Object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        With:</span>
+
+<span class="sd">        &gt;&gt;&gt; map = miriadMap(&#39;M33_MIPS_24mum_JyB_5&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; map = map.toGildas()</span>
+
+<span class="sd">        it is possible to continue working with the Fits map, using</span>
+<span class="sd">        :class:`maps.gildas.GildasMap` class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span> <span class="o">+</span> <span class="s">&#39;.gdf&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">convFile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">convFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;fits &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">))</span>
+                            <span class="o">+</span> <span class="s">&#39; to &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;gdf&#39;</span><span class="p">))</span>
+                            <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">exit</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">convFile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @temp.greg&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gildasName</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;.gdf&#39;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm temp.greg&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">gildas</span><span class="o">.</span><span class="n">GildasMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gildasName</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="MiriadMap.toMiriad"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.miriad.MiriadMap.toMiriad">[docs]</a>    <span class="k">def</span> <span class="nf">toMiriad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Copies the actual map changing the name such that it takes changes in</span>
+<span class="sd">        keywords into account.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        MiriadMap Object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        With:</span>
+
+<span class="sd">        &gt;&gt;&gt; map = miriadMap(&#39;M33_MIPS_24mum_JyB_5&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; map = map.toMiriad()</span>
+
+<span class="sd">        it is possible to continue working with the Miriad map, using</span>
+<span class="sd">        :class:`maps.gildas.MiriadMap` class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp -rf &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">()))</span>
+        <span class="k">print</span> <span class="s">&#39;cp -rf &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+</div>
+<div class="viewcode-block" id="MiriadMap.smooth"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.miriad.MiriadMap.smooth">[docs]</a>    <span class="k">def</span> <span class="nf">smooth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_resolution</span><span class="p">,</span> <span class="n">old_resolution</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Smoothes a miriad map to the new resolution.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        new_resolution : float or list</span>
+<span class="sd">            The resolution in of the smoothed image.</span>
+<span class="sd">            Can be a:</span>
+<span class="sd">                * float: Output beam has same major and minor axis [arcsec] and</span>
+<span class="sd">                         the position angle (PA) [degrees] is 0.</span>
+<span class="sd">                * A list with two entries:</span>
+<span class="sd">                         The major and minor axis. PA is 0.</span>
+<span class="sd">                         E.g. [major_axis, minor_axis ]</span>
+<span class="sd">                * A list with three entries:</span>
+<span class="sd">                         [major_axis, minor_axis, PA]</span>
+<span class="sd">        old_resolution : float</span>
+<span class="sd">            If None the self.resolution information is taken into account.</span>
+<span class="sd">            Otherwise, it is assumed that old_resolution is the actual</span>
+<span class="sd">            resolution of the map.</span>
+<span class="sd">        scale : string</span>
+<span class="sd">            If unset (scale=&#39;&#39;), the miriad function will attempt to make the</span>
+<span class="sd">            units of the smoothed image be Jy/beam for Gaussian convolution. If</span>
+<span class="sd">            ``0.0``, then the convolution integral is scaled (multipled) by the</span>
+<span class="sd">            inverse of the volume of the convolving function. Otherwise, the</span>
+<span class="sd">            integral is scaled by &quot;scale&quot;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        MiriadMap : object</span>
+<span class="sd">            The smoothed image.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        The function used to calculate the fwhm (\Omega) of the convolving</span>
+<span class="sd">        Gaussian for both major and minor axis is:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \Omega_{\rm convolve} = \sqrt{\Omega_{\rm new}^2 -</span>
+<span class="sd">                                    \Omega_{\rm old}^2}</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Parsing the resolution string.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">new_major</span> <span class="o">=</span> <span class="n">new_resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">new_minor</span> <span class="o">=</span> <span class="n">new_resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">new_pa</span> <span class="o">=</span> <span class="n">new_resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">new_major</span> <span class="o">=</span> <span class="n">new_resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">new_minor</span> <span class="o">=</span> <span class="n">new_resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">new_pa</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">new_major</span> <span class="o">=</span> <span class="n">new_resolution</span>
+                <span class="n">new_minor</span> <span class="o">=</span> <span class="n">new_resolution</span>
+                <span class="n">new_pa</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">old_resolution</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">_old_major</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">_old_minor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">pa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">old_resolution</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">old_resolution</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">old_resolution</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">_old_major</span> <span class="o">=</span> <span class="n">old_resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">_old_minor</span> <span class="o">=</span> <span class="n">old_resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">pa</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">old_resolution</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">_old_major</span> <span class="o">=</span> <span class="n">old_resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">_old_minor</span> <span class="o">=</span> <span class="n">old_resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">pa</span> <span class="o">=</span> <span class="n">old_resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">old_resolution</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+                <span class="n">_old_major</span> <span class="o">=</span> <span class="n">old_resolution</span>
+                <span class="n">_old_minor</span> <span class="o">=</span> <span class="n">old_resolution</span>
+                <span class="n">pa</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">_old_major</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">float</span><span class="p">(</span><span class="n">new_major</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">float</span><span class="p">(</span><span class="n">_old_minor</span><span class="p">)</span> <span class="o">&gt;</span>
+             <span class="nb">float</span><span class="p">(</span><span class="n">new_minor</span><span class="p">))):</span>
+            <span class="k">print</span> <span class="s">&#39;Error: Old Resolution bigger than new one!&#39;</span>
+        <span class="c"># calculate the fwhm for the convolving gaussian.</span>
+        <span class="n">_fwhm_major</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">new_major</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span>
+                                <span class="nb">float</span><span class="p">(</span><span class="n">_old_major</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">_fwhm_minor</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">new_minor</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span>
+                                <span class="nb">float</span><span class="p">(</span><span class="n">_old_minor</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">_smoothed_map_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">resolution</span><span class="o">=</span><span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">new_major</span><span class="p">),</span>
+                                                         <span class="nb">float</span><span class="p">(</span><span class="n">new_minor</span><span class="p">),</span>
+                                                         <span class="n">new_pa</span><span class="p">])</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span> <span class="n">_smoothed_map_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">scale</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">executeString</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;smooth in=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+                             <span class="s">&#39;out=&#39;</span> <span class="o">+</span> <span class="n">_smoothed_map_name</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+                             <span class="s">&#39;fwhm=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%.2f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_fwhm_major</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;, &#39;</span> <span class="o">+</span>
+                             <span class="nb">str</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%.2f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_fwhm_minor</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39; pa=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pa</span><span class="p">)</span> <span class="o">+</span>
+                             <span class="s">&#39; scale=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">scale</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">executeString</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;smooth in=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+                             <span class="s">&#39;out=&#39;</span> <span class="o">+</span> <span class="n">_smoothed_map_name</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+                             <span class="s">&#39;fwhm=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%.2f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_fwhm_major</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;, &#39;</span> <span class="o">+</span>
+                             <span class="nb">str</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%.2f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_fwhm_minor</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39; pa=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pa</span><span class="p">)</span> <span class="o">+</span>
+                             <span class="s">&#39; scale=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">scale</span><span class="p">))</span>
+        <span class="k">print</span> <span class="n">executeString</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">executeString</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">MiriadMap</span><span class="p">(</span><span class="n">_smoothed_map_name</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">_moment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iN</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">mom</span><span class="o">=</span><span class="s">&#39;0&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span>
+                <span class="n">clip</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">rngmsk</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">raw</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Wrap around MIRIADs moment task.</span>
+<span class="sd">        keywords are as in miriad.</span>
+<span class="sd">        By default (-&gt; if you give no arguments to the function)</span>
+<span class="sd">        it creates the zeroth moment of the map</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">fileout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;miriad.out&#39;</span><span class="p">,</span> <span class="s">&#39;a&#39;</span><span class="p">)</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="s">&#39;moment &#39;</span>
+        <span class="k">if</span> <span class="n">iN</span> <span class="o">==</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">iN</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span>
+        <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;in=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">iN</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">region</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;region=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">region</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">out</span> <span class="o">==</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">newComments</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="s">&#39;cube&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">:</span>
+                <span class="k">print</span> <span class="s">&#39;yes1&#39;</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">:</span>
+
+                    <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;cube&#39;</span><span class="p">:</span>
+                        <span class="k">print</span> <span class="s">&#39;yes1&#39;</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">newComments</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;mom&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">mom</span><span class="p">)]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">newComments</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">newComments</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;mom&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">mom</span><span class="p">)]</span>
+            <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">()</span>
+        <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;out=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;mom=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">mom</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;axis=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">clip</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;clip=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">clip</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">rngmsk</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;rngmsk=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">rngmsk</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">raw</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;raw=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">()))</span>
+        <span class="k">print</span> <span class="n">string</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+        <span class="n">fileout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">string</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="n">out</span>
+        <span class="n">fileout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">regrid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iN</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s">&#39;1,2&#39;</span><span class="p">,</span> <span class="n">tin</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span>
+               <span class="n">options</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">rotate</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="n">fileout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;miriad.out&#39;</span><span class="p">,</span> <span class="s">&#39;a&#39;</span><span class="p">)</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="s">&#39;regrid &#39;</span>
+        <span class="k">if</span> <span class="n">iN</span> <span class="o">==</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">iN</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span>
+        <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;in=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">iN</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">out</span> <span class="o">==</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;regrid&#39;</span><span class="p">]</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">()</span>
+        <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;out=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">axes</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;axes=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">tin</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;tin=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">tin</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">desc</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;desc=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">desc</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">options</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;options=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">project</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;project=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">project</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span>  <span class="n">rotate</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;rotate=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">rotate</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+        <span class="k">if</span> <span class="n">tol</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&#39;tol=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">tol</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">()))</span>
+        <span class="k">print</span> <span class="n">string</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+        <span class="n">fileout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">string</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="n">out</span>
+        <span class="n">fileout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">ellipseMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pa</span><span class="p">,</span> <span class="n">incline</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">coord</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span>
+                    <span class="n">pix_or_coord</span><span class="o">=</span><span class="s">&#39;coord&#39;</span><span class="p">,</span> <span class="n">logic</span><span class="o">=</span><span class="s">&#39;lt&#39;</span><span class="p">):</span>
+        <span class="n">tempFitsMap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+        <span class="n">xy</span> <span class="o">=</span> <span class="n">tempFitsMap</span><span class="o">.</span><span class="n">sky2xy</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">xy</span><span class="p">[</span><span class="mi">0</span><span class="p">]))))</span>
+        <span class="n">y0</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">xy</span><span class="p">[</span><span class="mi">1</span><span class="p">]))))</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span> <span class="n">out</span><span class="p">)</span>
+        <span class="k">print</span> <span class="s">&#39;#################&#39;</span>
+        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">inclination</span>
+        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">pa</span>
+        <span class="k">print</span> <span class="s">&#39;#################&#39;</span>
+        <span class="n">sineCosArg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">360</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">90</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pa</span><span class="p">))))</span>
+        <span class="n">inclinationRadian</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">360</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">inclination</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;maths </span><span class="se">\&#39;</span><span class="s">exp=&lt;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">+</span> <span class="s">&#39;&gt;</span><span class="se">\&#39;</span><span class="s">  </span><span class="se">\&#39;</span><span class="s">&#39;</span>
+                  <span class="s">&#39;mask=sqrt((((x-&#39;</span> <span class="o">+</span> <span class="n">x0</span> <span class="o">+</span> <span class="s">&#39;)*cos(&#39;</span> <span class="o">+</span> <span class="n">sineCosArg</span> <span class="o">+</span> <span class="s">&#39;))-&#39;</span>
+                  <span class="s">&#39;((y-&#39;</span> <span class="o">+</span> <span class="n">y0</span> <span class="o">+</span> <span class="s">&#39;)*sin(&#39;</span> <span class="o">+</span> <span class="n">sineCosArg</span> <span class="o">+</span> <span class="s">&#39;)))**2 + &#39;</span>
+                  <span class="s">&#39;(((x-&#39;</span> <span class="o">+</span> <span class="n">x0</span> <span class="o">+</span> <span class="s">&#39;)*sin(&#39;</span> <span class="o">+</span> <span class="n">sineCosArg</span> <span class="o">+</span> <span class="s">&#39;))+&#39;</span>
+                  <span class="s">&#39;((y-&#39;</span> <span class="o">+</span> <span class="n">y0</span> <span class="o">+</span> <span class="s">&#39;)*cos(&#39;</span> <span class="o">+</span> <span class="n">sineCosArg</span> <span class="o">+</span> <span class="s">&#39;)))**2/&#39;</span>
+                  <span class="s">&#39;(cos(&#39;</span> <span class="o">+</span> <span class="n">inclinationRadian</span> <span class="o">+</span> <span class="s">&#39;)**2)).&#39;</span> <span class="o">+</span> <span class="n">logic</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span>
+                  <span class="nb">str</span><span class="p">(</span><span class="n">radius</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">/</span>
+                      <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">tempFitsMap</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT1&#39;</span><span class="p">])</span> <span class="o">/</span>
+                                 <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\&#39;</span><span class="s"> &#39;</span>
+                  <span class="s">&#39;out=&#39;</span> <span class="o">+</span> <span class="n">out</span> <span class="o">+</span> <span class="s">&#39; xrange=0,&#39;</span> <span class="o">+</span>
+                  <span class="nb">str</span><span class="p">(</span><span class="n">tempFitsMap</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;NAXIS1&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+                  <span class="s">&#39;yrange=0,&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">tempFitsMap</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;NAXIS2&#39;</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="n">out</span>
+
+    <span class="k">def</span> <span class="nf">_regridMiriadToArcsec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">JyB_KkmS</span><span class="o">=</span><span class="s">&#39;KkmS&#39;</span><span class="p">):</span>
+        <span class="n">fitsFile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">naxis1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fitsFile</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;naxis1&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">naxis2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fitsFile</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;naxis2&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cdelt1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fitsFile</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT1&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cdelt2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fitsFile</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT2&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crval1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fitsFile</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRVAL1&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crval2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fitsFile</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRVAL2&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crpix1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fitsFile</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRPIX1&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crpix2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fitsFile</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRPIX2&#39;</span><span class="p">])</span>
+
+        <span class="k">print</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naxis1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naxis2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdelt1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdelt2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">crval1</span><span class="p">,</span>
+               <span class="bp">self</span><span class="o">.</span><span class="n">crval2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">crpix1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">crpix2</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cdelt1arcs</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdelt1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">value</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cdelt2arcs</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdelt1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">value</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">naxis1New</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">naxis1</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdelt1arcs</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crpix1New</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">naxis1New</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naxis1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">crpix1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">naxis2New</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">naxis2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdelt2arcs</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crpix2New</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">naxis2New</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naxis2</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">crpix2</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">newPix</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span>
+        <span class="k">print</span> <span class="s">&#39;oldPixel&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdelt1</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdelt2</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span>
+        <span class="k">print</span> <span class="s">&#39;axis1&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naxis1</span><span class="p">,</span> <span class="s">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naxis1New</span>
+        <span class="k">print</span> <span class="s">&#39;axis2&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naxis2</span><span class="p">,</span> <span class="s">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">naxis2New</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">regrid</span><span class="p">(</span><span class="n">desc</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crval1</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">360</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;,&#39;</span> <span class="o">+</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crpix1New</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;,&#39;</span> <span class="o">+</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">360</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;,&#39;</span> <span class="o">+</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naxis1New</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;,&#39;</span> <span class="o">+</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crval2</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">360</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;,&#39;</span> <span class="o">+</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crpix2New</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;,&#39;</span> <span class="o">+</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">360</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;,&#39;</span> <span class="o">+</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naxis2New</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">JyB_KkmS</span> <span class="o">==</span> <span class="s">&#39;KkmS&#39;</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span> <span class="o">+</span> <span class="s">&#39;_norm&#39;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;maths </span><span class="se">\&#39;</span><span class="s">exp=&lt;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span> <span class="o">+</span> <span class="s">&#39;&gt;/&#39;</span> <span class="o">+</span>
+                      <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdelt1arcs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdelt2arcs</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\&#39;</span><span class="s">out=&#39;</span> <span class="o">+</span>
+                      <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span> <span class="o">+</span> <span class="s">&#39;_norm&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;norm&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Christof Buchbender.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

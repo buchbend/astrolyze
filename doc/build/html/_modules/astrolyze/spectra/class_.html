@@ -1,0 +1,314 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>astrolyze.spectra.class_ &mdash; astrolyze 0.0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="astrolyze 0.0.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo1.jpg" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for astrolyze.spectra.class_</h1><div class="highlight"><pre>
+<span class="c"># Copyright (C) 2012, Christof Buchbender</span>
+<span class="c"># BSD Licencse</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">pyfits</span>
+<span class="kn">import</span> <span class="nn">pywcs</span>
+
+<span class="kn">from</span> <span class="nn">pysqlite2</span> <span class="kn">import</span> <span class="n">dbapi2</span> <span class="k">as</span> <span class="n">sqlite</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
+<span class="kn">import</span> <span class="nn">pyclass</span>
+
+<span class="kn">from</span> <span class="nn">astrolyze.maps.main</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">astrolyze.maps.gildas</span>
+
+<span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
+<span class="kn">from</span> <span class="nn">astrolyze.functions</span> <span class="kn">import</span> <span class="n">astro_functions</span> <span class="k">as</span> <span class="n">astFunc</span>
+<span class="kn">import</span> <span class="nn">astrolyze.functions.units</span>
+
+<div class="viewcode-block" id="ClassSpectra"><a class="viewcode-back" href="../../../spectra.html#astrolyze.spectra.class_.ClassSpectra">[docs]</a><span class="k">class</span> <span class="nc">ClassSpectra</span><span class="p">(</span><span class="n">Map</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Provides some usefull automated functions to work on Class</span>
+<span class="sd">    Spectra in an convenient way.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Extracting a spectra at a given position from a spectral cube can be done</span>
+<span class="sd">    as follows</span>
+
+<span class="sd">    &gt;&gt;&gt; from astrolyze.spectra import *</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; cube = ClassSpectra(filename)</span>
+<span class="sd">    &gt;&gt;&gt; coordinate = [&#39;1:34:7.00&#39;, &#39;+30:47:52.00&#39;]</span>
+<span class="sd">    &gt;&gt;&gt; cube.get_spectra_from_cube(coordinate)</span>
+<span class="sd">    Generates a 30m file with comment extract in the actual cube.prefix path.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">nameConvention</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;Initializes a Class Spectral File.&quot;&quot;&quot;</span>
+        <span class="n">astrolyze</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">nameConvention</span><span class="p">)</span>
+        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_file_to_greg</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_formats</span><span class="p">:</span>
+            <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Exiting: Not a CLASS format (AFAIK). Supported&#39;</span>
+                   <span class="s">&#39;Formats Can be extended.&#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_init_file_to_greg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Initial setup, loading all the variables correponding to</span>
+<span class="sd">        the cube.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">()</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;file in &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;find&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;get first&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_class_variables</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dec_coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">r</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">pos</span><span class="o">.</span><span class="n">bet</span><span class="o">.</span><span class="n">__sicdata__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ra_coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">r</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">pos</span><span class="o">.</span><span class="n">lam</span><span class="o">.</span><span class="n">__sicdata__</span>
+        <span class="c"># conversion to degrees</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ra_coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ra_coordinate</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">r2d</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dec_coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_coordinate</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">r2d</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">central_coordinate_degrees</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ra_coordinate</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">dec_coordinate</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">central_coordinate_equatorial</span> <span class="o">=</span> <span class="n">astFunc</span><span class="o">.</span><span class="n">degrees_to_equatorial</span><span class="p">(</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">central_coordinate_degrees</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_load_class_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        This function actually imports the Class variables.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vars</span> <span class="o">=</span> <span class="n">pyclass</span><span class="o">.</span><span class="n">gdict</span>
+
+<div class="viewcode-block" id="ClassSpectra.set_defaults"><a class="viewcode-back" href="../../../spectra.html#astrolyze.spectra.class_.ClassSpectra.set_defaults">[docs]</a>    <span class="k">def</span> <span class="nf">set_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Reset all selection criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;set def&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;clear&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;set plot hist&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;set form long&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;set angle sec&#39;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="ClassSpectra.get_spectra_from_cube"><a class="viewcode-back" href="../../../spectra.html#astrolyze.spectra.class_.ClassSpectra.get_spectra_from_cube">[docs]</a>    <span class="k">def</span> <span class="nf">get_spectra_from_cube</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                              <span class="n">accuracy</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Extracts one spectra at the position of coordinates from a</span>
+<span class="sd">        spectral cube.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        coordinate: list</span>
+<span class="sd">            Equatorial coordinates, e.g. [&#39;1:34:7.00&#39;, &#39;+30:47:52.00&#39;]</span>
+
+<span class="sd">        angle: float</span>
+<span class="sd">            If the cube was rotated before the angle has to be specified</span>
+<span class="sd">            to calculate the correct offset.</span>
+
+<span class="sd">        prefix: string</span>
+<span class="sd">            The new path where the averaged spectrum will be stored.</span>
+
+<span class="sd">        accuracy: float</span>
+<span class="sd">            The tolerance in arcsec to find a spectra corresponding to the</span>
+<span class="sd">            given coordinate.</span>
+
+<span class="sd">        region: True or False</span>
+<span class="sd">            Returns either all spectra found ``True`` or only the first</span>
+<span class="sd">            ``False``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        30m file</span>
+<span class="sd">            With the first spectrum in the list of spectra within the accuracy</span>
+<span class="sd">            range with the given coordinate.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">_prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">_prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">astFunc</span><span class="o">.</span><span class="n">calc_offset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">central_coordinate_equatorial</span><span class="p">,</span>
+                                     <span class="n">coordinate</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">output_unit</span><span class="o">=</span><span class="s">&#39;arcsec&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">()</span>
+        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">central_coordinate_equatorial</span>
+        <span class="k">print</span> <span class="n">offset</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;file in &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;set offset &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;set match &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">accuracy</span><span class="p">))</span>
+            <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;find&#39;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;get f&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyboardInterrupt</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">print</span>  <span class="s">&#39;###</span><span class="se">\n</span><span class="s">Nothing found, raising tolerance by 1 arsec.</span><span class="se">\n</span><span class="s">###&#39;</span>
+                <span class="n">accuracy</span> <span class="o">=</span> <span class="n">accuracy</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">print</span> <span class="p">(</span><span class="s">&#39;###</span><span class="se">\n</span><span class="s">Found a spectra in a &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">accuracy</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; arcsec &#39;</span>
+                       <span class="s">&#39;radius.</span><span class="se">\n</span><span class="s">###&#39;</span><span class="p">)</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">region</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&#39;asdsa&#39;</span><span class="p">,</span><span class="n">_prefix</span>
+            <span class="n">return_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">_prefix</span><span class="p">,</span>
+                                          <span class="n">comments</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;extract&#39;</span><span class="p">])</span>
+            <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;file out &#39;</span> <span class="o">+</span> <span class="n">return_name</span> <span class="o">+</span> <span class="s">&#39; single /overwrite&#39;</span><span class="p">)</span>
+            <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;write&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">region</span><span class="p">:</span>
+            <span class="n">return_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">_prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;region&#39;</span><span class="p">])</span>
+            <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;file out &#39;</span> <span class="o">+</span> <span class="n">return_name</span> <span class="o">+</span> <span class="s">&#39; single /overwrite&#39;</span><span class="p">)</span>
+            <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;find&#39;</span><span class="p">)</span>
+            <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;copy&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ClassSpectra</span><span class="p">(</span><span class="n">return_name</span><span class="p">)</span>
+
+<span class="c">#    def set_selection(self, telescope=None, line=None, source=None):</span>
+<span class="c">#        r&quot;&quot;&quot;</span>
+<span class="c">#        Select subsets of the spectra in the input file.</span>
+<span class="c">#        &quot;&quot;&quot;</span>
+<span class="c">#        telescope = telescop</span>
+</div>
+<div class="viewcode-block" id="ClassSpectra.get_region_from_cube"><a class="viewcode-back" href="../../../spectra.html#astrolyze.spectra.class_.ClassSpectra.get_region_from_cube">[docs]</a>    <span class="k">def</span> <span class="nf">get_region_from_cube</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> 
+                             <span class="n">accuracy</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        The same as :py:func:``get_spectra_from_cube`` but returns all spectra</span>
+<span class="sd">        found inside a circular region arounf coordinate and in a radius of </span>
+<span class="sd">        accuracy arcsec. (&quot;set match &quot;&#39;accuracy&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_spectra_from_cube</span><span class="p">(</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="n">angle</span><span class="p">,</span>
+                                          <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">accuracy</span><span class="o">=</span><span class="n">accuracy</span><span class="p">,</span>
+                                          <span class="n">region</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="ClassSpectra.get_average_spectrum"><a class="viewcode-back" href="../../../spectra.html#astrolyze.spectra.class_.ClassSpectra.get_average_spectrum">[docs]</a>    <span class="k">def</span> <span class="nf">get_average_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Averages all spectra in a cube.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        prefix: string</span>
+<span class="sd">            The new path where the averaged spectrum will be stored.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        So far no selection is made so the files of the input file have to be</span>
+<span class="sd">        consistent.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_prefix</span> <span class="o">=</span>  <span class="n">prefix</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">()</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;file in &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;find&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;get f&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;set no match&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;aver&#39;</span><span class="p">)</span>
+        <span class="n">return_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">_prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;average&#39;</span><span class="p">])</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;file out &#39;</span> <span class="o">+</span> <span class="n">return_name</span> <span class="o">+</span> <span class="s">&#39; single /overwrite&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;write&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ClassSpectra</span><span class="p">(</span><span class="n">return_name</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="ClassSpectra.save_figure"><a class="viewcode-back" href="../../../spectra.html#astrolyze.spectra.class_.ClassSpectra.save_figure">[docs]</a>    <span class="k">def</span> <span class="nf">save_figure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Helper function that saves the current plot.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;eps&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;ha &#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&#39;/dev eps color&#39;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="ClassSpectra.quick_view"><a class="viewcode-back" href="../../../spectra.html#astrolyze.spectra.class_.ClassSpectra.quick_view">[docs]</a>    <span class="k">def</span> <span class="nf">quick_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">number</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Helper Functions that displays the first spectrum of the loaded</span>
+<span class="sd">        file. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># TODO: make more usefull.</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;file in &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;dev im w&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;find&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;get {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">number</span><span class="p">))</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;pl&#39;</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Christof Buchbender.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

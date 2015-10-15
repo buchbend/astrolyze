@@ -1,0 +1,405 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>astrolyze.functions.units &mdash; astrolyze 0.0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="astrolyze 0.0.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo1.jpg" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for astrolyze.functions.units</h1><div class="highlight"><pre>
+<span class="c"># Copyright (C) 2012, Christof Buchbender</span>
+<span class="c"># BSD Licencse</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
+
+<span class="c"># Constant conversion factors.</span>
+<span class="c">#==============&gt; Approved !!! &lt;==========================</span>
+<span class="n">WattToErgs</span>    <span class="o">=</span> <span class="mf">1e7</span>  <span class="c"># 1W = 1e7 erg/s</span>
+<span class="n">ErgsToWatt</span>    <span class="o">=</span> <span class="mf">1e-7</span>  <span class="c"># 1W = 1e-7 erg/s</span>
+<span class="n">JanskyToWatt</span>  <span class="o">=</span> <span class="mf">1e-26</span>  <span class="c"># 1Jy = 1e-26 W/m2/Hz</span>
+<span class="n">WattToJansky</span>  <span class="o">=</span> <span class="mf">1e26</span>  <span class="c"># 1W  = 1 Jy * m2 * Hz</span>
+<span class="n">ErgsToJansky_cm</span>  <span class="o">=</span> <span class="mf">1e23</span>  <span class="c"># 1 erg/s =  1e23 Jy * cm2 * Hz * s</span>
+<span class="n">JanskyToErgs_cm</span>  <span class="o">=</span> <span class="mf">1e-23</span>  <span class="c"># 1 Jy = 1e-23 erg/s/cm2/Hz</span>
+<span class="n">ErgsToJansky_m</span>  <span class="o">=</span> <span class="mf">1e19</span>  <span class="c"># 1 erg/s = 1e-19 Jy * m2 * Hz * s</span>
+<span class="n">JanskyToErgs_m</span>  <span class="o">=</span> <span class="mf">1e-19</span>  <span class="c"># 1 Jy = 1e-19 erg/s/m2/Hz</span>
+<span class="c">#==============&gt; Approved !!! &lt;==========================</span>
+
+
+<div class="viewcode-block" id="WmToKkms"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.units.WmToKkms">[docs]</a><span class="k">def</span> <span class="nf">WmToKkms</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sterad</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">ToKKms</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">m2_or_cm2</span><span class="o">=</span><span class="s">&#39;m&#39;</span><span class="p">,</span>
+             <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Conversion between W/m2 and K km/s.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : float</span>
+<span class="sd">        wavelenght/frequency [GHZ].</span>
+<span class="sd">    resolution : float</span>
+<span class="sd">    ToKKms : True or False</span>
+<span class="sd">        Direction of the conversion.</span>
+<span class="sd">    sterad : True or False</span>
+<span class="sd">        If False convert from per beam to per sterad.</span>
+<span class="sd">    m2_or_cm2 : string</span>
+<span class="sd">        Choose if conversion to/from W m-2 oder W cm-2. ``&#39;m2&#39;`` or ``&#39;cm2&#39;``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    factor : float</span>
+<span class="sd">        The conversion factor.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c"># To W=Joule/s =&gt; Joule = 1e7 erg</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">m2_or_cm2</span> <span class="o">==</span> <span class="s">&#39;cm2&#39;</span><span class="p">:</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="mf">1e7</span>  <span class="c"># erg/m2/s</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">/</span> <span class="mf">1e4</span>  <span class="c"># erg/cm2/s</span>
+    <span class="k">if</span> <span class="n">sterad</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+        <span class="n">beamsr</span> <span class="o">=</span> <span class="mf">1.133</span> <span class="o">*</span> <span class="p">(</span><span class="n">resolution</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">a2r</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">/</span> <span class="n">beamsr</span>  <span class="c"># erg/cm2/s/sr</span>
+    <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;lambda&#39;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">c</span><span class="o">/</span><span class="n">x</span>
+    <span class="c"># Umrechung zwischen ergs/s/cm2/sr = 2 k(CGS) nu^3/c(sm)^3 K km/s</span>
+    <span class="c"># =&gt; to make the units fit we have to multiply by 1*km in cm -&gt; 1e5</span>
+    <span class="c"># i.e. const.km_in_cm</span>
+    <span class="c"># converts from K - &gt; ergs</span>
+    <span class="n">conversionFactor</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">k_CGS</span> <span class="o">*</span> <span class="n">x</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">km_in_cm</span> <span class="o">/</span>
+                        <span class="p">(</span><span class="n">const</span><span class="o">.</span><span class="n">c_in_cm</span> <span class="o">**</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">/</span> <span class="n">conversionFactor</span>
+    <span class="k">if</span> <span class="n">ToKKms</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">1</span><span class="o">/</span><span class="n">factor</span>
+    <span class="k">if</span> <span class="n">ToKKms</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">factor</span>
+
+</div>
+<div class="viewcode-block" id="ergToKkms"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.units.ergToKkms">[docs]</a><span class="k">def</span> <span class="nf">ergToKkms</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">toErg</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Conversion between ergs/cm2/s/sr and K km/s.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : float</span>
+<span class="sd">        wavelenght/frequency [GHZ],</span>
+<span class="sd">    toErg : True or False</span>
+<span class="sd">        True converts the other direction, i.e. from K km/s to ergs/cm2/s/sr.</span>
+<span class="sd">    nu_or_lambda : string</span>
+<span class="sd">         Choose type of x: frequency = ``&#39;nu&#39;`` or wavelenght = ``&#39;lambda&#39;``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    factor : float</span>
+<span class="sd">        The conversion factor.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Approved.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># To W=Joule/s =&gt; Joule = 1e7 erg</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="c">#print value</span>
+    <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;lambda&#39;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="n">x</span>
+    <span class="c"># Conversion between erg/s/cm2/sr = 2k(CGS) nu^3/c(cm)^3 K km/s</span>
+    <span class="c"># k(CGS) is Boltzsmanns constant in units of the CGS, nu the frequency of</span>
+    <span class="c"># the measusrement</span>
+    <span class="c"># c(cm) is the speed of light in cm.</span>
+    <span class="c"># =&gt; to make the units fit we have to multiply by 1*km in cm -&gt; 1e5</span>
+    <span class="c"># i.e. const.km_in_cm</span>
+    <span class="c"># converts from K - &gt; ergs</span>
+    <span class="n">conversionFactor</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">k_CGS</span> <span class="o">*</span> <span class="n">x</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">km_in_cm</span> <span class="o">/</span>
+                        <span class="p">(</span><span class="n">const</span><span class="o">.</span><span class="n">c_in_cm</span> <span class="o">**</span><span class="mi">3</span><span class="p">))</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">/</span> <span class="n">conversionFactor</span>
+    <span class="k">if</span> <span class="n">toErg</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">factor</span>
+    <span class="k">if</span> <span class="n">toErg</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">factor</span>
+
+</div>
+<div class="viewcode-block" id="Int2Lum"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.units.Int2Lum">[docs]</a><span class="k">def</span> <span class="nf">Int2Lum</span><span class="p">(</span><span class="n">distance_in_pc</span><span class="p">,</span> <span class="n">cm_or_m</span><span class="o">=</span><span class="s">&#39;cm&#39;</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Conversion factor to calculate luminosity from intensities</span>
+<span class="sd">    by integrating over the sky 4 pi Distance^2.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    distance_in_pc : float</span>
+<span class="sd">        Distance to the source in parsecs.</span>
+<span class="sd">    cm_or_m : string</span>
+<span class="sd">        Choose wether the out put is in cm^2 = ``&#39;cm&#39;`` or in</span>
+<span class="sd">        m^2 = ``&#39;m&#39;``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Approved.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">cm_or_m</span> <span class="o">==</span> <span class="s">&#39;m&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">distance_in_pc</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">parsec_in_m_1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="k">if</span> <span class="n">cm_or_m</span> <span class="o">==</span> <span class="s">&#39;cm&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span> <span class="n">distance_in_pc</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">parsec_in_cm</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+</div>
+<div class="viewcode-block" id="JyBToErgsB"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.units.JyBToErgsB">[docs]</a><span class="k">def</span> <span class="nf">JyBToErgsB</span><span class="p">(</span><span class="n">input_flux</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">wavelength</span><span class="p">,</span> <span class="n">invert</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">map_use</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Conversion between Jy/beam and ergs/beam.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_flux : float</span>
+<span class="sd">        Flux to be converted in Jy/beam</span>
+<span class="sd">    distance : float</span>
+<span class="sd">        Distance to the source in parsec.</span>
+<span class="sd">    wavelength : float</span>
+<span class="sd">        Wavelength :math:`\lambda` in :math:`\mu m`.</span>
+<span class="sd">    map_use :</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    The conversion factor (map_use = true) or the already converted flux</span>
+<span class="sd">    (map_use = False).</span>
+<span class="sd">    r&quot;&quot;&quot;</span>
+    <span class="c"># change from Jansky to erg s-1 cm-2 Hz-1</span>
+    <span class="n">conversion</span> <span class="o">=</span> <span class="n">JanskyToErgs_cm</span>
+    <span class="c"># integrate over sky ergs s-1 Hz-1</span>
+    <span class="n">conversion</span> <span class="o">=</span> <span class="n">conversion</span> <span class="o">*</span> <span class="n">Int2Lum</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">cm_or_m</span><span class="o">=</span><span class="s">&#39;cm&#39;</span><span class="p">)</span>
+    <span class="c"># multiply by frequency</span>
+    <span class="n">conversion</span> <span class="o">=</span> <span class="n">conversion</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="p">(</span><span class="n">wavelength</span> <span class="o">*</span> <span class="mf">1e-6</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">invert</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">map_use</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">input_flux</span> <span class="o">*</span> <span class="n">conversion</span>
+        <span class="k">if</span> <span class="n">map_use</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">conversion</span>
+    <span class="k">if</span> <span class="n">invert</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">map_use</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">input_flux</span> <span class="o">/</span> <span class="n">conversion</span>
+        <span class="k">if</span> <span class="n">map_use</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span><span class="o">/</span><span class="n">conversion</span>
+
+</div>
+<div class="viewcode-block" id="JyBToWM2Kpc2"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.units.JyBToWM2Kpc2">[docs]</a><span class="k">def</span> <span class="nf">JyBToWM2Kpc2</span><span class="p">(</span><span class="n">input_flux</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">,</span> <span class="n">wavelength</span><span class="p">,</span>
+                 <span class="n">invert</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">map_use</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Conversion between Jy/beam and W m^-2 kpc^-2</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_flux :  float</span>
+<span class="sd">        Flux to be converted.</span>
+<span class="sd">    distance : float</span>
+<span class="sd">        Distance to source in parsec.</span>
+<span class="sd">    major : float</span>
+<span class="sd">        Major Axis Beam (arcsec).</span>
+<span class="sd">    minor : float</span>
+<span class="sd">        Minor Axis Beam(arcsec).</span>
+<span class="sd">    wavelength : float</span>
+<span class="sd">        Wavelenght :math:`\lambda` in :math:`\mu m`</span>
+<span class="sd">    invert : True or False</span>
+<span class="sd">        Changes the direction of conversion.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float : the converted Flux.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># change to W/m2/Hz/beam</span>
+    <span class="n">conversion</span> <span class="o">=</span>  <span class="n">JanskyToWatt</span>
+    <span class="c"># calculate the beamsize in kpc2</span>
+    <span class="n">beamsize</span> <span class="o">=</span> <span class="mf">1.133</span> <span class="o">*</span> <span class="p">(</span><span class="n">distance</span> <span class="o">/</span> <span class="mf">1e3</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">major</span> <span class="o">*</span> <span class="n">minor</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">a2r</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">beamsInKpc2</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">beamsize</span>
+    <span class="n">conversion</span> <span class="o">=</span> <span class="n">conversion</span> <span class="o">*</span> <span class="n">beamsInKpc2</span>  <span class="c"># change to W/m2/Hz/kpc2</span>
+    <span class="n">conversion</span> <span class="o">=</span> <span class="n">conversion</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="p">(</span><span class="n">wavelength</span> <span class="o">*</span> <span class="mf">1e-6</span><span class="p">)</span>  <span class="c"># to W/m2/kpc2</span>
+    <span class="k">if</span> <span class="n">invert</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">input_flux</span> <span class="o">*</span> <span class="n">conversion</span>
+    <span class="k">if</span> <span class="n">invert</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">input_flux</span> <span class="o">/</span> <span class="n">conversion</span>
+
+</div>
+<div class="viewcode-block" id="JyBToWKpc2"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.units.JyBToWKpc2">[docs]</a><span class="k">def</span> <span class="nf">JyBToWKpc2</span><span class="p">(</span><span class="n">input_flux</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">,</span>
+               <span class="n">wavelength</span><span class="p">,</span> <span class="n">invert</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">map_use</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Conversion from JyB to W kpc^-2.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_flux :  float</span>
+<span class="sd">        Flux to be converted.</span>
+<span class="sd">    distance : float</span>
+<span class="sd">        Distance to source in parsec.</span>
+<span class="sd">    major : float</span>
+<span class="sd">        Major Axis Beam (arcsec).</span>
+<span class="sd">    minor : float</span>
+<span class="sd">        Minor Axis Beam(arcsec).</span>
+<span class="sd">    wavelength : float</span>
+<span class="sd">        Wavelenght :math:`\lambda` in :math:`\mu m`.</span>
+<span class="sd">    invert : True or False</span>
+<span class="sd">        Changes the direction of conversion.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float : the converted Flux.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">conversion</span> <span class="o">=</span>  <span class="n">JanskyToWatt</span>  <span class="c"># change to W/m2/Hz/beam</span>
+    <span class="n">beamsize</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.133</span> <span class="o">*</span>
+                <span class="p">(</span><span class="n">distance</span> <span class="o">/</span> <span class="mf">1e3</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span>
+                <span class="n">major</span> <span class="o">*</span>
+                <span class="n">minor</span> <span class="o">*</span>
+                <span class="n">const</span><span class="o">.</span><span class="n">a2r</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>  <span class="c"># calculate the beamsize in kpc2.</span>
+    <span class="n">beamsInKpc2</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">beamsize</span>
+    <span class="n">conversion</span> <span class="o">=</span> <span class="n">conversion</span> <span class="o">*</span> <span class="n">beamsInKpc2</span>  <span class="c"># change to W/m2/Hz/kpc2</span>
+    <span class="n">conversion</span> <span class="o">=</span> <span class="n">conversion</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="p">(</span><span class="n">wavelength</span> <span class="o">*</span> <span class="mf">1e-6</span><span class="p">)</span>  <span class="c"># change to</span>
+                                                             <span class="c"># W/m2/kpc2</span>
+    <span class="n">conversion</span> <span class="o">=</span> <span class="n">conversion</span> <span class="o">*</span> <span class="n">Int2Lum</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">cm_or_m</span><span class="o">=</span><span class="s">&#39;m&#39;</span><span class="p">)</span>  <span class="c"># change to</span>
+                                                              <span class="c"># W/kpc2</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">invert</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">input_flux</span> <span class="o">*</span> <span class="n">conversion</span>
+    <span class="k">if</span> <span class="n">invert</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">input_flux</span> <span class="o">/</span> <span class="n">conversion</span>
+
+<span class="c"># The following functions are redundant maps/main.py contains the</span>
+<span class="c"># function flux_conversion, with the same functionality but with more </span>
+<span class="c"># flexibility. This is however not usable outside of the maps environment.</span>
+<span class="c"># The following functions can be used generally and are correct!!</span>
+</div>
+<div class="viewcode-block" id="kelvin_to_jansky"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.units.kelvin_to_jansky">[docs]</a><span class="k">def</span> <span class="nf">kelvin_to_jansky</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Conversion from K.km/s (Tmb) and Jy/beam.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : float</span>
+<span class="sd">        wavelength/frequency [GHZ],</span>
+<span class="sd">    major : float</span>
+<span class="sd">        Major Axis Beam (arcsec),</span>
+<span class="sd">    minor : float</span>
+<span class="sd">        Minor Axis Beam(arcsec),</span>
+<span class="sd">    nu_or_lambda : string</span>
+<span class="sd">         Choose type of x: frequency = ``&#39;nu&#39;`` or wavelength = ``&#39;lambda&#39;``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This function has been compared with the Time estimator from the</span>
+<span class="sd">    [GILDAS] package ASTRO and yields the same conversion factors.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [GILDAS] www.iram.fr/IRAMFR/GILDAS</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;lambda&#39;</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">fcon</span><span class="p">(</span><span class="n">wavelengths</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.359918e7</span> <span class="o">*</span> <span class="n">wavelengths</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">major</span> <span class="o">/</span> <span class="n">minor</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;nu&#39;</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">fcon</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.222233e6</span> <span class="o">*</span> <span class="n">frequency</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">major</span> <span class="o">/</span> <span class="n">minor</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fcon</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="jansky_to_kelvin"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.units.jansky_to_kelvin">[docs]</a><span class="k">def</span> <span class="nf">jansky_to_kelvin</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Conversion from Jy/beam to K.km/s (Tmb).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : float</span>
+<span class="sd">        wavelength/frequency [GHZ],</span>
+<span class="sd">    major : float</span>
+<span class="sd">        Major Axis Beam (arcsec).</span>
+<span class="sd">    minor : float</span>
+<span class="sd">        Minor Axis Beam(arcsec).</span>
+<span class="sd">    nu_or_lambda : string</span>
+<span class="sd">         Choose type of x: frequency = ``&#39;nu&#39;`` or wavelength = ``&#39;lambda&#39;``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">     Same as :func:`kelvin_to_jansky`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;lambda&#39;</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">fcon</span><span class="p">(</span><span class="n">wavelengths</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mf">1.359918e7</span> <span class="o">*</span> <span class="n">wavelengths</span> <span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">major</span> <span class="o">/</span> <span class="n">minor</span>
+    <span class="k">if</span> <span class="n">nu_or_lambda</span> <span class="o">==</span> <span class="s">&#39;nu&#39;</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">fcon</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">Maj</span><span class="p">,</span> <span class="n">Min</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mf">1.222233e6</span> <span class="o">*</span> <span class="n">frequency</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">major</span> <span class="o">/</span> <span class="n">minor</span>
+    <span class="k">return</span> <span class="n">fcon</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Christof Buchbender.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

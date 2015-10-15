@@ -1,0 +1,692 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>astrolyze.maps.stack &mdash; astrolyze 0.0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="astrolyze 0.0.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo1.jpg" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for astrolyze.maps.stack</h1><div class="highlight"><pre>
+<span class="c"># Copyright (C) 2012, Christof Buchbender</span>
+<span class="c"># BSD License (License.txt)</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">pyfits</span>
+<span class="kn">import</span> <span class="nn">pywcs</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">main</span>
+<span class="kn">import</span> <span class="nn">fits</span>
+<span class="kn">import</span> <span class="nn">gildas</span>
+<span class="kn">import</span> <span class="nn">miriad</span>
+
+<span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
+
+
+<div class="viewcode-block" id="Stack"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack">[docs]</a><span class="k">class</span> <span class="nc">Stack</span><span class="p">:</span>
+    <span class="sd">r&quot;&quot;&quot; Allows to treat a folder of images as a whole and to perform the same</span>
+<span class="sd">    transformations on all of the maps. It is also the basis for the SED</span>
+<span class="sd">    package. The images in the input folder can have arbitrary formats, units,</span>
+<span class="sd">    resolutions and other specifications.</span>
+<span class="sd">    The Stack class can help to unify the different parameters of the maps to</span>
+<span class="sd">    help comparing them.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">data_format</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Initialization of the stack. Reading in the maps and creating a list</span>
+<span class="sd">        of ``Map`` class objects, depending on the input format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;gdf&#39;</span><span class="p">,</span> <span class="s">&#39;mean&#39;</span><span class="p">,</span> <span class="s">&#39;velo&#39;</span><span class="p">,</span> <span class="s">&#39;width&#39;</span><span class="p">,</span> <span class="s">&#39;lmv&#39;</span><span class="p">,</span>
+                               <span class="s">&#39;lmv-clean&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;fits&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">miriad_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">folder</span> <span class="o">=</span> <span class="n">folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_list</span><span class="p">(</span><span class="n">data_format</span><span class="o">=</span><span class="n">data_format</span><span class="p">)</span>
+        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_map_format</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolutions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataFormats</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+            <span class="k">print</span> <span class="n">i</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resolutions</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">resolution</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">fluxUnit</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataFormats</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">dataFormat</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Stack.get_map_format"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.get_map_format">[docs]</a>    <span class="k">def</span> <span class="nf">get_map_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot; This function creates returns the correct ``GildasMap``,</span>
+<span class="sd">        ``FitsMap`` or ``MiriadMap`` object without that the data format of the</span>
+<span class="sd">        map has to be given.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        map_name : string</span>
+<span class="sd">           Path and name of the input map.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        Either a ``GildasMap``, ``FitsMap`` or ``MiriadMap` Either a</span>
+<span class="sd">        ``Map`` class object depending on the data format of the input map.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">map_name_split</span> <span class="o">=</span> <span class="n">map_name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)</span>
+        <span class="n">dataFormat</span> <span class="o">=</span> <span class="n">map_name_split</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">dataFormat</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">gildas</span><span class="o">.</span><span class="n">GildasMap</span><span class="p">(</span><span class="n">map_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dataFormat</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fits</span><span class="o">.</span><span class="n">FitsMap</span><span class="p">(</span><span class="n">map_name</span><span class="p">)</span>
+           <span class="c"># check for miriad maybe not perfect.</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">map_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="mi">5</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">map_name</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">miriad</span><span class="o">.</span><span class="n">MiriadMap</span><span class="p">(</span><span class="n">map_name</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Stack.get_list"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.get_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_format</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Loading a list of files in all sub-folders.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        folder : string</span>
+<span class="sd">            The path to the folder that has to be parsed.</span>
+<span class="sd">        data_format : string</span>
+<span class="sd">            Search for specific files containing the string, e.g.</span>
+<span class="sd">            &#39;.fits&#39;</span>
+<span class="sd">        depth : integer</span>
+<span class="sd">            The steps into the sub-folder system. Defaults to maximum depth.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        final_list : array</span>
+<span class="sd">            Array with the string to the files in the folder and sub folders.</span>
+<span class="sd">        folder_list :</span>
+<span class="sd">            Array with the strings to the folders. Only if depth is set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">get_sub_folder</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+            <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">            Returns a list with the contents of a folder.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">miriad_subfolder</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;header&#39;</span><span class="p">,</span> <span class="s">&#39;mask&#39;</span><span class="p">,</span> <span class="s">&#39;image&#39;</span><span class="p">,</span> <span class="s">&#39;history&#39;</span><span class="p">]</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;ls &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &gt; temp&#39;</span><span class="p">)</span>
+            <span class="n">filein</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+            <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">filein</span><span class="p">:</span>
+                <span class="c"># We have to exclude sub_folders that are miriad file</span>
+                <span class="c"># sub-folders.</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">in</span> <span class="n">miriad_subfolder</span>
+                    <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">folder</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">):</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">list</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">strip</span><span class="p">())]</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -r temp&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">folder_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">folder</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c"># Variable to steer the depth of the search.</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">execute</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">while</span> <span class="n">execute</span><span class="p">:</span>
+            <span class="c"># Variables to check if the algorithm found folder</span>
+            <span class="c"># and or files in the last iterations. If only files are</span>
+            <span class="c"># found the loop is stopped.</span>
+            <span class="n">folder_check</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="n">file_check</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="n">new_folder_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">folder</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">folder_list</span><span class="p">:</span>
+                <span class="nb">list</span> <span class="o">=</span> <span class="n">get_sub_folder</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">sub_folder</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">sub_folder</span><span class="p">):</span>
+                        <span class="n">new_folder_list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">sub_folder</span><span class="p">]</span>
+                        <span class="n">folder_check</span> <span class="o">=</span> <span class="bp">True</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sub_folder</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">sub_folder</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">sub_folder</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">data_format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">data_format</span>
+                            <span class="ow">in</span> <span class="n">sub_folder</span><span class="p">):</span>
+                            <span class="k">if</span> <span class="n">sub_folder</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">sub_folder</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">data_format</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">):</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">sub_folder</span><span class="p">]</span>
+                        <span class="n">file_check</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">folder_check</span> <span class="ow">and</span> <span class="n">file_check</span><span class="p">:</span>
+                <span class="n">execute</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="n">depth</span> <span class="ow">and</span> <span class="n">depth</span><span class="p">:</span>
+                <span class="n">execute</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mi">1000</span><span class="p">:</span>
+                <span class="k">print</span> <span class="s">&#39;Not all folders contain files.&#39;</span>
+                <span class="n">execute</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="c"># Replace the list of folders from last iteration with the</span>
+            <span class="c"># list of folders of the next.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">folder_list</span> <span class="o">=</span> <span class="n">new_folder_list</span>
+</div>
+<div class="viewcode-block" id="Stack.copy_structure"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.copy_structure">[docs]</a>    <span class="k">def</span> <span class="nf">copy_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old_prefix</span><span class="p">,</span> <span class="n">new_prefix</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Copies a folder structure from old_prefix to new_prefix. To assure all</span>
+<span class="sd">        folders exists before working with or copying data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        list : list</span>
+<span class="sd">            A list containing the relative or absolute paths to files.</span>
+<span class="sd">        old_prefix : string</span>
+<span class="sd">            The old path to the folder structure that has to be copied. Has to</span>
+<span class="sd">            actually appear in all the strings in list.</span>
+<span class="sd">        new_prefix : string</span>
+<span class="sd">            The path to where the folder structure is to be copied.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        This is useful if one is working on many files stored in several</span>
+<span class="sd">        sub-folders retrieved using :py:func:`get_list`.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        Say the folder structure is like this</span>
+
+<span class="sd">        &gt;&gt;&gt; ls ../modified/</span>
+<span class="sd">        co10/</span>
+<span class="sd">        co21/</span>
+<span class="sd">        &gt;&gt;&gt; ls ../modfied/co10/</span>
+<span class="sd">        map1/</span>
+<span class="sd">        map2/</span>
+<span class="sd">        &gt;&gt;&gt; ls ../modified/co21/</span>
+<span class="sd">        map1/</span>
+<span class="sd">        map2/</span>
+
+<span class="sd">        This can be copied to say ../even_more_modified by doing as follows:</span>
+
+<span class="sd">        &gt;&gt;&gt; from astrolyze.maptools import *</span>
+<span class="sd">        &gt;&gt;&gt; list = maptools.get_list(../modified)</span>
+<span class="sd">        &gt;&gt;&gt; maptools.copy_structure(list, old_prefix=&#39;../modified&#39;,</span>
+<span class="sd">        &gt;&gt;&gt;                         new_prefix=&#39;../even_more_modified&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">old_prefix</span><span class="p">,</span> <span class="n">new_prefix</span><span class="p">)</span>
+            <span class="n">folder_parts</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">string</span> <span class="o">=</span> <span class="n">folder_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">folders</span> <span class="o">=</span> <span class="p">[</span><span class="n">string</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">folder_parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="k">print</span> <span class="n">i</span>
+                <span class="n">string</span> <span class="o">=</span> <span class="n">string</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">i</span>
+                <span class="n">folders</span> <span class="o">+=</span> <span class="p">[</span><span class="n">string</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">folders</span><span class="p">:</span>
+                <span class="k">print</span> <span class="n">i</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+                    <span class="k">print</span> <span class="s">&#39;mkdir &#39;</span> <span class="o">+</span> <span class="n">i</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;mkdir &#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="Stack.unify_resolutions"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.unify_resolutions">[docs]</a>    <span class="k">def</span> <span class="nf">unify_resolutions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Smoothing all maps to the same resolution; either the maximum</span>
+<span class="sd">        resolution found in the stack or a given resolution.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        resolution : float or list</span>
+<span class="sd">            This may be either:</span>
+<span class="sd">                 1. A list with three entries, i.e.</span>
+<span class="sd">                    [[minor_fwhm], [major_fwhm], [position_angle]]</span>
+<span class="sd">                 2. A list with two entries, position_angle defaults to 0, i.e.</span>
+<span class="sd">                    [[minor_fwhm], [major_fwhm]]</span>
+<span class="sd">                 3. A float. Same minor, major fwhm pa=0</span>
+<span class="sd">        folder : string</span>
+<span class="sd">            The path tot the folder in which the files are to be stored.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        The position angle of the output images is fixed to ``Zero`` and can</span>
+<span class="sd">        currently not be modified.</span>
+
+<span class="sd">        Depending on the map units different scaling normalizations have to be</span>
+<span class="sd">        used after smoothing such that the output units are correct. This</span>
+<span class="sd">        function tries to deduce the scaling by itself based on the unit that</span>
+<span class="sd">        is given in the map name. Be sure that this is correct otherwise the</span>
+<span class="sd">        flux values may be wrong in the output images.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">check_folder_state</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+        <span class="c"># Deduce the maximum resolution of the maps in the Stack.</span>
+        <span class="n">max_major_fwhm</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolutions</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">max_minor_fwhm</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolutions</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c"># Not well implemented the position angle is fixed.!!</span>
+        <span class="n">pa</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">new_stack</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c"># This is executed if no specific output resolution is given.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">resolution</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">map_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+                <span class="c"># Check the necessary scaling.</span>
+                <span class="k">if</span> <span class="n">map_</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;JYB&#39;</span><span class="p">]:</span>
+                    <span class="n">scaling</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+                <span class="k">if</span> <span class="n">map_</span><span class="o">.</span><span class="n">fluxUnit</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;TMB&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="s">&#39;KKMS&#39;</span><span class="p">]:</span>
+                    <span class="n">scaling</span> <span class="o">=</span> <span class="s">&#39;0.0&#39;</span>
+                <span class="n">old_resolution</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">resolution</span>
+                <span class="k">if</span> <span class="n">map_</span><span class="o">.</span><span class="n">resolution</span> <span class="o">!=</span> <span class="s">&#39;uk&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                        <span class="n">map_</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">folder</span>
+                    <span class="k">if</span> <span class="n">map_</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">miriad_formats</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                            <span class="n">map_</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">folder</span>
+                        <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toMiriad</span><span class="p">()</span>
+                    <span class="k">elif</span> <span class="n">map_</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">miriad_formats</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp {0} {1}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">map_name</span><span class="p">,</span>
+                                                          <span class="n">folder</span><span class="p">))</span>
+                            <span class="n">map_</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">folder</span>
+                        <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">()</span>
+                    <span class="n">old_map</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">max_major_fwhm</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">max_minor_fwhm</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+                        <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">smooth</span><span class="p">([</span><span class="n">max_major_fwhm</span><span class="p">,</span> <span class="n">max_minor_fwhm</span><span class="p">,</span> <span class="n">pa</span><span class="p">],</span>
+                                           <span class="n">scale</span><span class="o">=</span><span class="n">scaling</span><span class="p">)</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>
+                                  <span class="nb">str</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">)))</span>
+                        <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+                        <span class="n">new_stack</span> <span class="o">+=</span> <span class="p">[</span><span class="n">map_</span><span class="p">]</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>  <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="bp">None</span><span class="p">))</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>
+                                  <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                                                  <span class="n">resolution</span><span class="o">=</span><span class="n">old_resolution</span><span class="p">))</span>
+                    <span class="k">elif</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">max_major_fwhm</span><span class="p">)</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">max_minor_fwhm</span><span class="p">)</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>
+                                  <span class="nb">str</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">)))</span>
+                        <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+                        <span class="n">new_stack</span> <span class="o">+=</span> <span class="p">[</span><span class="n">map_</span><span class="p">]</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>  <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="bp">None</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">resolution</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">map_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span>
+                        <span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                        <span class="k">print</span> <span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">mapName</span> <span class="o">+</span> <span class="s">&#39; : resolution higher than new &#39;</span>
+                               <span class="s">&#39;one. --&gt; Skip! &#39;</span><span class="p">)</span>
+                        <span class="k">continue</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">resolution</span> <span class="o">&gt;</span> <span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">resolution</span> <span class="o">&gt;</span>
+                            <span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                            <span class="k">print</span> <span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">mapName</span> <span class="o">+</span> <span class="s">&#39; : resolution higher than &#39;</span>
+                                   <span class="s">&#39;new one. --&gt; Skip!&#39;</span><span class="p">)</span>
+                            <span class="k">continue</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="k">pass</span>
+                <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">map_</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">folder</span>
+                <span class="c"># change to miriad and save in new folder</span>
+                <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toMiriad</span><span class="p">()</span>
+                <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">smooth</span><span class="p">(</span><span class="n">resolution</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scaling</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span> <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">))</span>
+                <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+                <span class="n">new_stack</span> <span class="o">+=</span> <span class="p">[</span><span class="n">map_</span><span class="p">]</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>  <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="bp">None</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">new_stack</span>
+</div>
+<div class="viewcode-block" id="Stack.unify_units"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.unify_units">[docs]</a>    <span class="k">def</span> <span class="nf">unify_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;JyB&#39;</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Change all maps in the stack to the same unit.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        unit : string</span>
+<span class="sd">            See :py:func:`astrolyze.maps.fits.FitsMap.change_units`</span>
+<span class="sd">            for details.</span>
+<span class="sd">        folder : string</span>
+<span class="sd">            The target folder. By default the maps</span>
+<span class="sd">            are put into their current folder.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Assure that the folder-string has a &#39;\&#39; at the end.</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">check_folder_state</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+        <span class="c"># The stack has to be updated thus create a new container.</span>
+        <span class="n">new_stack</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">map_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+            <span class="c"># The map format has to be fits for this to work.</span>
+            <span class="k">if</span> <span class="n">map_</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">map_</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">folder</span>
+                <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">map_</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span><span class="p">:</span>
+                <span class="n">map_</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">folder</span>
+                <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+            <span class="n">old_map</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span>
+            <span class="k">print</span> <span class="s">&#39;old&#39;</span><span class="p">,</span> <span class="n">old_map</span>
+            <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">change_unit</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+            <span class="k">print</span> <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span><span class="p">,</span> <span class="n">old_map</span>
+            <span class="k">if</span> <span class="n">old_map</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">!=</span> <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">old_map</span><span class="p">))</span>
+            <span class="n">new_stack</span> <span class="o">+=</span> <span class="p">[</span><span class="n">map_</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">new_stack</span>
+</div>
+<div class="viewcode-block" id="Stack.unify_dimensions"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.unify_dimensions">[docs]</a>    <span class="k">def</span> <span class="nf">unify_dimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot; Reproject all maps to the same central coordinates and map</span>
+<span class="sd">        dimensions.  All properties of one template map are copied to all the</span>
+<span class="sd">        other maps using the ``&quot;reproject&quot;`` task of GILDAS.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        template : string</span>
+<span class="sd">            Path to the map that will serve as a template, it may be one of</span>
+<span class="sd">            the input maps of the stack.</span>
+<span class="sd">        folder : string</span>
+<span class="sd">            Path to the folder where the output maps are stored.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Assure that the folder-string has a &#39;\&#39; at the end.</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">check_folder_state</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+        <span class="c"># Load the template map and convert it to Gildas if necessary.</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_map_format</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">template</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">toGildas</span><span class="p">()</span>
+        <span class="c"># The stack has to be updated thus create a new container.</span>
+        <span class="n">new_stack</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c"># Iteratively convert all maps.</span>
+        <span class="k">for</span> <span class="n">map_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">map_</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">map_</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">folder</span>
+                <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toGildas</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">map_</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp {0} {1}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">map_name</span><span class="p">,</span> <span class="n">folder</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">map_</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">folder</span>
+                <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">()</span>
+            <span class="n">old_map</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span>
+            <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">reproject</span><span class="p">(</span><span class="n">template</span><span class="o">=</span><span class="n">template</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+            <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+            <span class="k">print</span> <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span>
+            <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">map_</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">max_value</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">)))])</span>
+            <span class="n">min_value</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">)))])</span>
+            <span class="n">map_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;DATAMAX&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_value</span>
+            <span class="n">map_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;DATAMIN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">min_value</span>
+            <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
+            <span class="n">new_stack</span> <span class="o">+=</span> <span class="p">[</span><span class="n">map_</span><span class="p">]</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">old_map</span><span class="p">))</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;gdf&#39;</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">new_stack</span>
+</div>
+<div class="viewcode-block" id="Stack.unify_projections"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.unify_projections">[docs]</a>    <span class="k">def</span> <span class="nf">unify_projections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Changing the central coordinate and the rotation angle.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Assure that the folder-string has a &#39;\&#39; at the end.</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">check_folder_state</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+        <span class="c"># The stack has to be updated thus create a new container.</span>
+        <span class="n">new_stack</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c"># Iteratively convert all maps.</span>
+        <span class="k">for</span> <span class="n">map_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">map_</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">map_</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">folder</span>
+                <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toGildas</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">map_</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp {0} {1}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">map_name</span><span class="p">,</span> <span class="n">folder</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">map_</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">folder</span>
+                <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">()</span>
+            <span class="n">old_map</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span>
+            <span class="k">if</span> <span class="n">coordinate</span><span class="p">:</span>
+                <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">reproject</span><span class="p">(</span><span class="n">coord</span><span class="o">=</span><span class="n">coordinate</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">angle</span><span class="p">:</span>
+                <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">goRot</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+            <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+            <span class="n">new_stack</span> <span class="o">+=</span> <span class="p">[</span><span class="n">map_</span><span class="p">]</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">old_map</span><span class="p">))</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;gdf&#39;</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">new_stack</span>
+</div>
+<div class="viewcode-block" id="Stack.unify_formats"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.unify_formats">[docs]</a>    <span class="k">def</span> <span class="nf">unify_formats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_format</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot; Converts all maps to the ``target_format`` which has to be one</span>
+<span class="sd">        that is known to astrolyze. Please see TODO for a list of kwon formats.</span>
+<span class="sd">        Default is fits.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        target_format : string</span>
+<span class="sd">            The format to which all maps are converted.</span>
+<span class="sd">        folder : string</span>
+<span class="sd">            Path to the folder where the new maps are stored.</span>
+<span class="sd">            If ``None`` the current folder will be used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">check_folder_state</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+        <span class="c"># Check the target_format and allow alternative format strings.</span>
+        <span class="k">if</span> <span class="n">target_format</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
+            <span class="n">target_format</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span>
+        <span class="k">if</span> <span class="n">target_format</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span><span class="p">:</span>
+            <span class="n">target_format</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span>
+        <span class="k">if</span> <span class="n">target_format</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">miriad_formats</span><span class="p">:</span>
+            <span class="n">target_format</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span>
+        <span class="c"># Iterate over the Stack and update it.</span>
+        <span class="n">new_stack</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">target_format</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">i</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">folder</span>
+                <span class="k">if</span> <span class="n">target_format</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span><span class="p">:</span>
+                    <span class="n">map_</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">target_format</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
+                    <span class="n">map_</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">toGildas</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">target_format</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">miriad_formats</span><span class="p">:</span>
+                    <span class="n">map_</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">toMiriad</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">i</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">in</span> <span class="n">target_format</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">map_name</span><span class="p">,</span> <span class="n">folder</span><span class="p">))</span>
+                    <span class="n">map_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_map_format</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">folder</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">map_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_map_format</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+            <span class="n">new_stack</span> <span class="o">+=</span> <span class="p">[</span><span class="n">map_</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">new_stack</span>
+</div>
+<div class="viewcode-block" id="Stack.pixel_pixel_compare"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.pixel_pixel_compare">[docs]</a>    <span class="k">def</span> <span class="nf">pixel_pixel_compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e6</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot; Producing a pixel-to-pixel comparison for all combinations</span>
+<span class="sd">        possible between the maps of the stack.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        folder : string</span>
+<span class="sd">           Path to the folder where the text files with the pixel</span>
+<span class="sd">           to pixel comparisons are stored</span>
+
+<span class="sd">        plot : [True | False]</span>
+<span class="sd">           Decides whether to produce pixel-to-pixel plots directly.</span>
+
+<span class="sd">        tol : float</span>
+<span class="sd">           The tolerance for the maximum difference between the</span>
+<span class="sd">           values of the pixel of two compared maps. Default to 1e6.</span>
+
+<span class="sd">           Returns</span>
+<span class="sd">           -------</span>
+
+<span class="sd">           Created text files in the specified folders that contain two columns</span>
+<span class="sd">           with the pixel-to-pixel comparisons. These can be used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">_scatter_plot</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+            <span class="sd">r&quot;&quot;&quot; This plots the pixel_to_pixel comparisons.</span>
+
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+
+<span class="sd">            folder : string</span>
+<span class="sd">                Path to the folder where the images should be stored.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">folder</span> <span class="o">=</span> <span class="n">check_folder_state</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+            <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;green&#39;</span><span class="p">,</span> <span class="s">&#39;red&#39;</span><span class="p">,</span> <span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="s">&#39;yellow&#39;</span><span class="p">,</span> <span class="s">&#39;blue&#39;</span><span class="p">,</span> <span class="s">&#39;navy&#39;</span><span class="p">]</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;ls &gt; temp&#39;</span><span class="p">)</span>
+            <span class="n">filein</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+            <span class="k">if</span> <span class="s">&#39;scatterPlots</span><span class="se">\n</span><span class="s">&#39;</span> <span class="ow">in</span> <span class="n">filein</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf scatterPlots/*.*&#39;</span><span class="p">)</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;mkdir scatterPlots&#39;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm temp&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;ls &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &gt; temp&#39;</span><span class="p">)</span>
+                <span class="n">filein</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">filein</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                            <span class="n">i</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">region</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+                    <span class="n">filein</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">filein</span><span class="p">:</span>
+                        <span class="n">x</span> <span class="o">+=</span> <span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]]</span>
+                        <span class="n">y</span> <span class="o">+=</span> <span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">]]</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s">&#39;x&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">region</span><span class="p">)</span>
+                    <span class="n">a</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">numpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s">&#39;lower right&#39;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s">&#39;scatterPlots/&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&#39;.eps&#39;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                            <span class="n">facecolor</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">,</span>
+                            <span class="n">orientation</span><span class="o">=</span><span class="s">&#39;portrait&#39;</span><span class="p">,</span> <span class="n">papertype</span><span class="o">=</span><span class="s">&#39;a4&#39;</span><span class="p">,</span>
+                            <span class="n">format</span><span class="o">=</span><span class="s">&#39;eps&#39;</span><span class="p">,</span> <span class="n">transparent</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                            <span class="n">bbox_inches</span><span class="o">=</span><span class="s">&#39;tight&#39;</span><span class="p">)</span>
+
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">check_folder_state</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unify_formats</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="nb">list</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="n">i1</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)</span>
+            <span class="n">dataFormat</span> <span class="o">=</span> <span class="n">i1</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="k">print</span> <span class="n">dataFormat</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">:</span>
+                <span class="n">i1</span> <span class="o">=</span> <span class="n">j</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)</span>
+                <span class="k">print</span> <span class="n">j</span>
+                <span class="n">dataFormat</span> <span class="o">=</span> <span class="n">i1</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                <span class="k">print</span> <span class="n">dataFormat</span>
+                <span class="k">if</span> <span class="n">dataFormat</span> <span class="o">==</span> <span class="s">&#39;fits&#39;</span><span class="p">:</span>
+                    <span class="nb">map</span> <span class="o">=</span> <span class="n">mapClassFits</span><span class="o">.</span><span class="n">fitsMap</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+                    <span class="nb">map</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">toMiriad</span><span class="p">()</span>
+                    <span class="n">j</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">mapName</span>
+                <span class="k">if</span> <span class="n">dataFormat</span> <span class="o">==</span> <span class="s">&#39;gdf&#39;</span><span class="p">:</span>
+                    <span class="nb">map</span> <span class="o">=</span> <span class="n">mapClassGildas</span><span class="o">.</span><span class="n">gildasMap</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+                    <span class="nb">map</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">toMiriad</span><span class="p">()</span>
+                    <span class="n">j</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">mapName</span>
+                <span class="n">first</span> <span class="o">=</span> <span class="n">mapClassMiriad</span><span class="o">.</span><span class="n">miriadMap</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+                <span class="n">second</span> <span class="o">=</span> <span class="n">mapClassMiriad</span><span class="o">.</span><span class="n">miriadMap</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;mkdir &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">one</span><span class="o">.</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span>
+                          <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">two</span><span class="o">.</span><span class="n">species</span><span class="p">))</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;imcmp in1=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; in2=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="o">+</span>
+                          <span class="s">&#39;log=&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">one</span><span class="o">.</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span>
+                          <span class="s">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">two</span><span class="o">.</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">one</span><span class="o">.</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                          <span class="nb">str</span><span class="p">(</span><span class="n">two</span><span class="o">.</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">one</span><span class="o">.</span><span class="n">comments</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span>
+                          <span class="s">&#39;.log tol=&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">tol</span><span class="p">))</span>
+
+
+<span class="c"># Some help functions</span>
+
+</div></div>
+<span class="k">def</span> <span class="nf">check_folder_state</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="s">&#39;/&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">folder</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">folder</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span>
+    <span class="c"># If it does not exist we create it.</span>
+    <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;mkdir {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">folder</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">folder</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Christof Buchbender.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

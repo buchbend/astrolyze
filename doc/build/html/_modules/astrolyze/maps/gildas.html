@@ -1,0 +1,968 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>astrolyze.maps.gildas &mdash; astrolyze 0.0.2 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="astrolyze 0.0.2 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/logo1.jpg" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for astrolyze.maps.gildas</h1><div class="highlight"><pre>
+<span class="c"># Copyright (C) 2012, Christof Buchbender</span>
+<span class="c"># BSD Licencse</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">pyfits</span>
+<span class="kn">import</span> <span class="nn">pywcs</span>
+
+<span class="kn">from</span> <span class="nn">pysqlite2</span> <span class="kn">import</span> <span class="n">dbapi2</span> <span class="k">as</span> <span class="n">sqlite</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
+<span class="kn">import</span> <span class="nn">pygreg</span>
+
+<span class="kn">import</span> <span class="nn">main</span>
+<span class="kn">import</span> <span class="nn">fits</span>
+<span class="kn">import</span> <span class="nn">miriad</span>
+
+<span class="kn">import</span> <span class="nn">astrolyze</span>
+<span class="kn">from</span> <span class="nn">astrolyze.spectra</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
+
+
+<div class="viewcode-block" id="GildasMap"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap">[docs]</a><span class="k">class</span> <span class="nc">GildasMap</span><span class="p">(</span><span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Wrapping GILDAS functions to use them inline with Python.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;Initializes a Gildas map&quot;&quot;&quot;</span>
+        <span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_map_to_greg</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
+            <span class="k">print</span> <span class="p">(</span><span class="s">&#39;Exiting: Not a Gildas format (AFAIK). Supported&#39;</span>
+                   <span class="s">&#39;Formats Can be extended.&#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_init_map_to_greg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;image &quot;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">+</span> <span class="s">&#39;&quot;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_gildas_variables</span><span class="p">()</span>
+        <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;let name &quot;&#39;</span> <span class="o">+</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span><span class="p">,</span> <span class="s">&#39;&quot;&#39;</span><span class="p">))</span>
+        <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;let type &quot;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">+</span> <span class="s">&#39;&quot;&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_load_gildas_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        This function load the Gildas variables and</span>
+<span class="sd">        extracts from some of the SicVar instances variables consiting of</span>
+<span class="sd">        sicname, sicdata and siclevel, to just the data part to be used by</span>
+<span class="sd">        the python parts of the programs. The extracted variables are to be</span>
+<span class="sd">        extended while adding functionality to the GildasMap mehtods.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vars</span> <span class="o">=</span> <span class="n">pygreg</span><span class="o">.</span><span class="n">gdict</span>
+        <span class="c"># load the map dimensions stored in g_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">g_dim</span><span class="o">.</span><span class="n">__sicdata__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">naxis_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">naxis_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c"># Load the array with, central Pixel, value, and increment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">convert</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">g_convert</span><span class="o">.</span><span class="n">__sicdata__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crpix_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crval_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cdelt_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crpix_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crval_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cdelt_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ra_coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">g_ra</span><span class="o">.</span><span class="n">__sicdata__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dec_coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">g_dec</span><span class="o">.</span><span class="n">__sicdata__</span>
+        <span class="c"># conversion to degrees</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ra_coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ra_coordinate</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">r2d</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dec_coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_coordinate</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">r2d</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">central_coordinate_degrees</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ra_coordinate</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">dec_coordinate</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">central_coordinate_equatorial</span> <span class="o">=</span> <span class="n">astFunc</span><span class="o">.</span><span class="n">degrees_to_equatorial</span><span class="p">(</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">central_coordinate_degrees</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GildasMap.set_defaults"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.set_defaults">[docs]</a>    <span class="k">def</span> <span class="nf">set_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Reset all selection criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;set def&#39;</span><span class="p">)</span>
+        <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;clear&#39;</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">_regrid_to_arcsec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Regrids the pixel size of the map to a multiple of arcseconds.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        value : float</span>
+<span class="sd">            The new pixel size in arcsecs.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        .. warning::</span>
+<span class="sd">            Old function no guarantee of functionality. Test or remove!</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+<span class="c">#        fitsFile = self.toFits()</span>
+<span class="c">#        self.naxis1 = float(fitsFile.header[&#39;naxis1&#39;])</span>
+<span class="c">#        self.naxis2 = float(fitsFile.header[&#39;naxis1&#39;])</span>
+<span class="c">#        self.cdelt1 = float(fitsFile.header[&#39;CDELT1&#39;])</span>
+<span class="c">#        self.cdelt2 = float(fitsFile.header[&#39;CDELT2&#39;])</span>
+<span class="c">#        self.crval1 = float(fitsFile.header[&#39;CRVAL1&#39;])</span>
+<span class="c">#        self.crval2 = float(fitsFile.header[&#39;CRVAL2&#39;])</span>
+<span class="c">#        self.crpix1 = float(fitsFile.header[&#39;CRPIX1&#39;])</span>
+<span class="c">#        self.crpix2 = float(fitsFile.header[&#39;CRPIX2&#39;])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cdelt1arcs</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdelt_1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">value</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">naxis1New</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">naxis_1</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdelt1arcs</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crpix1New</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">naxis1New</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naxis_1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">crpix_1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;IP1&#39;</span><span class="p">]</span>
+        <span class="n">__interpolate_init</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;interpolate.init&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__init_string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;TASK\FILE </span><span class="se">\&quot;</span><span class="s">Input file</span><span class="se">\&quot;</span><span class="s"> Y_NAME$ &#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\FILE </span><span class="se">\&quot;</span><span class="s">Output file</span><span class="se">\&quot;</span><span class="s"> X_NAME$ &#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\INTEGER </span><span class="se">\&quot;</span><span class="s">Number of pixels</span><span class="se">\&quot;</span><span class="s"> NX$ &#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naxis1New</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\REAL </span><span class="se">\&quot;</span><span class="s">New reference pixel</span><span class="se">\&quot;</span><span class="s"> REFERENCE$ &#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crpix1New</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\REAL </span><span class="se">\&quot;</span><span class="s">New value at reference pixel</span><span class="se">\&quot;</span><span class="s"> VALUE$ &#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crval_1</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\REAL </span><span class="se">\&quot;</span><span class="s">New increment</span><span class="se">\&quot;</span><span class="s"> INCREMENT$ &#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdelt1arcs</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; </span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\GO</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">__interpolate_init</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">__init_string</span><span class="p">)</span>
+        <span class="n">__fileout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">__fileout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;interpolate.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__fileout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;run interpolate interpolate.init /nowindow</span><span class="se">\n</span><span class="s">exit</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">__fileout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @interpolate.greg&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GildasMap.spectrum"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.spectrum">[docs]</a>    <span class="k">def</span> <span class="nf">spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">fileout</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">create_spectrum</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper to the spectrum command from greg that extracts</span>
+<span class="sd">        a spectrum from a cube at a given positions. By default it also creates</span>
+<span class="sd">        a 30m file readable by class from the table.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        coordinate : list</span>
+<span class="sd">            A list with the coordinates in floats in units of Degrees,</span>
+<span class="sd">            or in string for equatorial coordinate.</span>
+<span class="sd">        fileout : string</span>
+<span class="sd">            The name of the table where the spectrum will be stored.</span>
+<span class="sd">            Default is the same name as the map with ``&quot;.tab&quot;`` as ending.</span>
+<span class="sd">        prefix :</span>
+<span class="sd">            The path to the folder where the newly created file will be</span>
+<span class="sd">            stored.  Defaults to the prefix currently stored in self.prefix.</span>
+<span class="sd">        create_spectrum : True or False</span>
+<span class="sd">            Turn the creation of a 30m with the spectrum of ``False`` or on</span>
+<span class="sd">            ``True``.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; from astrolyze.maps import *</span>
+<span class="sd">        &gt;&gt;&gt; map =  GildasMap(&#39;M33_PdBI_12co10_Tmb_22.0_2kms.gdf&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; coordinate = [&#39;1:34:7.00&#39;, &#39;+30:47:52.00&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; map.spectrum(coordinate)</span>
+
+<span class="sd">        Creates M33_PdBI_12co10_Tmb_22.0_2kms.tab in the present folder.</span>
+
+<span class="sd">        ..        Tested and working.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm spectrum.init&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">fileout</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">fileout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;tab&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fileout</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">fileout</span>
+        <span class="n">__maskInit</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;spectrum.init&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__init_string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;! Spectrum.init</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\FILE &quot;Input file name&quot; IN$ &quot;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">+</span>
+                         <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">TASK\FILE &quot;Output table name&quot; OUT$ &quot;&#39;</span>
+                         <span class="o">+</span> <span class="n">fileout</span>
+                         <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\CHARACTER &quot;Absolute coordinate&quot; COORD$ &quot;&#39;</span>
+                         <span class="o">+</span> <span class="n">coordinate</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="n">coordinate</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\GO&#39;</span><span class="p">)</span>
+        <span class="n">__maskInit</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">__init_string</span><span class="p">)</span>
+        <span class="n">__maskInit</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">__convFile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;run spectrum spectrum.init /nowindow</span><span class="se">\n</span><span class="s">exit</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm spectrum.init&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">create_spectrum</span><span class="p">:</span>
+            <span class="n">file_30m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">comments</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;extract&#39;</span><span class="p">],</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+                                       <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;30m&#39;</span><span class="p">)</span>
+            <span class="k">print</span> <span class="s">&#39;file out &#39;</span> <span class="o">+</span> <span class="n">file_30m</span> <span class="o">+</span> <span class="s">&#39; single /over&#39;</span>
+            <span class="k">print</span> <span class="s">&#39;col x 1 y 2  /table &#39;</span> <span class="o">+</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">fileout</span>
+            <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;file out &#39;</span> <span class="o">+</span> <span class="n">file_30m</span> <span class="o">+</span> <span class="s">&#39; single /over&#39;</span><span class="p">)</span>
+            <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;col x 1 y 2  /table &#39;</span> <span class="o">+</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">fileout</span><span class="p">)</span>
+            <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;model y x&#39;</span><span class="p">)</span>
+            <span class="n">pyclass</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;write&#39;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="GildasMap.lmv"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.lmv">[docs]</a>    <span class="k">def</span> <span class="nf">lmv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileout</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper to the lmv command of Class to extract spectra from a</span>
+<span class="sd">        spectral cube.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        fileout : string</span>
+<span class="sd">            The name of the class file to write the spectra to. Defaults to</span>
+<span class="sd">            the map_name with .30m ending.</span>
+
+<span class="sd">        prefix : string</span>
+<span class="sd">            The path were the class file will be stores. Defaults to</span>
+<span class="sd">            the current path.</span>
+
+<span class="sd">..        Tested and working.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">fileout</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">fileout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;30m&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fileout</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">fileout</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;file out &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fileout</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; single /overwrite</span><span class="se">\n</span><span class="s">&#39;</span>
+                  <span class="s">&#39;lmv &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                  <span class="s">&#39;exit&#39;</span><span class="p">)</span>
+        <span class="n">classScript</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp.class&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">classScript</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+        <span class="n">classScript</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;class -nw @temp.class&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm temp.class&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ClassSpectra</span><span class="p">(</span><span class="n">fileout</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="GildasMap.mask"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.mask">[docs]</a>    <span class="k">def</span> <span class="nf">mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">polygon</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper to the GREG task mask:</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        polygon : string</span>
+<span class="sd">            path to a GILDAS polygon file with ending ``&quot;.pol&quot;``</span>
+
+<span class="sd">        prefix : string</span>
+<span class="sd">            The path where the output is to be stored if different</span>
+<span class="sd">            from the current prefix of the map.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        mapObject : The masked map object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; map.mask(&#39;poly/sourceA.pol&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="n">__maskInit</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;mask.init&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__comment</span> <span class="o">=</span> <span class="p">[</span><span class="n">polygon</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.pol&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)]</span>
+        <span class="n">__init_string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;TASK\FILE &quot;Polygon data file&quot; POLYGON$ &quot;&#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="n">polygon</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;&quot; </span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\FILE &quot;Input image&quot; Y_NAME$ &quot;&#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\FILE &quot;Output image&quot; X_NAME$ &quot;&#39;</span>
+                         <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+                                               <span class="n">comments</span><span class="o">=</span><span class="n">__comment</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\LOGICAL &quot;Mask inside (.true.) or outside &#39;</span>
+                         <span class="s">&#39;(.false.)&quot; MASK_IN$ NO</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\LOGICAL &quot;Modify blanking value&quot; MODIFY$ NO</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;SAY &quot;If YES, Fill information Below&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\REAL &quot;New blanking value&quot; BLANKING$ 0 </span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\GO&#39;</span><span class="p">)</span>
+        <span class="n">__maskInit</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">__init_string</span><span class="p">)</span>
+        <span class="n">__maskInit</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;more mask.init&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;run mask mask.init /nowindow</span><span class="se">\n</span><span class="s">exit</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm mask.init&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">GildasMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>  <span class="n">comments</span><span class="o">=</span><span class="n">__comment</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="GildasMap.reproject"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.reproject">[docs]</a>    <span class="k">def</span> <span class="nf">reproject</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">coord</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                  <span class="n">keep_pixsize</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Wraps the GREG task reproject. Either use template *or* coord.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        template : string</span>
+<span class="sd">            Full path to a map in GDF Format whose central</span>
+<span class="sd">            coordinate and pixel size will serve as a template.</span>
+<span class="sd">        coord : list</span>
+<span class="sd">            List of coordinate strings in RA DEC (J2000) that</span>
+<span class="sd">            will become the new centre of the map.</span>
+<span class="sd">        prefix : string</span>
+<span class="sd">            The path where the output is to be stored if different</span>
+<span class="sd">            from the current prefix of the map. If None the current</span>
+<span class="sd">            self.prefix of the GildasMap instance is used.</span>
+<span class="sd">        keep_pixsize : bool</span>
+<span class="sd">            If False reproject guesses the new pixel sizes after reprojection</span>
+<span class="sd">            these are normally smaller than the original ones.</span>
+<span class="sd">            If True the old pixel sizes are enforced.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        GildasMap Object : Instance for the reprojected map.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        SystemExit</span>
+<span class="sd">            If both **template** and **coord** are not ``None``.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If keep_pixsize is not a boolean.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; map.reproject(coord = [&#39;1:34:32.8&#39;, &#39;30:47:00.6&#39;])</span>
+<span class="sd">        &gt;&gt;&gt; map.reproject(template = &#39;M33_SPIRE_250_JyB_18.1.gdf&#39;)</span>
+
+<span class="sd">        References</span>
+<span class="sd">        ----------</span>
+<span class="sd">        For more information on the Gildas task see:</span>
+<span class="sd">        .. [1] www.iram.fr/GILDAS/</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">coord</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&quot;Please use either template OR coord.&quot;</span>
+            <span class="k">raise</span> <span class="ne">SystemExit</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">keep_pixsize</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;keep_pixsize has to be True or False.&#39;</span><span class="p">)</span>
+        <span class="n">__reproInit</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;reproject.init&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">template</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp {} template.gdf&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">template</span><span class="p">))</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="s">&#39;template.gdf&#39;</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;repro&#39;</span><span class="p">]</span>
+            <span class="n">__init_string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;TASK\FILE &quot;Input file&quot; Z_NAME$ &quot;&#39;</span> <span class="o">+</span>
+                             <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\FILE &quot;Output file&quot; X_NAME$ &quot;&#39;</span> <span class="o">+</span>
+                             <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+                                                 <span class="n">comments</span><span class="o">=</span><span class="n">comment</span><span class="p">))</span>
+                             <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\LOGICAL &quot;Reproject on a third file</span><span class="se">\&#39;</span><span class="s">s &#39;</span>
+                             <span class="s">&#39;projection [YES|NO]&quot; TEMPLATE$ YES</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\FILE &quot;This Template File Name&quot; Y_NAME$ &quot;&#39;</span> <span class="o">+</span>
+                             <span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\CHARACTER &quot;Projection type&quot; PROJECTION$ &#39;</span>
+                             <span class="s">&#39;&quot;RADIO&quot; /CHOICE     NONE GNOMONIC ORTHOGRAPHIC  &#39;</span>
+                             <span class="s">&#39;AZIMUTHAL STEREOGRAPHIC LAMBERT AITOFF RADIO</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\CHARACTER &quot;Coord.System &#39;</span>
+                             <span class="s">&#39;[EQUATORIAL [epoch]|&#39;</span>
+                             <span class="s">&#39;GALACTIC]&quot; SYSTEM$ &quot;EQUATORIAL 2000&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\CHARACTER &quot;Coord. 1 of projection center. &#39;</span>
+                             <span class="s">&#39;Could be UNCHANGED&quot;     CENTER_1$ &quot;01:34:11.8&quot; &#39;</span>
+                             <span class="s">&#39;/CHOICE UNCHANGED *</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\CHARACTER &quot;Coord. 2 of projection &#39;</span>
+                             <span class="s">&#39;center&quot; CENTER_2$ &quot;+30:50:23.4&quot; &#39;</span>
+                             <span class="s">&#39;/CHOICE UNCHANGED &#39;</span>
+                             <span class="s">&#39;*</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\REAL &quot;Position angle of projection&quot; ANGLE$ &#39;</span>
+                             <span class="s">&#39;0.000000000000000 /RANGE 0 360</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\INTEGER &quot;Dimensions of output image &#39;</span>
+                             <span class="s">&#39;[0 0 mean guess]&quot; DIMENSIONS$[2]  0 0</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\REAL &quot;First axis conversion formula [0 0 0 &#39;</span>
+                             <span class="s">&#39;mean guess]&quot; AXIS_1$[3]  0 0 0</span><span class="se">\n</span><span class="s">TASK&#39;</span>
+                             <span class="s">&#39;\REAL &quot;Second &#39;</span>
+                             <span class="s">&#39;axis conversion formula [0 0 0 mean guess]&quot; &#39;</span>
+                             <span class="s">&#39;AXIS_2$[3] 0 0 0</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\LOGICAL &quot;Change blanking value&quot; &#39;</span>
+                             <span class="s">&#39;CHANGE$ NO</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\REAL &quot;New blanking value and tolerance&quot; &#39;</span>
+                             <span class="s">&#39;BLANKING$[2]  0 0</span><span class="se">\n</span><span class="s">TASK\GO</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="n">__reproInit</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">__init_string</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">coord</span><span class="p">:</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;repro&#39;</span><span class="p">]</span>
+            <span class="n">__init_string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;TASK\FILE &quot;Input file&quot; Z_NAME$ &quot;&#39;</span> <span class="o">+</span>
+                             <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\FILE &quot;Output file&quot; X_NAME$ &quot;&#39;</span> <span class="o">+</span>
+                             <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+                                                 <span class="n">comments</span><span class="o">=</span><span class="n">comment</span><span class="p">))</span>
+                             <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\LOGICAL &quot;Reproject on a third file</span><span class="se">\&#39;</span><span class="s">s &#39;</span>
+                             <span class="s">&#39;projection [YES|NO]&quot; TEMPLATE$ NO</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\FILE &quot;This Template File Name&quot; Y_NAME$ &quot;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\CHARACTER &quot;Projection type&quot; PROJECTION$ &#39;</span>
+                             <span class="s">&#39;&quot;RADIO&quot; /CHOICE     NONE GNOMONIC ORTHOGRAPHIC  &#39;</span>
+                             <span class="s">&#39;AZIMUTHAL STEREOGRAPHIC LAMBERT AITOFF RADIO</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\CHARACTER &quot;Coord.System &#39;</span>
+                             <span class="s">&#39;[EQUATORIAL [epoch]|&#39;</span>
+                             <span class="s">&#39;GALACTIC]&quot; SYSTEM$ &quot;EQUATORIAL 2000&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\CHARACTER &quot;Coord. 1 of projection center. &#39;</span>
+                             <span class="s">&#39;Could be UNCHANGED&quot;     CENTER_1$ &quot;&#39;</span> <span class="o">+</span>
+                             <span class="nb">str</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39;&quot; /CHOICE UNCHANGED *</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\CHARACTER &quot;Coord. 2 of projection center&quot; &#39;</span>
+                             <span class="s">&#39;CENTER_2$ &quot;&#39;</span> <span class="o">+</span>
+                             <span class="nb">str</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39;&quot; /CHOICE UNCHANGED *</span><span class="se">\n</span><span class="s">&#39;</span>
+                             <span class="s">&#39;TASK\REAL &quot;Position angle of projection&quot; ANGLE$ &#39;</span>
+                             <span class="s">&#39;0.000000000000000 /RANGE 0 360</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">keep_pixsize</span><span class="p">:</span>
+                <span class="n">__init_string</span> <span class="o">+=</span> <span class="p">(</span><span class="s">&#39;TASK\INTEGER &quot;Dimensions of output image [0&#39;</span>
+                                  <span class="s">&#39;0 mean guess]&quot; DIMENSIONS$[2] &#39;</span> <span class="o">+</span>
+                                  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naxis_1</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naxis_1</span><span class="p">)</span> <span class="o">+</span>
+                                  <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span> <span class="s">&#39;TASK\REAL &quot;First axis conversion&#39;</span>
+                                  <span class="s">&#39;formula [0 0 0 &#39;</span> <span class="s">&#39;mean guess]&quot; AXIS_1$[3] &#39;</span>
+                                  <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crpix_1</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+                                  <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crval_1</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+                                  <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdelt_1</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span> <span class="s">&#39;TASK\REAL&#39;</span>
+                                  <span class="s">&#39;&quot;Second axis conversion formula [0 0 0 &#39;</span>
+                                  <span class="s">&#39;mean guess]&quot; AXIS_2$[3] &#39;</span> <span class="o">+</span>
+                                  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crpix_2</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                                  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crval_2</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                                  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdelt_2</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">keep_pixsize</span><span class="p">:</span>
+                <span class="n">__init_string</span> <span class="o">+=</span> <span class="p">(</span><span class="s">&#39;TASK\INTEGER &quot;Dimensions of output image [0&#39;</span>
+                                  <span class="s">&#39;0 mean guess]&quot; DIMENSIONS$[2] 0 0 </span><span class="se">\n</span><span class="s">&#39;</span>
+                                  <span class="s">&#39;TASK\REAL &quot;First axis conversion formula &#39;</span>
+                                  <span class="s">&#39;[0 0 0 mean guess]&quot; AXIS_1$[3] 0 0 0 </span><span class="se">\n</span><span class="s"> &#39;</span>
+                                  <span class="s">&#39;TASK\REAL &quot;Second axis conversion formula &#39;</span>
+                                  <span class="s">&#39;[0 0 0 mean guess]&quot; AXIS_2$[3] 0 0 0 </span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="n">__init_string</span> <span class="o">+=</span> <span class="p">(</span><span class="s">&#39;TASK\LOGICAL &quot;Change blanking value&quot; CHANGE$ &#39;</span>
+                              <span class="s">&#39;YES</span><span class="se">\n</span><span class="s"> TASK\REAL &quot;New blanking value and &#39;</span>
+                              <span class="s">&#39;tolerance&quot; BLANKING$[2]  0 0</span><span class="se">\n</span><span class="s">&#39;</span>
+                              <span class="s">&#39;TASK\GO</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="n">__reproInit</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">__init_string</span><span class="p">)</span>
+        <span class="n">__reproInit</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="c"># write the Greg Script</span>
+        <span class="n">__convFile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;run reproject reproject.init /nowindow</span><span class="se">\n</span><span class="s">exit</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;more reproject.init&#39;</span><span class="p">)</span>
+        <span class="c"># execute the Greg Script and then delete it</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm reproject.init&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm template.gdf&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">GildasMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">comment</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="GildasMap.moments"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.moments">[docs]</a>    <span class="k">def</span> <span class="nf">moments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">velo_range</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">smooth</span><span class="o">=</span><span class="s">&#39;YES&#39;</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Wraps the GREG task moments creating the first three moments</span>
+<span class="sd">        of the map.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        velo_range : list</span>
+<span class="sd">            Velocity range for the integration.</span>
+<span class="sd">        threshold : float</span>
+<span class="sd">            Value under which pixels are blanked.</span>
+<span class="sd">        smooth : string</span>
+<span class="sd">            One of Either ``&quot;NO&quot;`` or ``&quot;YES&quot;``. Controls</span>
+<span class="sd">            if the map is smoothed in velocity before applying the cut</span>
+<span class="sd">            threshold. Getting rid of noise peaks over the threshold.</span>
+<span class="sd">            Defaults to ``&#39;YES&#39;``</span>
+<span class="sd">        prefix : string</span>
+<span class="sd">            The path where the output is to be stored if different</span>
+<span class="sd">            from the current prefix of the map.</span>
+<span class="sd">        comment : string</span>
+<span class="sd">            Optional comments to be added to the new map name.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mean : MapObject</span>
+<span class="sd">            The zeroth moment, i.e. the integrated intensity, is returned as a</span>
+<span class="sd">            GildasMap object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span>
+        <span class="k">if</span> <span class="n">comment</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">save_comments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="n">__momentInit</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;moments.init&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__init_string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;TASK\FILE &quot;Input file name&quot; IN$ &quot;&#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\FILE &quot;Output files name (no extension)&quot; &#39;</span>
+                         <span class="s">&#39;OUT$ &quot;&#39;</span> <span class="o">+</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">resolution</span><span class="o">=</span><span class="s">&#39;dummy&#39;</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+                                         <span class="n">comments</span><span class="o">=</span><span class="p">[])</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span>
+                                                              <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span><span class="p">,</span>
+                                                              <span class="s">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\REAL &quot;Velocity range&quot; VELOCITY$[2]  &#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="n">velo_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">velo_range</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\REAL &quot;Detection threshold&quot; THRESHOLD$ &#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="n">threshold</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; </span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\LOGICAL &quot;Smooth before detetction ?&quot; SMOOTH$ &#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="n">smooth</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; </span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;TASK\GO</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">__momentInit</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">__init_string</span><span class="p">)</span>
+        <span class="n">__momentInit</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">__convFile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;run moments moments.init /nowindow</span><span class="se">\n</span><span class="s">exit</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;mv &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">resolution</span><span class="o">=</span><span class="s">&#39;dummy&#39;</span><span class="p">,</span>
+                  <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="p">[],</span> <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;mean&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">save_comments</span><span class="p">,</span>
+                  <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;mean&#39;</span><span class="p">))</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;mv &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">resolution</span><span class="o">=</span><span class="s">&#39;dummy&#39;</span><span class="p">,</span>
+                  <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="p">[],</span> <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;velo&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">save_comments</span><span class="p">,</span>
+                  <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;velo&#39;</span><span class="p">))</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;mv &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">resolution</span><span class="o">=</span><span class="s">&#39;dummy&#39;</span><span class="p">,</span>
+                  <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="p">[],</span> <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;width&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">save_comments</span><span class="p">,</span>
+                  <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;width&#39;</span><span class="p">))</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm moments.init&#39;</span><span class="p">)</span>
+        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+                              <span class="n">comments</span><span class="o">=</span><span class="n">save_comments</span><span class="p">,</span>
+                              <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;mean&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">GildasMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+                                         <span class="n">comments</span><span class="o">=</span><span class="n">save_comments</span><span class="p">,</span>
+                                         <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;mean&#39;</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="GildasMap.goRot"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.goRot">[docs]</a>    <span class="k">def</span> <span class="nf">goRot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper to the GREG go rot command, which rotates maps around their</span>
+<span class="sd">        central coordinate stored in the header.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        angle : float [deg]</span>
+<span class="sd">            Rotation angle.</span>
+<span class="sd">        prefix : string</span>
+<span class="sd">            The path where the output is to be stored if different</span>
+<span class="sd">            from the current prefix of the map.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        GildasMap Object : Instance for the reprojected map.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; map.goRot(45)</span>
+
+<span class="sd">        To change the central coordinate first use</span>
+<span class="sd">        :py:func:`maps.gildas.GildasMap.reproject` e.g.:</span>
+
+<span class="sd">        &gt;&gt;&gt; map = map.reproject(coord=[&#39;new_RA_string&#39;,&#39;new_DEC_string&#39;])</span>
+<span class="sd">        &gt;&gt;&gt; map.goRot(45)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">__rotate</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;rotateTemp.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__rotate</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;let name &#39;</span> <span class="o">+</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span>
+                       <span class="s">&#39;</span><span class="se">\n</span><span class="s"> let type &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                       <span class="s">&#39;let angle &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                       <span class="s">&#39;go rot</span><span class="se">\n</span><span class="s">&#39;</span>
+                       <span class="s">&#39;exit</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">__rotate</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @rotateTemp.greg&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">comments</span> <span class="o">+=</span> <span class="p">[(</span><span class="s">&#39;rot&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span>
+                          <span class="s">&#39;p&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39;deg&#39;</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;rot&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;deg&#39;</span><span class="p">]</span>
+
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;mv &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span><span class="p">,</span> <span class="s">&#39;&#39;</span> <span class="p">)</span> <span class="o">+</span>
+                  <span class="s">&#39;-rot&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;deg.&#39;</span>
+                  <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span>
+                  <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">comment</span><span class="p">)))</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf rotateTemp.greg&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">GildasMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">comment</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="GildasMap.slice"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.slice">[docs]</a>    <span class="k">def</span> <span class="nf">slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate1</span><span class="p">,</span> <span class="n">coordinate2</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot; Wrapper for the GREG task slice. Producing Position velocity cuts</span>
+<span class="sd">        trough a map between coordinate1 and coordinate2.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        coordinate1 : string</span>
+<span class="sd">            The coordinate where the cut trough the map starts.</span>
+<span class="sd">        coordinate2 : string</span>
+<span class="sd">            The coordinate where the cut trough the map ends.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        A GildasMap object containing the slice.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        This only works with cubes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">comment</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;sliced&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">comment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="s">&#39;[&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">comment</span><span class="p">:</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="p">[</span><span class="n">comment</span><span class="p">]</span>
+        <span class="n">__sliceInit</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;slice.init&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__init_string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;!</span><span class="se">\n</span><span class="s">! slice.init</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">+</span>
+                         <span class="s">&#39;TASK\FILE &quot;Input file name&quot; INPUT_MAP$ &quot;&#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">+</span>
+                         <span class="s">&#39;TASK\FILE &quot;Output file name&quot; OUTPUT_MAP$ &quot;&#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+                                             <span class="n">comments</span><span class="o">=</span><span class="n">comment</span><span class="p">))</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">+</span>
+                         <span class="s">&#39;TASK\CHAR &quot;Starting point&quot; START$ &quot;&#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="n">coordinate1</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">+</span>
+                         <span class="s">&#39;TASK\CHAR &quot;Ending point&quot; END$ &quot;&#39;</span> <span class="o">+</span>
+                         <span class="nb">str</span><span class="p">(</span><span class="n">coordinate2</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;&quot;</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">+</span>
+                         <span class="s">&#39;TASK\GO&#39;</span><span class="p">)</span>
+        <span class="n">__sliceInit</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">__init_string</span><span class="p">)</span>
+        <span class="n">__sliceInit</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">__convFile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;run slice slice.init /nowindow</span><span class="se">\n</span><span class="s">exit</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm slice.init&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">GildasMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">comment</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="GildasMap.smooth"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.smooth">[docs]</a>    <span class="k">def</span> <span class="nf">smooth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_resolution</span><span class="p">,</span> <span class="n">old_resolution</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper to the GREG task gauss_smooth.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        new_resolution : float or list</span>
+<span class="sd">            The resulting resolution after the smoothing.</span>
+<span class="sd">            It can be:</span>
+<span class="sd">                1. a float: i.e. the final major and minor beamsize.</span>
+<span class="sd">                   The position angle will default to 0.</span>
+<span class="sd">                2. a list with two floats: [major_axis, minor_axis]. The</span>
+<span class="sd">                   position angle defaults to 0.</span>
+<span class="sd">                3. a list with three floats: [major_axis, minor_axis,</span>
+<span class="sd">                   position_angle].</span>
+<span class="sd">        old_resolution : float or list</span>
+<span class="sd">            Same format as new_resolution. Defaults to self.resolution of the</span>
+<span class="sd">            map instance.</span>
+<span class="sd">        prefix : string</span>
+<span class="sd">            The path where the output is to be stored if different</span>
+<span class="sd">            from the current prefix of the map.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        .. warning::</span>
+
+<span class="sd">        The gauss_smooth Task from GILDAS only gives correct output</span>
+<span class="sd">        units when the map is on a temperature or \&quot;per pixel\&quot; scale.</span>
+<span class="sd">        **Maps in Jy/Beam won&#39;t be in Jy/Beam after smoothing.**</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">old_resolution</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">old_major</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">old_minor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">pa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">old_resolution</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">old_resolution</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">old_resolution</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">old_major</span> <span class="o">=</span> <span class="n">old_resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">old_minor</span> <span class="o">=</span> <span class="n">old_resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">pa</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">old_resolution</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">old_major</span> <span class="o">=</span> <span class="n">old_resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">old_minor</span> <span class="o">=</span> <span class="n">old_resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">pa</span> <span class="o">=</span> <span class="n">old_resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">old_resolution</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+                <span class="n">old_major</span> <span class="o">=</span> <span class="n">old_resolution</span>
+                <span class="n">old_minor</span> <span class="o">=</span> <span class="n">old_resolution</span>
+                <span class="n">pa</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">new_resolution</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_resolution</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">new_major</span> <span class="o">=</span> <span class="n">new_resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">new_minor</span> <span class="o">=</span> <span class="n">new_resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">pa</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_resolution</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">new_major</span> <span class="o">=</span> <span class="n">new_resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">new_minor</span> <span class="o">=</span> <span class="n">new_resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">pa</span> <span class="o">=</span> <span class="n">new_resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">new_resolution</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">new_major</span> <span class="o">=</span> <span class="n">new_resolution</span>
+            <span class="n">new_minor</span> <span class="o">=</span> <span class="n">new_resolution</span>
+            <span class="n">pa</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">new_resolution</span> <span class="o">=</span> <span class="p">[</span><span class="n">new_major</span><span class="p">,</span> <span class="n">new_minor</span><span class="p">,</span> <span class="n">pa</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">old_major</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">float</span><span class="p">(</span><span class="n">new_major</span><span class="p">)</span>
+             <span class="ow">or</span> <span class="nb">float</span><span class="p">(</span><span class="n">old_minor</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">float</span><span class="p">(</span><span class="n">new_minor</span><span class="p">))):</span>
+            <span class="k">print</span> <span class="s">&#39;Error: Old Resolution bigger than new one!&#39;</span>
+
+        <span class="n">fwhm_major</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">new_major</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+                                <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">old_major</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                      <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">arcsecInRad</span><span class="p">)</span>
+        <span class="n">fwhm_minor</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">new_minor</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+                                <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">old_minor</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                      <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">arcsecInRad</span><span class="p">)</span>
+        <span class="n">__gauss_smoothInit</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;gauss_smooth.init&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__smooth_init_text</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;TASK\FILE &quot;Input file&quot; Y_NAME$ &#39;</span> <span class="o">+</span>
+                              <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                              <span class="s">&#39;TASK\FILE &quot;Output smoothed image&quot; X_NAME$ &#39;</span> <span class="o">+</span>
+                              <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+                                                  <span class="n">resolution</span><span class="o">=</span><span class="n">new_resolution</span><span class="p">))</span> <span class="o">+</span>
+                              <span class="s">&#39;</span><span class="se">\n</span><span class="s"> TASK\REAL &quot;Major axis of &#39;</span>
+                              <span class="s">&#39;convolving gaussian&quot; &#39;</span>
+                              <span class="s">&#39;MAJOR$ &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fwhm_major</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                              <span class="s">&#39;TASK\REAL &quot;Minor axis of convolving gaussian&quot; &#39;</span>
+                              <span class="s">&#39;MINOR$ &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fwhm_minor</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                              <span class="s">&#39;TASK\REAL &quot;Position angle&quot; PA$ &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pa</span><span class="p">)</span> <span class="o">+</span>
+                              <span class="s">&#39;</span><span class="se">\n</span><span class="s"> TASK\GO&#39;</span><span class="p">)</span>
+
+        <span class="n">__gauss_smoothInit</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">__smooth_init_text</span><span class="p">)</span>
+        <span class="n">__gauss_smoothInit</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">__convFile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;run gauss_smooth gauss_smooth.init /nowindow</span><span class="se">\n</span><span class="s">&#39;</span>
+                         <span class="s">&#39;exit&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm gauss_smooth.init&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">GildasMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">resolution</span><span class="o">=</span><span class="n">new_resolution</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="GildasMap.custom_go_spectrum"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.custom_go_spectrum">[docs]</a>    <span class="k">def</span> <span class="nf">custom_go_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        This function uses the ``go spectrum`` command from GREG to plot</span>
+<span class="sd">        the spectra in a region given by ``size`` around the cooridinate given</span>
+<span class="sd">        by ``coordinate``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        coordinate : list</span>
+<span class="sd">            A list with the coordinates in floats in units of Degrees, or in</span>
+<span class="sd">            string for equatorial coordinates. Default to ``False`` which means</span>
+<span class="sd">            that the center of the map, determined from the map header, is</span>
+<span class="sd">            used.</span>
+<span class="sd">        size : list</span>
+<span class="sd">            The region around the ``coordinate`` from which spectra are plotted</span>
+<span class="sd">            in arcsec, e.g. size = [50, 50] means a region of 50x50 arcsec</span>
+<span class="sd">            around the given cooridnate. Defaults to None, which translates to</span>
+<span class="sd">            size = [0, 0] which in turn is interpreted as  the full map size</span>
+<span class="sd">            by GREG.</span>
+<span class="sd">        angle : float [degrees]</span>
+<span class="sd">            Needed if the map is rotated to get the correct offsets. Defaults</span>
+<span class="sd">            to 0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># go spectrum reads the variable center which gives the coordinates</span>
+        <span class="c"># in offsets from the central coordinate in the header</span>
+        <span class="k">if</span> <span class="n">coordinate</span><span class="p">:</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="n">astFunc</span><span class="o">.</span><span class="n">calc_offset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">central_coordinate_equatorial</span><span class="p">,</span>
+                                         <span class="n">coordinate</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span>
+                                         <span class="n">output_unit</span><span class="o">=</span><span class="s">&#39;arcsec&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="k">print</span> <span class="n">offset</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">size</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">comment</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;go-spectrum&#39;</span><span class="p">]</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">comments</span><span class="o">=</span><span class="n">comment</span><span class="p">,</span> <span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;eps&#39;</span><span class="p">)</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;let center &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                  <span class="s">&#39;let size &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                  <span class="s">&#39;let name &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span>
+                                                      <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span><span class="p">,</span>
+                                                      <span class="s">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                  <span class="s">&#39;let type &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                  <span class="s">&#39;go spectrum </span><span class="se">\n</span><span class="s">&#39;</span>
+                  <span class="s">&#39;ha &#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&#39; /dev eps color /over </span><span class="se">\n</span><span class="s">&#39;</span>
+                  <span class="s">&#39;exit </span><span class="se">\n</span><span class="s">&#39;</span>
+                  <span class="p">)</span>
+        <span class="k">print</span> <span class="n">string</span>
+        <span class="n">fileout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">fileout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+        <span class="n">fileout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @temp.greg&#39;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf temp.greg&#39;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="GildasMap.save_figure"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.save_figure">[docs]</a>    <span class="k">def</span> <span class="nf">save_figure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Helper function that saves the current plot.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;eps&#39;</span><span class="p">)</span>
+        <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;ha &#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&#39;/dev eps color&#39;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="GildasMap.quick_preview"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.quick_preview">[docs]</a>    <span class="k">def</span> <span class="nf">quick_preview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="bp">True</span><span class="p">,):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Plotting the map and optionally save the figure.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        save : True or False</span>
+<span class="sd">            Choose wether or nor to save the figure.</span>
+<span class="sd">        filename : string</span>
+<span class="sd">            The filename to for the saved plot. If None defaults to</span>
+<span class="sd">            ``&#39;quick_preview.eps&#39;``.</span>
+<span class="sd">        window : True or False</span>
+<span class="sd">            Choose whether the image display is opened or not.</span>
+<span class="sd">            Default True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;clear&#39;</span><span class="p">)</span>
+        <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;image &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">window</span><span class="p">:</span>
+            <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;dev im w&#39;</span><span class="p">)</span>
+        <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;lim /rg&#39;</span><span class="p">)</span>
+        <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;set box match&#39;</span><span class="p">)</span>
+        <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;greg2</span><span class="se">\\</span><span class="s">pl&#39;</span><span class="p">)</span>
+        <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;greg</span><span class="se">\\</span><span class="s">box /abs&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span> <span class="ow">or</span> <span class="s">&#39;quick_preview.eps&#39;</span>
+            <span class="k">if</span> <span class="s">&#39;.eps&#39;</span> <span class="ow">in</span> <span class="n">filename</span><span class="p">:</span>
+                <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;ha &#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s">&#39; /dev eps color /over&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">&#39;.png&#39;</span> <span class="ow">in</span> <span class="n">filename</span><span class="p">:</span>
+                <span class="n">pygreg</span><span class="o">.</span><span class="n">comm</span><span class="p">(</span><span class="s">&#39;ha &#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s">&#39; /dev png color /over&#39;</span><span class="p">)</span>
+
+</div>
+    <span class="k">def</span> <span class="nf">get_spectra_from_cube</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                              <span class="n">accuracy</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="n">spectra</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lmv</span><span class="p">()</span>
+        <span class="n">spectra</span> <span class="o">=</span> <span class="n">spectra</span><span class="o">.</span><span class="n">get_spectra_from_cube</span><span class="p">(</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                                <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">accuracy</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">spectra</span>
+
+<div class="viewcode-block" id="GildasMap.toFits"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.toFits">[docs]</a>    <span class="k">def</span> <span class="nf">toFits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Converts the actual map to a Fits map.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        FitsMap Object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        With:</span>
+
+<span class="sd">        &gt;&gt;&gt; map = gildasMap(&#39;M33_MIPS_24mum_JyB_5.gdf&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; map = map.toFits()</span>
+
+<span class="sd">        it is possible to continue working with the fits map, using the</span>
+<span class="sd">        :class:`maps.fits.FitsMap` class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">comment</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;mean&#39;</span><span class="p">,</span> <span class="s">&#39;velo&#39;</span><span class="p">,</span> <span class="s">&#39;width&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+                <span class="n">comment</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">comment</span><span class="p">))</span>
+        <span class="n">__convFile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;temp.greg&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;fits &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">,</span>
+                         <span class="n">comments</span><span class="o">=</span><span class="n">comment</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; from &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span>
+                         <span class="s">&#39;</span><span class="se">\n</span><span class="s">exit</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">__convFile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;greg -nw @temp.greg&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitsName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">comment</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fits</span><span class="o">.</span><span class="n">FitsMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fitsName</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="GildasMap.toMiriad"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.gildas.GildasMap.toMiriad">[docs]</a>    <span class="k">def</span> <span class="nf">toMiriad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Converts the actual map to a Miriad map.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MiriadMap Object.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        With:</span>
+
+<span class="sd">        &gt;&gt;&gt; map = gildasMap(&#39;M33_MIPS_24mum_JyB_5.gdf&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; map = map.toMiriad()</span>
+
+<span class="sd">        it is possible to continue working with the Miriad map, using</span>
+<span class="sd">        :class:`maps.miriad.MiriadMap` class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;fits in=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fitsName</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; out=&#39;</span> <span class="o">+</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; op=xyin&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">miriadName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">MiriadMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">miriadName</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">astrolyze 0.0.2 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Christof Buchbender.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>
