@@ -22,8 +22,7 @@ setup(
               'astrolyze/functions',
               'astrolyze/database'
              ],
-    # package_data = {'astrolyze': ['database/parameter.db', 'cfg/*.txt']},
-    data_files = [("/etc/astrolyze/cfg/",
+    data_files = [("cfg/",
                    ["cfg/calibration_error.txt",
                     "cfg/galaxy_parameter.txt",
                     "cfg/line_parameter.txt"])],
