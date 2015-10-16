@@ -9,10 +9,10 @@ import astrolyze.functions.constants as const
 WattToErgs    = 1e7  # 1W = 1e7 erg/s
 ErgsToWatt    = 1e-7  # 1W = 1e-7 erg/s
 JanskyToWatt  = 1e-26  # 1Jy = 1e-26 W/m2/Hz
-WattToJansky  = 1e26  # 1W  = 1e26  Jy * m2 * Hz
+WattToJansky  = 1e26  # 1W  = 1 Jy * m2 * Hz
 ErgsToJansky_cm  = 1e23  # 1 erg/s =  1e23 Jy * cm2 * Hz * s
 JanskyToErgs_cm  = 1e-23  # 1 Jy = 1e-23 erg/s/cm2/Hz
-ErgsToJansky_m  = 1e19  # 1 erg/s = 1e19 Jy * m2 * Hz * s
+ErgsToJansky_m  = 1e19  # 1 erg/s = 1e-19 Jy * m2 * Hz * s
 JanskyToErgs_m  = 1e-19  # 1 Jy = 1e-19 erg/s/m2/Hz
 #==============> Approved !!! <==========================
 
@@ -20,7 +20,7 @@ JanskyToErgs_m  = 1e-19  # 1 Jy = 1e-19 erg/s/m2/Hz
 def WmToKkms(x, resolution=0, sterad=False, ToKKms=False, m2_or_cm2='m',
              nu_or_lambda='nu'):
     '''
-    Conversion between W/m2/sr and K km/s.
+    Conversion between W/m2 and K km/s.
 
     Parameters
     ----------
@@ -49,12 +49,12 @@ def WmToKkms(x, resolution=0, sterad=False, ToKKms=False, m2_or_cm2='m',
         beamsr = 1.133 * (resolution * const.a2r) ** 2
         factor = factor / beamsr  # erg/cm2/s/sr
     if nu_or_lambda == 'lambda':
-        x = const.c/x
-    # Umrechung zwischen ergs/s/cm2/sr = 2 k(CGS) nu^3/c(cm)^3 K km/s
+        x = c/x
+    # Umrechung zwischen ergs/s/cm2/sr = 2 k(CGS) nu^3/c(sm)^3 K km/s
     # => to make the units fit we have to multiply by 1*km in cm -> 1e5
     # i.e. const.km_in_cm
     # converts from K - > ergs
-    conversionFactor = (2 * const.k_CGS * x ** 3 * const.km_in_cm /
+    conversionFactor = (2 * k_CGS * x ** 3 * const.km_in_cm /
                         (const.c_in_cm ** 3))
     factor = factor / conversionFactor
     if ToKKms == True:
@@ -100,9 +100,9 @@ def ergToKkms(x, toErg=False, nu_or_lambda='nu'):
     conversionFactor = (2 * const.k_CGS * x ** 3 * const.km_in_cm /
                         (const.c_in_cm **3))
     factor = factor / conversionFactor
-    if toErg:
+    if toErg == False:
         return factor
-    if toErg ==False:
+    if toErg == True:
         return 1 / factor
 
 
@@ -127,28 +127,6 @@ def Int2Lum(distance_in_pc, cm_or_m='cm'):
         return 4 * math.pi * (distance_in_pc * const.parsec_in_m_1) ** 2
     if cm_or_m == 'cm':
         return 4 * math.pi * ( distance_in_pc * const.parsec_in_cm) ** 2
-
-
-def Lum2Flux(distance_in_pc, cm_or_m='cm'):
-    r""" Conversion factor to calculate the flux of an object with a certain
-    luminosity in a certain distance by dividing over 4 pi Distance^2.
-
-    Parameters
-    ----------
-    distance_in_pc : float
-    Distance to the source in parsecs.
-    cm_or_m : string
-        Choose wether the out put is in cm^2 = ``'cm'`` or in
-        m^2 = ``'m'``.
-
-    Notes
-    -----
-    Approved.
-    """
-    if cm_or_m == 'm':
-        return 1/Int2Lum(distance_in_pc, cm_or_m)
-    if cm_or_m == 'cm':
-        return 1/Int2Lum(distance_in_pc, cm_or_m)
 
 
 def JyBToErgsB(input_flux, distance, wavelength, invert=False, map_use=False):
@@ -267,7 +245,7 @@ def JyBToWKpc2(input_flux, distance, major, minor,
         return input_flux / conversion
 
 # The following functions are redundant maps/main.py contains the
-# function flux_conversion, with the same functionality but with more
+# function flux_conversion, with the same functionality but with more 
 # flexibility. This is however not usable outside of the maps environment.
 # The following functions can be used generally and are correct!!
 
@@ -325,29 +303,8 @@ def jansky_to_kelvin(x, major, minor, nu_or_lambda='nu'):
     """
     if nu_or_lambda == 'lambda':
         def fcon(wavelengths, major, minor):
-            return 1.359918e7 * wavelengths ** 2 / major / minor
+            return 1.359918e7 * wavelengths **2 / major / minor
     if nu_or_lambda == 'nu':
         def fcon(frequency, Maj, Min):
             return 1.222233e6 * frequency ** (-2) / major / minor
     return fcon(x, major, minor)
-
-
-def beam_to_pc2(beam, distance):
-    r'''
-    Provides the conversion factor from a per beam unit to a per pc2 unit.
-
-    Parameters
-    ----------
-    beam : float
-        Beam size in arcsec.
-    distance : float
-        The distance to the source in parsec.
-
-    Returns
-    -------
-    conv : float
-        The conversion factor
-    '''
-    beamsize_pc2 = 1.133 * (const.a2r * beam * distance)**2
-    conversion_factor =  1. / beamsize_pc2
-    return conversion_factor

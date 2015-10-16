@@ -6,7 +6,6 @@ import string
 import sys
 import pyfits
 import pywcs
-import subprocess
 import matplotlib.pyplot as plt
 
 import astrolyze.maps.main
@@ -15,47 +14,7 @@ import astrolyze.maps.gildas
 import astrolyze.maps.miriad
 
 import astrolyze.functions.constants as const
-import pygreg
 
-
-def combine_maps(map1, map2, operation = '/', prefix=False):
-    if not prefix:
-        prefix = map1.prefix
-    outputname = map1.returnName(prefix=prefix,
-                                 species='ratio' + map1.species +
-                                 '-' +map2.species)
-    print outputname
-    try:
-        pygreg.comm('del /var imagename_1')
-    except:
-        pass
-    pygreg.comm('define char imagename_1*50')
-
-    try:
-        pygreg.comm('del /var imagename_2')
-    except:
-        pass
-    pygreg.comm('define char imagename_2*50')
-
-    try:
-        pygreg.comm('del /var outputname')
-    except:
-        pass
-    pygreg.comm('define char outputname*50')
-    print map1.map_name, map2.map_name
-    pygreg.comm('let imagename_1 ' + map1.map_name)
-    pygreg.comm('let imagename_2 ' + map2.map_name)
-    pygreg.comm('let outputname ' + outputname)
-    print map1.map_name
-    subprocess.call('cp '+ map1.map_name + ' ' + outputname, shell=True)
-    pygreg.comm('image ' + map2.map_name)
-    try:
-        pygreg.comm('del /var newrg')
-    except:
-        pass
-    print outputname, map2.map_name
-    pygreg.comm('define image newrg ' + outputname + ' write')
-    pygreg.comm('let newrg newrg' + operation  + 'rg')
 
 def get_list(folder, data_format=None, depth=False):
     r"""

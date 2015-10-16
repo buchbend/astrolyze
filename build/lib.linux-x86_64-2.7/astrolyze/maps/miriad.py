@@ -163,7 +163,7 @@ class MiriadMap(main.Map):
         .. math::
 
             \Omega_{\rm convolve} = \sqrt{\Omega_{\rm new}^2 -
-            \Omega_{\rm old}^2}
+                                    \Omega_{\rm old}^2}
 
 
         """

@@ -4,13 +4,13 @@ import astrolyze.functions.constants as const
 import numpy as np
 from copy import deepcopy as copy
 
-def plot_sed(p2, nu_or_lambda='nu', color='black', kappa='easy',
+def plot_sed(p2, nu_or_lambda='nu', color='black', kappa='easy', 
             linewidth=0.5, xRange='normal'):
     '''
     Plot a multi component greybody model.
 
-    :param p2:  formatted: p2 = [[t1,t2,t3,...], [N1,N2,N3,...], [beta]]
-    :param nu_or_lambda: plot against frequency ``'nu'`` or wavelenght
+    :param p2:  formatted: p2 = [[t1,t2,t3,...], [N1,N2,N3,...], [beta]] 
+    :param nu_or_lambda: plot against frequency ``'nu'`` or wavelenght 
         ``'lambda'``
     :param kappa: The kappa to use. ``'easy'`` or ``'Kruegel'``. Please refer
        to :py:func:`functions.astroFunctions.greyBody` for more information.
@@ -23,7 +23,7 @@ def plot_sed(p2, nu_or_lambda='nu', color='black', kappa='easy',
 
     if xRange == 'LTIR':
     # Plot the SED in the range of the determination
-        # of the L_TIR: 3-1100 micron
+        # of the L_TIR: 3-1100 micron 
         xmin =  3e-6# micron
         xmax =  4000e-6 # micron
         # conversion to frequency in GHz
@@ -32,9 +32,9 @@ def plot_sed(p2, nu_or_lambda='nu', color='black', kappa='easy',
         step = 0.1
 
     if xRange == 'normal':
-        # arbitrary range definition
+        # arbitrary range definition 
         xmin = 1e-2
-        xmax = 3e5
+        xmax = 3e5	
         step = 0.5
     if type(xRange) == list:
         xmin = xRange[0]
@@ -44,15 +44,15 @@ def plot_sed(p2, nu_or_lambda='nu', color='black', kappa='easy',
         else:
             step = xRange[2]
     x = np.arange(xmin,xmax,step)
-    # multiComponent gives the summed 'model' and the components 'grey'.
-    # 'grey' is a List
+    # multiComponent gives the summed 'model' and the components 'grey'. 
+    # 'grey' is a List 
     if nu_or_lambda == 'nu':
         model,grey = astFunc.multi_component_grey_body(p2,x,'nu',kappa)
     if nu_or_lambda=='lambda':
         model,grey = astFunc.multi_component_grey_body(p2,x,'nu',kappa)
         y=copy(x)
         modelLambda =copy(model)
-        greyLambda = []
+        greyLambda = [] 
         for i in range(len(grey)):
             greyLambda += [copy(grey[i])]
         for i in range(len(x)):
@@ -71,19 +71,19 @@ def plot_sed(p2, nu_or_lambda='nu', color='black', kappa='easy',
         plt.loglog(x,i,color=color,ls=linestyles[j],lw=0.5,marker='')
         j+=1
 
-def create_figure(pList, data, parted=[1], plotLegend='no', label=['Fluxes'],
-                 color=['black'], marker=['x'], markerSize=6, titleString='',
-                 xLabel='',yLabel='', textString1=None, nu_or_lambda='nu',
-                 fontdict=None, printFitResult=True, fitResultLoc=[50,10],
-                 lineWidth=0.5, kappa='easy', chisq='', xRange='normal',
-                 plotXlabel=None, plotYlabel=None, noXtics=False,
-                 noYtics=False, lineColor='black', ylim=[1e-3,3e1],
+def create_figure(pList, data, parted=[1], plotLegend='no', label=['Fluxes'], 
+                 color=['black'], marker=['x'], markerSize=6, titleString='', 
+                 xLabel='',yLabel='', textString1=None, nu_or_lambda='nu', 
+                 fontdict=None, printFitResult=True, fitResultLoc=[50,10],  
+                 lineWidth=0.5, kappa='easy', chisq='', xRange='normal', 
+                 plotXlabel=None, plotYlabel=None, noXtics=False, 
+                 noYtics=False, lineColor='black', ylim=[1e-3,3e1], 
                  xlim=[500,20000]):
     '''
-    Plots the total SED of M33. Resamples the older gildas output.
-    input:
+    Plots the total SED of M33. Resamples the older gildas output. 
+    input: 
     pList: Multi-Component GreyBody parameters. pList = [[t1,t2,t3,...],
-    [N1,N2,N3,...],[beta]]
+    [N1,N2,N3,...],[beta]] 
     '''
     # ensures the current figure is an empty page
     # generates the Text that shows the fit results for this Plot
@@ -104,56 +104,53 @@ def create_figure(pList, data, parted=[1], plotLegend='no', label=['Fluxes'],
     if nu_or_lambda == 'lambda':
         newData = []
         for i in data[0]:
-            newData += [const.c / (i * 1e9) / 1e-6]
-        data[0] = list(newData)
-        xLimNu = [min(data[0]) - min(data[0]) * plotSize*2,
+            #print i
+            newData+=[const.c / (i * 1e9) / 1e-6]
+        data[0]=newData
+        xLimNu=[min(data[0]) - min(data[0]) * plotSize*2,
                 max(data[0]) + max(data[0]) * plotSize]
-    print list(data[0])
-    print data[1]
-    print data[2]
-    print min(data[0])
-    # Steering the xtick-Labels if more than one plot is to be connected.
+    # Steering the xtick-Labels if more than one plot is to be connected.	
     axNow= plt.gca()
     plt.setp( axNow.get_xticklabels(), visible=True)
-    if noXtics == True:
+    if noXtics == True:	
         plt.setp( axNow.get_xticklabels(), visible=False)
     if noYtics == True:
-        plt.setp( axNow.get_yticklabels(), visible=False)
+        plt.setp( axNow.get_yticklabels(), visible=False) 	
     plt.xlim(xlim[0],xlim[1])
     plt.ylim(ylim[0],ylim[1])
-    # reads the Data for Plotting
+    # reads the Data for Plotting	
     # PLots the model given in pList
     plot_sed(pList,nu_or_lambda,kappa=kappa,xRange=xRange,color=lineColor)
     markersize = 6
     #Plotting the data points
-    if len(parted)==1:
-        plt.errorbar(list(data[0]), list(data[1]), yerr=list(data[2]), fmt='o', marker='p',
-                     mfc='None', mew=0.5, mec='#00ffff', ms=markersize,
+    if len(parted)==1:	
+        plt.errorbar(data[0], data[1], yerr=data[2], fmt='o', marker='p', 
+                     mfc='None', mew=0.5, mec='#00ffff', ms=markersize, 
                      color='black',lw=lineWidth)
     else:
         for i in range(len(parted)):
             if i == 0:
-                plt.errorbar(data[0][0:parted[i]], data[1][0:parted[i]],
-                             yerr=data[2][0:parted[i]], fmt=marker[i],
-                             marker=marker[i], mfc='None', label=label[i],
-                             mew=0.5, mec=color[i], ms=markersize,
+                plt.errorbar(data[0][0:parted[i]], data[1][0:parted[i]], 
+                             yerr=data[2][0:parted[i]], fmt=marker[i], 
+                             marker=marker[i], mfc='None', label=label[i], 
+                             mew=0.5, mec=color[i], ms=markersize, 
                              color=color[i], lw=lineWidth)
             else:
-                plt.errorbar(data[0][parted[i-1]:parted[i]],
-                             data[1][parted[i-1]:parted[i]],
+                plt.errorbar(data[0][parted[i-1]:parted[i]], 
+                             data[1][parted[i-1]:parted[i]], 
                              yerr=data[2][parted[i-1]:parted[i]], fmt=marker[i],
                              marker=marker[i], mfc='None', label=label[i],
-                             mew=0.5, mec=color[i], ms=markersize,
+                             mew=0.5, mec=color[i], ms=markersize, 
                              color=color[i], lw=lineWidth)
     # setting up legend,title, xlabel.
-    if plotLegend == True:
+    if plotLegend == True:	
         fontdict={'size':'13'}
-        plt.legend(loc='upper right', numpoints=1, fancybox=False,
-                   prop=fontdict, markerscale=1)
+        plt.legend(loc='upper right', numpoints=1, fancybox=False, 
+                   prop=fontdict, markerscale=1)	
     fontdict={'size':'22'}
     if printFitResult==True:
         fontdict={'size':'12'}
-        plt.text(fitResultLoc[0], fitResultLoc[1], s=textString,
+        plt.text(fitResultLoc[0], fitResultLoc[1], s=textString, 
                  fontdict=fontdict, alpha=0.4)
         fontdict={'size':'22'}
     fontdict={'size':'10'}

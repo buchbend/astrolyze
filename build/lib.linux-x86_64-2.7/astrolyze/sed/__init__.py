@@ -1,6 +1,6 @@
 '''
-This module handles SED creation and display with
+This module handles SED creation and display with 
 MapClass.
 '''
 
-from sed import *               #
+from sed import *

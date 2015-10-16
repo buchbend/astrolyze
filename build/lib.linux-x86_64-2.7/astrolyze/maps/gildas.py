@@ -6,7 +6,6 @@ import string
 import sys
 import pyfits
 import pywcs
-import subprocess
 
 from pysqlite2 import dbapi2 as sqlite
 from scipy.ndimage import gaussian_filter
@@ -28,7 +27,6 @@ class GildasMap(main.Map):
     def __init__(self, map_name, name_convention=True):
         r"""Initializes a Gildas map"""
         main.Map.__init__(self, map_name, name_convention)
-        self.map_noise = False
         self._init_map_to_greg()
         if self.dataFormat not in self.gildas_formats:
             print ('Exiting: Not a Gildas format (AFAIK). Supported'
@@ -230,7 +228,7 @@ class GildasMap(main.Map):
         os.system('rm temp.class')
         return ClassSpectra(fileout)
 
-    def mask(self, polygon, in_out='in', new_blank='-6666', prefix=None):
+    def mask(self, polygon, prefix=None):
         r"""
         Wrapper to the GREG task mask:
 
@@ -239,14 +237,6 @@ class GildasMap(main.Map):
 
         polygon : string
             path to a GILDAS polygon file with ending ``".pol"``
-
-        in_out : string
-            Can be `'in'` or `'out'` to choose whether the mask is applied
-            inside or outside of the polygon.
-
-        new_blank :  float
-            The new blanking value that is to be applied after masking.
-            Defaults to False.
 
         prefix : string
             The path where the output is to be stored if different
@@ -273,23 +263,12 @@ class GildasMap(main.Map):
                          'TASK\FILE "Output image" X_NAME$ "'
                          + str(self.returnName(prefix=prefix,
                                                comments=__comment)) + '"\n'
-                         'TASK\LOGICAL "Mask inside (.true.) or outside ')
-        if in_out == 'in':
-            __init_string += '(.false.)" MASK_IN$ YES\n'
-        if in_out == 'out':
-            __init_string += '(.false.)" MASK_IN$ NO\n'
-        if new_blank is not False:
-            __init_string += ('TASK\LOGICAL "Modify blanking value" MODIFY$ YES\n'
-                              'SAY "If YES, Fill information Below"\n'
-                              'TASK\REAL "New blanking value" BLANKING$ ' +
-                              str(new_blank) + '\n'
-                              'TASK\GO')
-        if not new_blank:
-            __init_string += ('TASK\LOGICAL "Modify blanking value" MODIFY$ NO\n'
-                              'SAY "If YES, Fill information Below"\n'
-                              'TASK\REAL "New blanking value" BLANKING$ 0 \n'
-                              'TASK\GO')
-        print __init_string
+                         'TASK\LOGICAL "Mask inside (.true.) or outside '
+                         '(.false.)" MASK_IN$ NO\n'
+                         'TASK\LOGICAL "Modify blanking value" MODIFY$ NO\n'
+                         'SAY "If YES, Fill information Below"\n'
+                         'TASK\REAL "New blanking value" BLANKING$ 0 \n'
+                         'TASK\GO')
         __maskInit.write(__init_string)
         __maskInit.close()
         os.system('more mask.init')
@@ -302,7 +281,7 @@ class GildasMap(main.Map):
         return GildasMap(self.returnName(prefix=prefix,  comments=__comment))
 
     def reproject(self, template=None, coord=None, prefix=None,
-                  keep_pixsize=False, new_axis=None):
+                  keep_pixsize=False):
         r"""
         Wraps the GREG task reproject. Either use template *or* coord.
 
@@ -322,14 +301,6 @@ class GildasMap(main.Map):
             If False reproject guesses the new pixel sizes after reprojection
             these are normally smaller than the original ones.
             If True the old pixel sizes are enforced.
-        new_axis :  None or list
-            If None nothing is done. To resize the map give a list of 
-            two array with the new values for:
-            - the number of pixels
-            - reference pixel
-            - value at pixel [radians]
-            - and pixel increment  [radians]
-            for both axis, e.g. [[#, ref, value, inc], [[#, ref, value, inc]]
 
         Returns
         -------
@@ -402,7 +373,7 @@ class GildasMap(main.Map):
                              'TASK\REAL "New blanking value and tolerance" '
                              'BLANKING$[2]  0 0\nTASK\GO\n')
             __reproInit.write(__init_string)
-        if coord or new_axis:
+        if coord:
             comment = ['repro']
             __init_string = ('TASK\FILE "Input file" Z_NAME$ "' +
                              str(self.map_name) + '"\n'
@@ -418,60 +389,30 @@ class GildasMap(main.Map):
                              'AZIMUTHAL STEREOGRAPHIC LAMBERT AITOFF RADIO\n'
                              'TASK\CHARACTER "Coord.System '
                              '[EQUATORIAL [epoch]|'
-                             'GALACTIC]" SYSTEM$ "EQUATORIAL 2000"\n')
-            if coord:
-                __init_string += ('TASK\CHARACTER "Coord. 1 of projection '
-                                  'center. '
-                                  'Could be UNCHANGED"     CENTER_1$ "' +
-                                  str(coord[0]) + '" /CHOICE UNCHANGED *\n'
-                                  'TASK\CHARACTER "Coord. 2 of projection '
-                                  'center" '
-                                  'CENTER_2$ "' +
-                                  str(coord[1]) + '" /CHOICE UNCHANGED *\n'
-                                  'TASK\REAL "Position angle of projection" '
-                                  'ANGLE$ '
-                                  '0.000000000000000 /RANGE 0 360\n')
-            if not coord:
-                __init_string += ('TASK\CHARACTER "Coord. 1 of projection '
-                                  'center. '
-                                  'Could be UNCHANGED"     CENTER_1$ '
-                                  '"UNCHANGED" /CHOICE UNCHANGED *\n'
-                                  'TASK\CHARACTER "Coord. 2 of projection '
-                                  'center" '
-                                  'CENTER_2$ "UNCHANGED" /CHOICE UNCHANGED *\n'
-                                  'TASK\REAL "Position angle of projection" '
-                                  'ANGLE$ '
-                                  '0.000000000000000 /RANGE 0 360\n')
-            if new_axis:
-                __init_string += ('TASK\INTEGER "Dimensions of output image [0 '
-                                  '0 mean guess]" DIMENSIONS$[2] ' +
-                                  str(new_axis[0][0]) + ' '
-                                  + str(new_axis[1][0]) +
-                                  '\nTASK\REAL "First axis conversion '
-                                  'formula [0 0 0 mean guess]" AXIS_1$[3] '
-                                  + str(new_axis[0][1]) + ' '
-                                  + str(new_axis[0][2]) + ' '
-                                  + str(new_axis[0][3]) + '\nTASK\REAL'
-                                  ' "Second axis conversion formula [0 0 0 '
-                                  'mean guess]" AXIS_2$[3] ' +
-                                  str(new_axis[1][1]) + ' ' +
-                                  str(new_axis[1][2]) + ' ' +
-                                  str(new_axis[1][3]) + '\n')
-            if keep_pixsize and not new_axis:
+                             'GALACTIC]" SYSTEM$ "EQUATORIAL 2000"\n'
+                             'TASK\CHARACTER "Coord. 1 of projection center. '
+                             'Could be UNCHANGED"     CENTER_1$ "' +
+                             str(coord[0]) + '" /CHOICE UNCHANGED *\n'
+                             'TASK\CHARACTER "Coord. 2 of projection center" '
+                             'CENTER_2$ "' +
+                             str(coord[1]) + '" /CHOICE UNCHANGED *\n'
+                             'TASK\REAL "Position angle of projection" ANGLE$ '
+                             '0.000000000000000 /RANGE 0 360\n')
+            if keep_pixsize:
                 __init_string += ('TASK\INTEGER "Dimensions of output image [0'
                                   '0 mean guess]" DIMENSIONS$[2] ' +
                                   str(self.naxis_1) + ' ' + str(self.naxis_1) +
-                                  '\n' + 'TASK\REAL "First axis conversion'
+                                  '\n' 'TASK\REAL "First axis conversion'
                                   'formula [0 0 0 ' 'mean guess]" AXIS_1$[3] '
                                   + str(self.crpix_1) + ' '
                                   + str(self.crval_1) + ' '
-                                  + str(self.cdelt_1) + '\n' + 'TASK\REAL'
+                                  + str(self.cdelt_1) + '\n' 'TASK\REAL'
                                   '"Second axis conversion formula [0 0 0 '
                                   'mean guess]" AXIS_2$[3] ' +
                                   str(self.crpix_2) + ' ' +
                                   str(self.crval_2) + ' ' +
                                   str(self.cdelt_2) + '\n')
-            if not keep_pixsize and not new_axis:
+            if not keep_pixsize:
                 __init_string += ('TASK\INTEGER "Dimensions of output image [0'
                                   '0 mean guess]" DIMENSIONS$[2] 0 0 \n'
                                   'TASK\REAL "First axis conversion formula '
@@ -479,30 +420,16 @@ class GildasMap(main.Map):
                                   'TASK\REAL "Second axis conversion formula '
                                   '[0 0 0 mean guess]" AXIS_2$[3] 0 0 0 \n')
             __init_string += ('TASK\LOGICAL "Change blanking value" CHANGE$ '
-                              'NO\nTASK\REAL "New blanking value and '
+                              'YES\n TASK\REAL "New blanking value and '
                               'tolerance" BLANKING$[2]  0 0\n'
                               'TASK\GO\n')
             __reproInit.write(__init_string)
         __reproInit.close()
         # write the Greg Script
         __convFile = open('temp.greg', 'w')
-
-        __convFile.write('define image test '+str(self.map_name)+' read\n')
-        __convFile.write('define real blank\n')
-        __convFile.write('let blank test%blank[1]\n')
-        __convFile.write('del /var test\n')
-        __convFile.write('run reproject reproject.init /nowindow\n')
-        __convFile.write('define image test '+str(self.map_name)+' write\n')
-        __convFile.write('let test%blank[1] \'blank\'\n')
-        __convFile.write('del /var test\n')
-        __convFile.write('header ' +
-                         self.returnName(prefix=prefix, comments=comment) +
-                         ' /extre\n'+
-                         'exit\n')
-        __convFile.write('')
-
+        __convFile.write('run reproject reproject.init /nowindow\nexit\n')
         __convFile.close()
-        #os.system('more reproject.init')
+        os.system('more reproject.init')
         # execute the Greg Script and then delete it
         os.system('greg -nw @temp.greg')
         os.system('rm temp.greg')
@@ -625,17 +552,17 @@ class GildasMap(main.Map):
         __rotate.close()
         os.system('greg -nw @rotateTemp.greg')
         if len(str(angle).split('.')) > 1:
-            self.comments = [('rot' + str(str(angle).split('.')[0]) +
+            comments += [('rot' + str(str(angle).split('.')[0]) +
                           'p' + str(str(angle).split('.')[1]) + 'deg')]
         else:
-            self.comments += ['rot' + str(angle) + 'deg']
+            comments += ['rot' + str(angle) + 'deg']
 
         os.system('mv ' + self.map_name.replace('.'+ self.dataFormat, '' ) +
                   '-rot' + str(angle) + 'deg.'
                   + str(self.dataFormat) + ' '
-                  + str(self.returnName(prefix=prefix, comments=self.comments)))
+                  + str(self.returnName(prefix=prefix, comments=comment)))
         os.system('rm -rf rotateTemp.greg')
-        return GildasMap(self.returnName(prefix=prefix, comments=self.comments))
+        return GildasMap(self.returnName(prefix=prefix, comments=comment))
 
     def slice(self, coordinate1, coordinate2, prefix=None, comment=None):
         r""" Wrapper for the GREG task slice. Producing Position velocity cuts
@@ -779,19 +706,10 @@ class GildasMap(main.Map):
 
         __gauss_smoothInit.write(__smooth_init_text)
         __gauss_smoothInit.close()
+
         __convFile = open('temp.greg', 'w')
-        __convFile.write('sic copy ' + self.map_name + ' temp_map.gdf\n')
-        __convFile.write('def im map ' + self.map_name + ' write\n')
-        __convFile.write('let map 0 /where map.eq.map%blank[1]\n')
-        __convFile.write('del /var map\n')
-        __convFile.write('run gauss_smooth gauss_smooth.init /nowindow\n')
-        __convFile.write('def im map ' + self.returnName(resolution=new_resolution) + ' write\n')
-        __convFile.write('def im temp temp_map.gdf read\n')
-        __convFile.write('let map temp /where temp.eq.temp%blank[1]\n')
-        __convFile.write('del /var temp\n')
-        __convFile.write('del /var map\n')
-        __convFile.write('sic delete temp_map.gdf\n')
-        __convFile.write('exit\n')
+        __convFile.write('run gauss_smooth gauss_smooth.init /nowindow\n'
+                         'exit')
         __convFile.close()
         os.system('greg -nw @temp.greg')
         os.system('rm temp.greg')
@@ -878,15 +796,9 @@ class GildasMap(main.Map):
         if window:
             pygreg.comm('dev im w')
         pygreg.comm('lim /rg')
-        try:
-            pygreg.comm('greg1\\set box match')
-        except:
-            pass
+        pygreg.comm('set box match')
         pygreg.comm('greg2\\pl')
-        try:
-            pygreg.comm('greg\\box /abs')
-        except:
-            pygreg.comm('greg\\box')
+        pygreg.comm('greg\\box /abs')
         if save:
             filename = filename or 'quick_preview.eps'
             if '.eps' in filename:
@@ -894,53 +806,9 @@ class GildasMap(main.Map):
             if '.png' in filename:
                 pygreg.comm('ha ' + filename + ' /dev png color /over')
 
-    def get_noise(self):
-        fileout = open('temp.greg', 'w')
-        string = ('let name ' + 
-                  self.map_name.replace('.'+self.dataFormat, '') + 
-                  '\n')
-        string += ('let type ' + self.dataFormat + '\n')
-        string += ('go noise\n')
-        string += ('sic out temp.txt\n')
-        string += ('say \'noise\'\n')
-        string += ('sic out\n')
-        string += ('exit\n')
-        fileout.write(string)
-        fileout.close()
-        subprocess.call('greg -nw @temp.greg', shell=True)
-        filein = open('temp.txt', 'r').readlines()
-        self.map_noise = float(filein[0].strip())
-        subprocess.call('rm -rf temp.greg', shell=True)
-        subprocess.call('rm -rf temp.txt', shell=True)
-        subprocess.call('rm -rf ' + self.prefix +'/*.noi', shell=True)
-
 
     def get_spectra_from_cube(self, coordinate, angle=0, prefix=None,
                               accuracy=2):
-        r""" Extract a spectra from a cube at a given position.
-
-        Parameters
-        ----------
-
-        coordinate: list
-            Equatorial coordinates, e.g. ['1:34:7.00', '+30:47:52.00']
-
-                angle: float
-            If the cube was rotated before the angle has to be specified
-            to calculate the correct offset.
-
-        prefix: string
-            The new path where the averaged spectrum will be stored.
-
-        accuracy: float
-            The tolerance in arcsec to find a spectra corresponding to the
-            given coordinate.
-
-        Returns
-        -------
-
-        ClassSpectra instance
-        """
         spectra = self.lmv()
         spectra = spectra.get_spectra_from_cube(coordinate, angle=0,
                                                 prefix=None, accuracy=2)
@@ -965,8 +833,6 @@ class GildasMap(main.Map):
         :class:`maps.fits.FitsMap` class.
         """
         comment = None
-        # Use general ending of gdf for gildas maps
-        # If a moment pass ending to comment.
         for name in ['mean', 'velo', 'width']:
             if self.dataFormat == name:
                 comment = [name]
@@ -977,30 +843,8 @@ class GildasMap(main.Map):
                          '\nexit\n')
         __convFile.close()
         os.system('greg -nw @temp.greg')
-        os.system('rm -rf temp.greg')
         self.fitsName = self.returnName(dataFormat='fits', comments=comment)
-        fits_map = fits.FitsMap(self.fitsName)
-        while len(fits_map.data) ==1:
-            fits_map.data = fits_map.data[0]
-        fits_map.header['NAXIS'] = len(np.shape(fits_map.data))
-        length = len(np.shape(fits_map.data)) + 1
-        for i in range(length, 5, 1):
-            key = 'NAXIS' + str(i)
-            del fits_map.header[key]
-            key = 'CROTA' + str(i)
-            del fits_map.header[key]
-            key = 'CDELT' + str(i)
-            del fits_map.header[key]
-            key = 'CRPIX' + str(i)
-            del fits_map.header[key]
-            key = 'CTYPE' + str(i)
-            del fits_map.header[key]
-            key = 'CRVAL' + str(i)
-            del fits_map.header[key]
-        fits_map = fits_map.update_file()
-        if self.map_noise:
-            fits_map.map_noise = self.map_noise
-        return fits_map
+        return fits.FitsMap(self.fitsName)
 
     def toMiriad(self):
         r"""
@@ -1026,14 +870,4 @@ class GildasMap(main.Map):
                   self.returnName(dataFormat='') + ' op=xyin')
         self.miriadName = self.returnName(dataFormat='')
         self.dataFormat = ''
-        return miriad.MiriadMap(self.miriadName)
-
-    def toGildas(self):
-        r""" Stays in Gildas Format but copies the map to the new name if any.
-        """
-        if self.map_name != self.returnName():
-            os.system('cp -rf ' + self.map_name + ' ' + self.returnName())
-            self.map_name = self.returnName()
-            return self
-        else:
-            return self
+        return MiriadMap(self.miriadName)

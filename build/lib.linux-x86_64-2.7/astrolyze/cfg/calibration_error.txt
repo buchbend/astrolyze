@@ -1,0 +1,17 @@
+# telescope     species     cal_error   Reference
+WISE            2.4MUM      0.15        guess
+IRAC            3.6MUM      0.1         guess
+IRAC            4.5MUM      0.1         guess
+WISE            4.6MUM      0.15        guess
+IRAC            5.8MUM      0.1         guess
+IRAC            8MUM        0.1         guess
+WISE            12MUM       0.15        guess
+WISE            22MUM       0.15        guess
+MIPS            24MUM       0.07        Spitzers Observers Manual v.8.0
+MIPS            70MUM       0.07        Spitzers Observers Manual v.8.0
+PACS            100MUM      0.2         Kramer et al. 2010
+PACS            160MUM      0.2         Kramer et al. 2010
+SPIRE           250MUM      0.15        Kramer et al. 2010
+SPIRE           350MUM      0.15        Kramer et al. 2010
+SPIRE           500MUM      0.15        Kramer et al. 2010
+GISMO           2MM         0.15        guess

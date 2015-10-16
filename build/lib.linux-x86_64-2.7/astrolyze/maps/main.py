@@ -1,11 +1,15 @@
-# Copyright (C) 2012, Christof Buchbender
+ # Copyright (C) 2012, Christof Buchbender
 # BSD License (License.txt)
+import math
 import os
 import string
 import sys
+import pyfits
+import pywcs
 
 import numpy as np
 from pysqlite2 import dbapi2 as sqlite
+from scipy.ndimage import gaussian_filter
 
 import astrolyze.functions.constants as const
 from astrolyze.functions import units
@@ -13,7 +17,7 @@ from astrolyze.functions import units
 from astrolyze.database import prefix_database
 
 
-class Map(object):
+class Map:
     '''
     ``Map`` is the parent Class for the ``maps``-package. It contains all
     functions that are common to all supported map-formats, i.e. Fits,
@@ -55,7 +59,7 @@ class Map(object):
         self.miriad_formats = ['', None]
         self.class_formats = ['30m', 'apex']
         # name_convention is not needed anymore. Only kept for backward
-        # compatibility.
+        # compatibality.
         self.name_convention = name_convention
         self.map_name = map_name
         # Test if the file exists. Directory for Miriad.
@@ -166,7 +170,8 @@ class Map(object):
 
     def _resolveSpecies(self):
         '''
-        Load frequency and wavelenght from a database if possible.
+        Gets the frequency from a database on basis of the map name if
+        possible.
         '''
         species = self.map_nameList[2]
         if 'mum' in species:
@@ -197,7 +202,7 @@ class Map(object):
 
     def _resolveResolution(self):
         '''
-        Resolves the resolution string from the map name.
+        Reads the resolution string from the map name.
         '''
         # TODO: include handling of 'uk'
         string = self.map_nameList[4]
@@ -244,10 +249,8 @@ class Map(object):
         return [major, minor, pa]
 
     def resolutionToString(self, resolution=None):
-        r""" Converts the resolution list to a string.
-
-        This is needed to print the resolution information and/or include it
-        into the file names.
+        r""" Converts the resolution list to a string to be printed and
+        included in the file names.
         """
         if resolution is None:
             if float(self.resolution[2]) == 0.0:
@@ -285,9 +288,8 @@ class Map(object):
         return string
 
     def get_beam_size(self):
-        r""" Calculates the beam-size in steradians and in m^2.
-
-        For the latter the distance to the source has to be available..
+        r""" Calculates the beam-size in steradians and in m^2. Fot the latter
+        the distance to the source has to be given.
 
         Returns
         -------
@@ -313,16 +315,14 @@ class Map(object):
                                             const.pcInM) ** 2 *
                                    self.resolution[0] * self.resolution[1])
         else:
-            self.beamSizeSterad = np.nan
+            self.beamSize = np.nan
 
     def change_map_name(self, source=None, telescope=None, species=None,
                         fluxUnit=None, resolution=None, comments=None,
                         dataFormat=False, prefix=None):
         '''
-        Change the names of the maps on basis of the keywords.
-
-        This function can also be used to make a copy of the file to the new
-        name and/or location (the latter is steered over the prefix).
+        This function can be used to change the names of the maps and make a
+        copy of the file to the new name and/or location.
         '''
         source = source or self.source
         telescope = telescope or self.telescope
@@ -384,11 +384,11 @@ class Map(object):
                    fluxUnit=None, resolution=None, comments=None,
                    dataFormat=False, prefix=None):
         '''
-        Returns the Name corresponding to the Name convention.
+        Returns the Name corresponding to the Name convention. Single keywords
+        can be changed.
 
-        Single keywords can be changed. This function is useful to generate a
-        writeout name for a changed file without overwriting the current
-        ``self.map_name``.
+        This function is useful to generate a writeout name for a changed file
+        without overwriting the current ``self.map_name``.
 
         Parameters
         ----------
@@ -469,9 +469,9 @@ class Map(object):
         print self.fluxUnit
         if ((self.fluxUnit not in ['JyB', 'Jy/Beam'] and self.fluxUnit
              not in ['Tmb', 'T', 'Kkms'])):
-            print ('Map is not in the right units has to be Jy/beam or '
-                   'Kelvin something. -> Exit!')
-            sys.exit()
+                print ('Map is not in the right units has to be Jy/beam or '
+                       'Kelvin something. -> Exit!')
+                sys.exit()
         if nu_or_lambda == 'lambda':
             if direction == 'jansky_to_kelvin':
                 def fcon(x, major, minor):

@@ -6,14 +6,16 @@ setup.py
 astrolyze/__init__.py
 astrolyze/database/__init__.py
 astrolyze/database/__init__.pyc
-astrolyze/database/__init__.py~
 astrolyze/database/parameter.db
 astrolyze/functions/__init__.py
 astrolyze/functions/astro_functions.py
+astrolyze/functions/calculations.py
 astrolyze/functions/constants.py
+astrolyze/functions/conv_ver1.5.py
 astrolyze/functions/database.py
 astrolyze/functions/plot_limits.py
 astrolyze/functions/units.py
+astrolyze/functions/units_2.py
 astrolyze/lte/__init__.py
 astrolyze/lte/lte.py
 astrolyze/lte/moleculeParameter.py
@@ -24,6 +26,7 @@ astrolyze/maps/gildas.py
 astrolyze/maps/main.py
 astrolyze/maps/miriad.py
 astrolyze/maps/stack.py
+astrolyze/maps/tool.py
 astrolyze/maps/tools.py
 astrolyze/sed/__init__.py
 astrolyze/sed/plotSEDs.py
@@ -32,8 +35,6 @@ astrolyze/sed/sedCreation.py
 astrolyze/spectra/__init__.py
 astrolyze/spectra/class_.py
 cfg/calibration_error.txt
-cfg/calibration_error.txt~
 cfg/galaxy_parameter.txt
 cfg/line_parameter.txt
-cfg/line_parameter.txt~
 test/test_astro_functions.py

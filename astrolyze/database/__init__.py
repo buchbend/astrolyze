@@ -1,2 +1,2 @@
 import os
-prefix_database = os.path.abspath(os.path.dirname(__file__)) + '/'
+prefix_database = "/etc/astrolyze/database/"

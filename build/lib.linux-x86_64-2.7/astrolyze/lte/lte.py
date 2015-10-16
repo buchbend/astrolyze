@@ -111,7 +111,7 @@ def calc_N(molecule, excitation_temperature, J, W):
     # interpolate the partition function for excitation_temperature from the
     # values provided by CDMS
     Z = interp(excitation_temperature, T, Q)
-    print "partition", Z
+    print Z
     Z = 10 ** Z            # change from log Z to Z
     return lte_column_density(molecule.nu, W, excitation_temperature, J, Z,
                               molecule.mu)

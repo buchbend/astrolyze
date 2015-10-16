@@ -6,7 +6,6 @@ import string
 import sys
 import pyfits
 import pywcs
-import subprocess
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -37,28 +36,20 @@ class Stack:
         self.miriad_formats = ['']
         self.folder = folder
         self.get_list(data_format=data_format)
+        print self.list
         self.stack = []
-        for file_ in self.list_:
-            try:
-                self.stack += [self.get_map_format(file_)]
-            except IOError as e:
-                try:
-                    self.stack += [self.get_map_format(file_,
-                                                    ignore_missing_end=True)]
-                except Exception as e:
-                    raise e
-            print "Map {} added.".format(file_)
-        self.telescopes = []
+        for i in self.list:
+            self.stack += [self.get_map_format(i)]
         self.resolutions = []
         self.units = []
         self.dataFormats = []
         for i in self.stack:
+            print i
             self.resolutions += [i.resolution]
             self.units += [i.fluxUnit]
             self.dataFormats = [i.dataFormat]
-            self.telescopes = [i.telescope]
 
-    def get_map_format(self, map_name, ignore_missing_end=False):
+    def get_map_format(self, map_name):
         r""" This function creates returns the correct ``GildasMap``,
         ``FitsMap`` or ``MiriadMap`` object without that the data format of the
         map has to be given.
@@ -80,8 +71,7 @@ class Stack:
         if dataFormat in self.gildas_formats:
             return gildas.GildasMap(map_name)
         if dataFormat in self.fits_formats:
-            return fits.FitsMap(map_name,
-                                ignore_missing_end=ignore_missing_end)
+            return fits.FitsMap(map_name)
            # check for miriad maybe not perfect.
         if len(map_name.split('_')) >= 5 and os.path.isdir(map_name):
             return miriad.MiriadMap(map_name)
@@ -129,7 +119,7 @@ class Stack:
             os.system('rm -r temp')
             return list
         self.folder_list = [self.folder]
-        self.list_ = []
+        self.list = []
         # Variable to steer the depth of the search.
         x = 1
         execute = True
@@ -147,14 +137,14 @@ class Stack:
                         new_folder_list += [sub_folder]
                         folder_check = True
                         if len(sub_folder.split('_')) >= 5:
-                            self.list_ += [sub_folder]
+                            self.list += [sub_folder]
                     if os.path.isfile(sub_folder):
                         if (data_format is not None and data_format
                             in sub_folder):
-                            if sub_folder not in self.list_:
-                                self.list_ += [sub_folder]
+                            if sub_folder not in self.list:
+                                self.list += [sub_folder]
                         if (data_format is None):
-                                self.list_ += [sub_folder]
+                                self.list += [sub_folder]
                         file_check = True
             if not folder_check and file_check:
                 execute = False
@@ -245,7 +235,7 @@ class Stack:
                     [[minor_fwhm], [major_fwhm]]
                  3. A float. Same minor, major fwhm pa=0
         folder : string
-            The path to the folder in which the files are to be stored.
+            The path tot the folder in which the files are to be stored.
 
         Notes
         -----
@@ -309,47 +299,32 @@ class Stack:
                         new_stack += [map_]
                         os.system('rm -rf ' +  map_.returnName(dataFormat=None))
         if resolution:
-            print 'at least Im here'
-            print resolution
-            print self.stack
             for map_ in self.stack:
-                print resolution
                 try:
                     if (resolution[0] > map_.resolution[0] or resolution[1] >
                         map_.resolution[1]):
-                        print (map_.mapName + ' : resolution lower than new '
+                        print (map_.mapName + ' : resolution higher than new '
                                'one. --> Skip! ')
                         continue
                 except:
                     try:
                         if (resolution > map_.resolution[0] or resolution >
                             map_.resolution[1]):
-                            print (map_.mapName + ' : resolution lower than '
+                            print (map_.mapName + ' : resolution higher than '
                                    'new one. --> Skip!')
                             continue
                     except:
                         pass
                 if folder is not None:
                     map_.prefix = folder
-                if map_.fluxUnit.upper() in ['JYB']:
-                    scaling = ''
-                if map_.fluxUnit.upper() in ['TMB', 'T', 'KKMS']:
-                    scaling = '0.0'
                 # change to miriad and save in new folder
                 map_ = map_.toMiriad()
-                old_name = map_.map_name
-                try:
-                    map_ = map_.smooth(resolution, scale=scaling)
-                except:
-                    os.system('rm -rf ' +  map_.returnName(dataFormat=None))
-                    continue
+                map_ = map_.smooth(resolution, scale=scaling)
                 os.system('rm -rf ' + map_.returnName(dataFormat='fits'))
                 map_ = map_.toFits()
                 new_stack += [map_]
                 os.system('rm -rf ' +  map_.returnName(dataFormat=None))
-                os.system('rm -rf ' +  old_name)
         return new_stack
-
 
     def unify_units(self, unit='JyB', folder=None, debug=True):
         r"""
@@ -423,24 +398,20 @@ class Stack:
             old_map = map_.map_name
             map_ = map_.reproject(template=template.map_name)
             map_ = map_.toFits()
+            print map_.map_name
             while len(map_.data) == 1:
                 map_.data = map_.data[0]
-            try:
-                max_value = max(map_.data[np.where(np.invert(np.isnan(map_.data)))])
-                min_value = min(map_.data[np.where(np.invert(np.isnan(map_.data)))])
-                map_.header['DATAMAX'] = max_value
-                map_.header['DATAMIN'] = min_value
-                map_ = map_.update_file()
-            except:
-                pass
-            finally:
-                new_stack += [map_]
-                os.system('rm -rf {}'.format(old_map))
-                os.system('rm -rf {}'.format(map_.returnName(dataFormat='gdf')))
+            max_value = max(map_.data[np.where(np.invert(np.isnan(map_.data)))])
+            min_value = min(map_.data[np.where(np.invert(np.isnan(map_.data)))])
+            map_.header['DATAMAX'] = max_value
+            map_.header['DATAMIN'] = min_value
+            map_ = map_.update_file()
+            new_stack += [map_]
+            os.system('rm -rf {}'.format(old_map))
+            os.system('rm -rf {}'.format(map_.returnName(dataFormat='gdf')))
         return new_stack
 
-    def unify_projections(self, coordinate=None, angle=None, folder=None,
-                          keep_pixsize=False):
+    def unify_projections(self, coordinate=None, angle=None, folder=None):
         r"""
         Changing the central coordinate and the rotation angle.
         """
@@ -461,8 +432,7 @@ class Stack:
                 map_.map_name = map_.returnName()
             old_map = map_.map_name
             if coordinate:
-                map_ = map_.reproject(coord=coordinate,
-                                      keep_pixsize=keep_pixsize)
+                map_ = map_.reproject(coord=coordinate)
             if angle:
                 map_ = map_.goRot(angle)
             map_ = map_.toFits()
@@ -510,13 +480,11 @@ class Stack:
                     os.system('cp {} {}'.format(i.map_name, folder))
                     map_ = self.get_map_format(i.returnName(prefix=folder))
                 if folder is None:
-                    folder = i.prefix
                     map_ = self.get_map_format(i.map_name)
             new_stack += [map_]
         return new_stack
 
-    def pixel_pixel_compare(self, folder=None, plot=False, plot_folder=False,
-                            tol=1e6):
+    def pixel_pixel_compare(self, folder=None, plot=False, tol=1e6):
         r""" Producing a pixel-to-pixel comparison for all combinations
         possible between the maps of the stack.
 
@@ -541,7 +509,7 @@ class Stack:
            with the pixel-to-pixel comparisons. These can be used
         """
 
-        def _scatter_plot():
+        def _scatter_plot(folder):
             r""" This plots the pixel_to_pixel comparisons.
 
             Parameters
@@ -550,169 +518,72 @@ class Stack:
             folder : string
                 Path to the folder where the images should be stored.
             """
+            folder = check_folder_state(folder)
             colors = ['green', 'red', 'black', 'yellow', 'blue', 'navy']
-            plt.clf()
-            filein = open(self.log_file).readlines()
-            x = []
-            y = []
-            for k in filein:
-                x += [k.split()[0]]
-                y += [k.split()[1]]
-            plt.plot(x, y, 'x', color=colors[1])
-            plt.legend(numpoints=1, loc='lower right')
-            plt.xlabel(str(self.log_name.split('_')[0]))
-            plt.ylabel(str(self.log_name.split('_')[1]))
-            plt.savefig(self.plot_folder + '/' + self.log_name + '.eps',
-                        dpi=None, facecolor='w', edgecolor='w',
-                        orientation='portrait', papertype='a4',
-                        format='eps', transparent=False,
-                        bbox_inches='tight')
-        self.plot_folder = plot_folder
-        list = self.stack
-        print len(self.stack)
-        folder = check_folder_state(folder)
-        for i in range(len(list)):
-            first = list.pop(0).toMiriad()
+            os.system('ls > temp')
+            filein = open('temp').readlines()
+            if 'scatterPlots\n' in filein:
+                os.system('rm -rf scatterPlots/*.*')
+                pass
+            else:
+                os.system('mkdir scatterPlots')
+            os.system('rm temp')
             for j in list:
-                second = j.toMiriad()
-                if first.map_name == second.map_name:
-                    continue
-                os.system('mkdir ' + str(folder) + '/' + str(first.species) +
-                          '_' + str(second.species))
-                self.log_name = (str(first.species) +
-                                 '_'+str(second.species))
-                self.log_file = (str(folder) + '/' +
-                                  self.log_name + '/' +
-                                 str(first.species) + '_' +
-                                 str(second.species) + 
-                                 '.log')
-                command = ('imcmp in1=' + str(first.map_name) +
-                           ' in2=' + str(second.map_name) +
-                           ' log=' + self.log_file + ' tol='+str(tol))
-                subprocess.call(command, shell=True)
-                if plot and os.path.isfile(self.log_file):
-                    _scatter_plot()
-                subprocess.call('rm -rf ' + second.map_name, shell=True)
-            subprocess.call('rm -rf ' + first.map_name, shell=True)
+                plt.clf()
+                os.system('ls ' + str(j) + ' > temp')
+                filein = open('temp').readlines()
+                a = 0
+                for i in filein:
+                    name = (i.split('.')[0].split('_')[0] + '_' +
+                            i.split('.')[0].split('_')[1])
+                    region = i.split('.')[0].split('_')[2]
+                    filein = open(j + '/' + i.strip()).readlines()
+                    x = []
+                    y = []
+                    for k in filein:
+                        x += [k.split()[0]]
+                        y += [k.split()[1]]
+                    plt.plot(x, y, 'x', color=colors[a], label=region)
+                    a = a + 1
+                plt.legend(numpoints=1, loc='lower right')
+                plt.xlabel(str(name.split('_')[0]))
+                plt.ylabel(str(name.split('_')[1]))
+                plt.savefig('scatterPlots/' + name + '.eps', dpi=None,
+                            facecolor='w', edgecolor='w',
+                            orientation='portrait', papertype='a4',
+                            format='eps', transparent=False,
+                            bbox_inches='tight')
 
-
-    def new_pixel_pixel_compare(self, folder=None, plot=False,
-                                plot_folder=False, tol=False):
-        r""" Producing a pixel-to-pixel comparison for all combinations
-        possible between the maps of the stack.
-
-        Parameters
-        ----------
-
-        folder : string
-           Path to the folder where the text files with the pixel
-           to pixel comparisons are stored
-
-        plot : [True | False]
-           Decides whether to produce pixel-to-pixel plots directly.
-
-        tol : float
-           The tolerance for the maximum difference between the
-           values of the pixel of two compared maps. Default to 1e6.
-
-           Returns
-           -------
-
-           Created text files in the specified folders that contain two columns
-           with the pixel-to-pixel comparisons. These can be used
-        """
-
-        def _scatter_plot():
-            r""" This plots the pixel_to_pixel comparisons.
-
-            Parameters
-            ----------
-
-            folder : string
-                Path to the folder where the images should be stored.
-            """
-            colors = ['green', 'red', 'black', 'yellow', 'blue', 'navy']
-            plt.clf()
-            filein = open(self.log_file).readlines()
-            x = []
-            y = []
-            for k in filein:
-                x += [k.split()[0]]
-                y += [k.split()[1]]
-            plt.plot(x, y, 'x', color=colors[1])
-            plt.legend(numpoints=1, loc='lower right')
-            plt.xlabel(str(self.log_name.split('_')[0]))
-            plt.ylabel(str(self.log_name.split('_')[1]))
-            plt.savefig(self.plot_folder + '/' + self.log_name + '.eps',
-                        dpi=None, facecolor='w', edgecolor='w',
-                        orientation='portrait', papertype='a4',
-                        format='eps', transparent=False,
-                        bbox_inches='tight')
-        self.plot_folder = plot_folder
-        list = self.stack
-        print len(self.stack)
         folder = check_folder_state(folder)
-        for i in range(len(list)):
-            tidy_gildas = False
-            first = list.pop(0)
-            if first.dataFormat not in self.gildas_formats:
-                first = first.toGildas()
-                tidy_gildas =True
-            if first.dataFormat in self.gildas_formats:
-                tidy_first_fits = True
-            first.get_noise()
-            gildas_name = first.map_name
-            first = first.toFits()
-            if tidy_gildas:
-                subprocess.call('rm -rf ' + gildas_name, shell=True)
-            if tol:
-                first.data[np.where(first.data<(tol*first.map_noise))] = np.nan
+        self.unify_formats()
+        for i in range(len(list)-1):
+            item = list.pop()
+            i1 = item.strip().split('.')
+            dataFormat = i1.pop()
+            print dataFormat
             for j in list:
-                tidy_gildas = False
-                second = j
-                if second.dataFormat not in self.gildas_formats:
-                    second = j.toGildas()
-                    tidy_gildas = True
-                second.get_noise()
-                gildas_name = second.map_name
-                second = second.toFits()
-                if tidy_gildas:
-                    subprocess.call('rm -rf ' + gildas_name, shell=True)
-                if tol:
-                    second.data[np.where(second.data <
-                                         (tol*second.map_noise))] = np.nan
-                if first.map_name == second.map_name:
-                    continue
-                os.system('mkdir ' + str(folder) + '/' + str(first.species) +
-                          '_' + str(second.species))
-                self.log_name = (str(first.species) +
-                                 '_'+str(second.species))
-                self.log_file = (str(folder) + '/' +
-                                  self.log_name + '/' +
-                                 str(first.species) + '_' +
-                                 str(second.species) +
-                                 '.log')
-                fileout = open(self.log_file, 'w')
-                filelog = open('log.txt', 'w')
-                while len(first.data) < 2:
-                    first.data = first.data[0]
-                while len(second.data) < 2:
-                    second.data = second.data[0]
-                for x, i in enumerate(first.data[0]):
-                    for y, j in enumerate(first.data[1]):
-                        if str(first.data[x][y]) != 'nan':
-                            if str(second.data[x][y]) != 'nan':
-                                try:
-                                    f = float(first.data[x][y])
-                                    s = float(second.data[x][y])
-                                    print f, s
-                                    fileout.write(str(f) + '\t' + str(s) + '\n')
-                                except:
-                                    continue
-                if plot and os.path.isfile(self.log_file):
-                    _scatter_plot()
-                subprocess.call('rm -rf ' + second.map_name, shell=True)
-            subprocess.call('rm -rf ' + first.map_name, shell=True)
+                i1 = j.strip().split('.')
+                print j
+                dataFormat = i1.pop()
+                print dataFormat
+                if dataFormat == 'fits':
+                    map = mapClassFits.fitsMap(j)
+                    map = map.toMiriad()
+                    j = map.mapName
+                if dataFormat == 'gdf':
+                    map = mapClassGildas.gildasMap(j)
+                    map = map.toMiriad()
+                    j = map.mapName
+                first = mapClassMiriad.miriadMap(str(item))
+                second = mapClassMiriad.miriadMap(str(j))
+                os.system('mkdir ' + str(folder) + '/' + str(one.species) +
+                          '_' + str(two.species))
+                os.system('imcmp in1=' + str(item) + ' in2=' + str(j) +
+                          'log='+str(folder) + '/' + str(one.species) +
+                          '_'+str(two.species) + '/' + str(one.species) + '_' +
+                          str(two.species) + '_' + str(one.comments[0]) +
+                          '.log tol='+str(tol))
+
 
 # Some help functions
 

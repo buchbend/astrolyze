@@ -8,7 +8,7 @@ c_in_cm = c * 1e2  # Speed of light [cm]
 h = 6.62606896e-34  # Plancks constant [Js]
 k = 1.3806503e-23  # Boltzman constant [m^2 kg s^-1 K^-1]
 tBG = 2.7  # Cosmic Microwave Background Temperature in [K]
-e = 2.7182818284  # Eulers number
+e = 2.7182818284  # Eulers number 
 
 # Natural Constants in cgs units.
 k_CGS = 1.3806503e-16  # Boltzman constant [cm^2 g s^-1 K^-1]
@@ -29,7 +29,7 @@ m_proton = 1.672621637e-27  # [kg]
 # GaussArea/(height*FWHM)
 gauss_constant = 1.064467
 
-# Luminosities
+# Luminosities 
 LsunW = 3.846e26  # Watts
 Lsunergs = 3.846e26*1e7  # erg/s
 debye_to_EsuCm = 1.e-18  # Change from debye to esu/cm
