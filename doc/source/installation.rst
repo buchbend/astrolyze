@@ -99,15 +99,15 @@ files in the ``cfg`` folder located in ``astrolyze-0.1.0`` that contains:
 
 galaxy_parameter.txt:
 
-.. literalinclude:: ../cfg/galaxy_parameter.txt
+.. literalinclude:: ../../cfg/galaxy_parameter.txt
 
 line_parameter.txt:
 
-.. literalinclude:: ../cfg/line_parameter.txt
+.. literalinclude:: ../../cfg/line_parameter.txt
 
 calibration_error.txt:
 
-.. literalinclude:: ../cfg/calibration_error.txt
+.. literalinclude:: ../../cfg/calibration_error.txt
 
 The Names of the source telescope and lines have to be exactly how they are
 used in the map names. However the writing can be an arbitrary mix of upper an
