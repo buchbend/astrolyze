@@ -10,7 +10,7 @@ import site
 from distutils.core import setup
 setup(
     name='astrolyze',
-    version='0.1.1',
+    version='0.1.2',
     author='Christof Buchbender',
     author_email='buchbend@ph1.uni-koeln.de',
     url='https://github.com/buchbend/astrolyze.git',

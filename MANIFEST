@@ -37,4 +37,5 @@ astrolyze/spectra/class_.py
 cfg/calibration_error.txt
 cfg/galaxy_parameter.txt
 cfg/line_parameter.txt
+scripts/astrolyze_opt_db_setup.py
 test/test_astro_functions.py
