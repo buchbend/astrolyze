@@ -4,9 +4,6 @@ LICENSE.txt
 README.txt
 setup.py
 astrolyze/__init__.py
-astrolyze/database/__init__.py
-astrolyze/database/__init__.pyc
-astrolyze/database/parameter.db
 astrolyze/functions/__init__.py
 astrolyze/functions/astro_functions.py
 astrolyze/functions/calculations.py
@@ -34,6 +31,7 @@ astrolyze/sed/sed.py
 astrolyze/sed/sedCreation.py
 astrolyze/spectra/__init__.py
 astrolyze/spectra/class_.py
+cfg/astrolyze.cfg
 cfg/calibration_error.txt
 cfg/galaxy_parameter.txt
 cfg/line_parameter.txt

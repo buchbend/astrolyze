@@ -59,12 +59,12 @@ setup(
         "generaltools"
     ],
     classifiers=[
-          'Intended Audience :: Science/Research',
-          'Operating System :: Linux',
-          'Programming Language :: C',
-          'Programming Language :: Python :: 2.7',
-          'Topic :: Scientific/Engineering :: Astronomy',
-          'Topic :: Scientific/Engineering :: Physics'
+        'Intended Audience :: Science/Research',
+        'Operating System :: POSIX :: Linux',
+        'Programming Language :: C',
+        'Programming Language :: Python :: 2.7',
+        'Topic :: Scientific/Engineering :: Astronomy',
+        'Topic :: Scientific/Engineering :: Physics'
       ],
     scripts=['scripts/astrolyze_opt_db_setup.py']
 )

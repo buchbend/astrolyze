@@ -64,9 +64,9 @@ Installation
 
 Astrolyze is available via pypi, use::
 
-  sudo pip install astrolzye
+  sudo pip install astrolzye --user
 
-to install the package.
+to install the package. 
 
 In the current state the setup does not allow a custom installation path. The
 files will be installed depending on your system configuration in either of the
@@ -113,7 +113,7 @@ comparing.
 
 To generate the database from these files you have to run the script::
 
-  > astrolyze_opt_db_setup.py
+  > ~/.local/bin/astrolyze_opt_db_setup.py
 
-installed in `/usr/bin`.
+installed in `.local/bin`.
 
