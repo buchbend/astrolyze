@@ -17,7 +17,8 @@ print SUDO_USER
 CONFIG_FOLDER = "/home/{}/.astrolyze/".format(SUDO_USER)
 
 
-data_file = [("/home/{}/.astrolyze/cfg/".format(SUDO_USER),
+
+data_files = [("/home/{}/.astrolyze/cfg/".format(SUDO_USER),
               ["cfg/calibration_error.txt", "cfg/galaxy_parameter.txt",
                "cfg/line_parameter.txt"])]
 if SUDO_USER == "None":
@@ -37,10 +38,7 @@ setup(
               'astrolyze/functions',
               'astrolyze/database'
              ],
-    data_files = [("/home/{}/.astrolyze/cfg/".format(SUDO_USER),
-                   ["cfg/calibration_error.txt",
-                    "cfg/galaxy_parameter.txt",
-                    "cfg/line_parameter.txt"])],
+    data_files = data_files,
     license='LICENSE.txt',
     description=('Reduction and analysing tools for (mainly)'
                  'Radioastronomical Data.'),
