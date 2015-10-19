@@ -12,16 +12,13 @@ from distutils.core import setup
 
 
 SUDO_USER = os.getenv("SUDO_USER")
-print SUDO_USER
 
 CONFIG_FOLDER = "/home/{}/.astrolyze/".format(SUDO_USER)
-
-
 
 data_files = [("/home/{}/.astrolyze/cfg/".format(SUDO_USER),
               ["cfg/calibration_error.txt", "cfg/galaxy_parameter.txt",
                "cfg/line_parameter.txt"])]
-if SUDO_USER == "None":
+if SUDO_USER == None:
     data_file=[]
 
 setup(
