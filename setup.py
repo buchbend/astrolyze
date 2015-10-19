@@ -42,7 +42,6 @@ setup(
               'astrolyze/sed',
               'astrolyze/lte',
               'astrolyze/functions',
-              'astrolyze/database'
              ],
     data_files = data_files,
     license='LICENSE.txt',

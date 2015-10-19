@@ -26,7 +26,6 @@
 /home/buchbend/.local/lib/python2.7/site-packages/astrolyze/functions/astro_functions.py
 /home/buchbend/.local/lib/python2.7/site-packages/astrolyze/functions/conv_ver1.5.py
 /home/buchbend/.local/lib/python2.7/site-packages/astrolyze/functions/__init__.py
-/home/buchbend/.local/lib/python2.7/site-packages/astrolyze/database/__init__.py
 /home/buchbend/.local/lib/python2.7/site-packages/astrolyze/__init__.pyc
 /home/buchbend/.local/lib/python2.7/site-packages/astrolyze/maps/main.pyc
 /home/buchbend/.local/lib/python2.7/site-packages/astrolyze/maps/tools.pyc
@@ -55,7 +54,6 @@
 /home/buchbend/.local/lib/python2.7/site-packages/astrolyze/functions/astro_functions.pyc
 /home/buchbend/.local/lib/python2.7/site-packages/astrolyze/functions/conv_ver1.5.pyc
 /home/buchbend/.local/lib/python2.7/site-packages/astrolyze/functions/__init__.pyc
-/home/buchbend/.local/lib/python2.7/site-packages/astrolyze/database/__init__.pyc
 /home/buchbend/.local/bin/astrolyze_opt_db_setup.py
 /home/buchbend/.astrolyze/cfg/calibration_error.txt
 /home/buchbend/.astrolyze/cfg/galaxy_parameter.txt
