@@ -32,7 +32,7 @@ if str(USER) == "None":
 
 setup(
     name='astrolyze',
-    version='0.1.4',
+    version='0.1.5',
     author='Christof Buchbender',
     author_email='buchbend@ph1.uni-koeln.de',
     url='https://github.com/buchbend/astrolyze.git',
