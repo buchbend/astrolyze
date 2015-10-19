@@ -6,8 +6,11 @@ individual molecules for the ``lte`` package.
 
 import os
 import subprocess
+import astrolyze
 
 from pysqlite2 import dbapi2 as sqlite
+
+USER = os.getenv("USER")
 
 def get_line_parameter(filein, database):
     r""" Reads in the line names and frequencies from ``filein`` and creates a
@@ -92,19 +95,20 @@ def get_calibration_error(filein, database):
 def create_database(database):
     r"""
     """
-    dir_ =  os.path.dirname(database)
+    path_to_astrolyze_config = "/home/{}/.astrolyze/cfg/".format(USER)
+    dir_ =  "/home/{}/.astrolyze/database/".format(USER)
+    database =  "{}{}".format(dir_, database)
     print dir_
     if not os.path.isdir(dir_):
         subprocess.call("mkdir -p {}".format(dir_), shell=True)
     if os.path.isfile(database):
-        os.system('rm -rf ' + database)
-    filein = '/etc/astrolyze/cfg/line_parameter.txt'
+        subprocess.call('rm -rf {}'.format(database), shell=True)
+    filein = '{}line_parameter.txt'.format(path_to_astrolyze_config)
     get_line_parameter(filein, database)
-    filein = '/etc/astrolyze/cfg/galaxy_parameter.txt'
+    filein = '{}galaxy_parameter.txt'.format(path_to_astrolyze_config)
     get_galaxy_parameter(filein, database)
-    filein = '/etc/astrolyze/cfg/calibration_error.txt'
+    filein = '{}calibration_error.txt'.format(path_to_astrolyze_config)
     get_calibration_error(filein, database)
-    subprocess.call("chown 777 {}".format(database), shell=True)
 
 
-create_database('/etc/astrolyze/database/parameter.db')
+create_database('parameter.db')

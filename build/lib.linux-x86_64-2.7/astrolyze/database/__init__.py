@@ -1,2 +1,4 @@
 import os
-prefix_database = "/etc/astrolyze/database/"
+USER = os.getenv("USER")
+
+prefifx_database = "/home/{}/.astrolyze/database/".format(USER)

@@ -7,11 +7,15 @@ Basically it copies all scripts to
 import os
 import sys
 import site
+import subprocess
 from distutils.core import setup
 
 
 SUDO_USER = os.getenv("SUDO_USER")
 print SUDO_USER
+
+CONFIG_FOLDER = "/home/{}/.astrolyze/".format(SUDO_USER)
+
 setup(
     name='astrolyze',
     version='0.1.3',
@@ -26,7 +30,7 @@ setup(
               'astrolyze/functions',
               'astrolyze/database'
              ],
-    data_files = [("/home/{}/.astrolyze/".format(SUDO_USER),
+    data_files = [("/home/{}/.astrolyze/cfg/".format(SUDO_USER),
                    ["cfg/calibration_error.txt",
                     "cfg/galaxy_parameter.txt",
                     "cfg/line_parameter.txt"])],
@@ -55,5 +59,7 @@ setup(
       ],
     scripts=['scripts/astrolyze_opt_db_setup.py']
 )
+
+subprocess.call("chown -R {0}:{0} {1}".format(SUDO_USER, CONFIG_FOLDER), shell=True)
 
 # change_permissions()
