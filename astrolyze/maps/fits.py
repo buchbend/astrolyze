@@ -20,7 +20,6 @@ import astrolyze.functions.constants as const
 from astrolyze.functions import astro_functions as astFunc
 from astrolyze.functions import units
 
-
 class FitsMap(main.Map):
     r"""
     Fits Map manipulation making extensive use of the

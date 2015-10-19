@@ -3,13 +3,9 @@
 import os
 import string
 import sys
+import pyfits
+import pywcs
 import math
-import subprocess
-from copy import deepcopy
-
-# import pyfits as fits
-from astropy.io import fits
-from astropy import wcs
 
 from pysqlite2 import dbapi2 as sqlite
 from scipy.ndimage import gaussian_filter
@@ -24,21 +20,19 @@ import astrolyze.functions.constants as const
 from astrolyze.functions import astro_functions as astFunc
 from astrolyze.functions import units
 
-
 class FitsMap(main.Map):
     r"""
     Fits Map manipulation making extensive use of the
     pyfits package.
     """
-    def __init__(self, map_name, name_convention=True,
-                 ignore_missing_end=False):
+    def __init__(self, map_name, name_convention=True):
         main.Map.__init__(self, map_name, name_convention)
         if self.dataFormat not in self.fits_formats:
-            print 'Exiting: ' + self.dataFormat + ' not the right format'
+            print 'Exiting: not the right format'
             sys.exit()
-        self.__get_header(ignore_missing_end)
-        self.__get_data(ignore_missing_end)
-        self.wcs = wcs.WCS(self.hdulist[0].header)
+        self.__get_data()
+        self.__get_header()
+        self.wcs = pywcs.WCS(self.hdulist[0].header)
         self.headerKeywords = {}
         self.headerKeywords['source'] = ['OBJECT', 'SOURCE', 'TARNAME']
         self.headerKeywords['telescope'] = ['TELESCOP']
@@ -47,7 +41,7 @@ class FitsMap(main.Map):
         self.headerKeywords['resolution'] = ['BMAJ', 'BMIN']
         self.get_pixel_size()
 
-    def __get_data(self,ignore_missing_end=False):
+    def __get_data(self):
         r"""
         Creates a self.data variable containing an array with the maps data.
         This function is automatically executed every time a Fits map is opened
@@ -55,11 +49,10 @@ class FitsMap(main.Map):
         try:
             self.data = self.hdulist[0].data
         except:
-            self.hdulist = fits.open(self.map_name,
-                                     ignore_missing_end=ignore_missing_end)
+            self.hdulist = pyfits.open(self.map_name)
             self.data = self.hdulist[0].data
 
-    def __get_header(self,ignore_missing_end=False):
+    def __get_header(self):
         r"""
         Creates a self.header variable containing a dictionary with the header
         information of the map. This function is automatically executed every
@@ -68,12 +61,13 @@ class FitsMap(main.Map):
         try:
             self.header = self.hdulist[0].header
         except:
-            self.hdulist = fits.open(self.map_name,
-                                     ignore_missing_end=ignore_missing_end)
+            self.hdulist = pyfits.open(self.map_name)
             self.header = self.hdulist[0].header
 
     def update_file(self, backup=False):
-        r""" Saving changes in self.data and/or self.header to current file.
+        r"""
+        Writing changes to the self.data and/or self.header to the current
+        file.
 
         Parameters
         ----------
@@ -96,27 +90,16 @@ class FitsMap(main.Map):
         """
         map_name = self.returnName()
         if backup is True:
-            os.system('cp ' + str(map_name) + ' ' +
-                            str(map_name) + '_old')#, shell=True)
-        os.system('rm -rf ' + map_name)#, shell=True)
+            os.system('cp ' + str(map_name) + ' ' + str(map_name) + '_old')
+        os.system('rm ' + str(map_name))
         try:
-            fits.writeto(map_name, self.data, self.header)
-        except KeyError, e:
-            print e
+            pyfits.writeto(map_name, self.data, self.header)
+        except:
             print 'Problem with the header or data format. -> Exit!'
             raise SystemExit
-        except IOError, e:
-            os.system('rm -rf ' + map_name)
-            try:
-                fits.writeto(map_name, self.data, self.header)
-            except IOError, e:
-                print e
-                print map_name
-                raise SystemExit
         return FitsMap(map_name)
 
     def updateHeader(self):
-        "Saving changes to self.header to the file."
         try:
             self.header
         except:
@@ -180,54 +163,22 @@ class FitsMap(main.Map):
         os.system('cp ' + str(self.map_name) + ' ' +
                   str(self.map_name) + '_old')
         os.system('rm ' + str(self.map_name))
-        fits.writeto(self.map_name, self.data, self.header)
+        pyfits.writeto(self.map_name, self.data, self.header)
 
     def get_pixel_size(self):
-        r""" Calculates the Area of a pixel in m^2 and steradians.
-
-        If the distance is not given  only steradians are calculated.
+        r""" Calculates the Area of a pixel in m^2 and steradians if distance
+        is given. If not only  steradians are calculated.
         """
-        try:
-            _pixSizeSterad = np.asarray([float(math.fabs(self.header['CDELT1'])
-                                               * const.d2r),
-                                         float(math.fabs(self.header['CDELT2'])
-                                               * const.d2r)])
-            _pixSizeArcsec = np.asarray([float(math.fabs(self.header['CDELT1'])
-                                               * const.d2r / const.arcsecInRad),
-                                         float(math.fabs(self.header['CDELT2'])
-                                               * const.d2r / const.arcsecInRad)])
-
-        except Exception, e:
-            print 'Test_1'
-            print e
-            try:
-                _pixSizeSterad = np.asarray([float(math.fabs(self.header['XPIXSIZE']) *
-                                             const.d2r),
-                                             float(math.fabs(self.header['YPIXSIZE'])
-                                                   * const.d2r)])
-                _pixSizeArcsec = np.asarray([float(math.fabs(self.header['XPIXSIZE'])
-                                               * const.d2r / const.arcsecInRad),
-                                         float(math.fabs(self.header['YPIXSIZE'])
-                                               * const.d2r / const.arcsecInRad)])
-
-            except Exception, e:
-                print e
-                self.pixelSizeArcsec = None
-                self.pixelSizeSterad = None
-                self.pixelSizeM2 = None
-        try:
-            _pixSizeSterad = _pixSizeSterad[0] * _pixSizeSterad[1]
-            self.pixelSizeSterad = math.sqrt((float(_pixSizeSterad)) ** 2)
-            self.pixelSizeArcsec = _pixSizeArcsec
-            if self.distance is not None:
-                _pixSizeSterad = _pixSizeSterad * self.distance * const.pcInM
-                #_pixSize = _pixSizeSterad[0] * _pixSizeSterad[1]
-                self.pixelSizeM2 = math.sqrt((float(_pixSizeSterad)) ** 2)
-        except Exception, e:
-            print e
-            self.pixelSizeArcsec = None
-            self.pixelSizeSterad = None
-            self.pixelSizeM2 = None
+        _pixSize = np.asarray([float(math.fabs(self.header['CDELT1']) *
+                                     const.d2r),
+                               float(math.fabs(self.header['CDELT2'])
+                                     * const.d2r)])
+        _pixSizeSterad = _pixSize[0] * _pixSize[1]
+        self.pixelSizeSterad = math.sqrt((float(_pixSizeSterad)) ** 2)
+        if self.distance is not None:
+            _pixSize = _pixSize * self.distance * const.pcInM
+            _pixSize = _pixSize[0] * _pixSize[1]
+            self.pixelSizeM2 = math.sqrt((float(_pixSize)) ** 2)
 
     def __smooth(self, newRes, oldRes=None, scale='0.0'):
         # TODO: In Development. It's not sure if it ever will be finished.
@@ -261,9 +212,8 @@ class FitsMap(main.Map):
     def _cut_map(self, x1y1, x2y2, pix_or_coord='coord'):
         # TODO: Check if still valid!!!!
         r"""
-        Cutting an rectangle out of a map.
-
-        Giving the corners in coordinates or in pixels.
+        Cutting an rectangle out of a map. Giving the corners in
+        coordinates or in pixels.
 
         Parameters
         ----------
@@ -382,8 +332,6 @@ class FitsMap(main.Map):
 
     def read_flux(self, position):
         r"""
-        Reads the flux of a pixel.
-
         Returns the value of the pixel that corresponds to the
         given positions of RA, DEC (J2000) in units of equatorial
         coordinates or degrees.
@@ -413,143 +361,15 @@ class FitsMap(main.Map):
 
         """
         x, y = self.sky2pix(position)
-        data = deepcopy(self.data)
-        while len(data) == 1:
-            data = data[0]
-        return data[y][x]
+        return self.data[y][x]
 
-    def _read_aperture_common(self, position, output=True):
-        xCenter, yCenter = self.sky2pix(position)
-
-        if not self.pixelSizeSterad:
-                print 'No Header keyword for the pixsize found'
-                sys.exit()
-
-        # Check if the pixel size is quadratic, if not the function does not
-        # work correctly (yet)
-        if ((((self.pixelSizeArcsec[0]) ** 2 - (self.pixelSizeArcsec[1]) ** 2) ** 2 <
-             ((self.pixelSizeArcsec[0]) ** 2) * 0.01)):
-            if output is True:
-                print self.map_name
-                print ('Pixel Size X: ' + str(self.pixelSizeArcsec[0])
-                       + ' arcsec')
-                print ('Pixel Size Y: ' + str(self.pixelSizeArcsec[1])
-                       + ' arcsec')
-                print ('Pixel Size quadratic to 1%, Go on with '
-                       'calculation of Apertures')
-        else:
-            if output is True:
-                print self.pixelSizeArcsec[0], self.pixelSizeArcsec[1]
-                print ('Pixel Size *NOT* quadratic: Exit the program, '
-                       'please regrid!')
-            sys.exit()
-        return xCenter, yCenter
-
-
-
-    def read_aperture_box(self, position, aperture_size=[1,1],
-                          angle=0, background_size=False, output=False,
-                          annotation=False, new_annotation=False):
-
-        xCenter, yCenter = self._read_aperture_common(position, output)
-        x_steps = (math.sqrt(math.floor(aperture_size[0] /
-                                        self.pixelSizeArcsec[0]) ** 2))
-        y_steps = (math.sqrt(math.floor(aperture_size[1] /
-                                        self.pixelSizeArcsec[0]) ** 2))
-        # First sum the aperture
-        x_min, x_max = int(-1*x_steps/2), int(x_steps/2)
-        y_min, y_max = int(-1*y_steps/2), int(y_steps/2)
-        aperture_sum = 0
-        aperture_N = 0
-        background_sum = 0
-        background_N = 0
-        x_rot, y_rot = astFunc.rotation_2d([x_min, y_min], angle)
-        x_rot, y_rot = astFunc.rotation_2d([x_max, y_max], angle)
-        for x in range(int(x_min), int(x_max)):
-            for y in range(int(y_min), int(y_max)):
-                x_rot, y_rot = astFunc.rotation_2d([x, y], angle)
-                x_rot, y_rot = xCenter + x_rot, yCenter + y_rot
-                aperture_sum += self.data[y_rot][x_rot]
-                aperture_N += 1
-        aperture_mean = aperture_sum / aperture_N
-        result = [aperture_sum, aperture_N, aperture_mean]
-        if background_size:
-            background_size[0] =  int(aperture_size[0] * background_size[0])
-            background_size[1] =  int(aperture_size[1] * background_size[1])
-            x_background_steps = (math.sqrt(math.floor(background_size[0] /
-                                                       self.pixelSizeArcsec[0])
-                                            ** 2))
-            y_background_steps = (math.sqrt(math.floor(background_size[1] /
-                                                       self.pixelSizeArcsec[0])
-                                            ** 2))
-            x_background_min, x_background_max =  (int(-1*x_background_steps/2),
-                                                   int(x_background_steps/2))
-            y_background_min, y_background_max = (int(-1*y_background_steps/2),
-                                                  int(y_background_steps/2))
-            for x in  range(int(x_background_min), int(x_background_max)):
-                for y in  range(int(y_background_min), int(y_background_max)):
-                    if ((x >= x_min and x <= x_max) and
-                        (y >= y_min and y <= y_max)):
-                        continue
-                    x_rot, y_rot = astFunc.rotation_2d([x, y], angle)
-                    x_rot, y_rot = xCenter + x_rot, yCenter + y_rot
-                    if np.isnan(self.data[y_rot][x_rot]):
-                        continue
-                    background_sum += self.data[y_rot][x_rot]
-                    background_N +=1
-
-            try:
-                background_mean = background_sum / background_N
-            except:
-                pass
-            else:
-                aperture_sum = aperture_sum - (aperture_N * background_mean)
-                aperture_mean = aperture_sum / aperture_N
-                result = [aperture_sum, aperture_N, aperture_mean,
-                          background_sum, background_N, background_mean]
-        if annotation is True:
-            if new_annotation is False:
-                fileout = open('apertures.ann', 'a')
-            if new_annotation is True:
-                fileout = open('apertures.ann', 'w')
-            position = astFunc.equatorial_to_degrees(position)
-            apertureString = ('Color green \n' +
-                              'CROSS ' +
-                              str(position[0]) + ' ' +
-                              str(position[1]) + ' 0.0008 0.001 \n'
-                              'CBOX  ' +
-                              str(position[0]) + ' ' +
-                              str(position[1]) + ' ' +
-                              str(aperture_size[0] * (1. / 60 / 60)) + ' ' +
-                              str(aperture_size[1] * (1. / 60 / 60)) + ' ' +
-                              str(angle) + ' \n'
-                              'text ' +
-                              str(position[0] + (1. / 60 / 60)) + ' ' +
-                              str(position[1] + (1. / 60 / 60)) + '\n')
-            if background_size != 0:
-                apertureString += ('Color red \n' +
-                                   'CROSS ' +
-                                   str(position[0]) + ' ' +
-                                   str(position[1]) + ' 0.0008 0.001 \n'
-                                   'CBOX  ' +
-                                   str(position[0]) + ' ' +
-                                   str(position[1]) + ' ' +
-                                   str(background_size[0] *
-                                       (1. / 60 / 60)) + ' ' +
-                                   str(background_size[1] *
-                                       (1. / 60 / 60)) + ' ' +
-                                   str(angle) + ' \n')
-            fileout.write(apertureString)
-            fileout.close()
-        return result
-
-    def read_aperture_circle(self, position, aperture_size=0,
-                             background_size=0, output=False, annotation=False,
-                             new_annotation=False):
+    def read_aperture(self, position, apertureSize=0, backgroundSize=0,
+                      output=False, annotation=False, newAnnotation=False):
         # TODO: needs better scheme for the header keywords. Migth not work
         # with all maps.
         r"""
-        Extract the sum and mean flux inside an aperture.
+        Extract the sum and mean flux inside an aperture of a given size
+        and at a given position..
 
         This function can be used to read the flux in the area of a circular
         aperture, as well as to correct for the background flux.
@@ -565,28 +385,28 @@ class FitsMap(main.Map):
             or:
                 * [RA, DEC] where RA and DEC being the coordinates in Grad.
 
-        aperture_size : float [arcsec]
+        apertureSize : float [arcsec]
             The diameter of the aperture to be applied.
 
-        background_size : float [arcsec]
+        backgroundSize : float [arcsec]
             The Size of the Anulli in which the background is to be
             estimated. The number to be given here correspond to the diameter
             of the circle in [arcsec ] descibing the outer border of the
             annuli, measured from the position given in position. Thus, the
-            background is measurd in the ring described by aperture_size and
-            background_size. Default is 0 and thus
-            **no background substaction** is applied.
+            background is measurd in the ring described by apertureSize and
+            backgroundSize. Default is 0 and thus **no background substaction**
+            is applied.
 
         output : True or False
             If True the function reports the calculated values during
             execution.
 
-        annotation : logical
+        annotion : logical
             If True a kvis annotation file ``"apertures.ann"`` containing the
             aperture used to integrate the flux is created. Default is False,
             i.e. not to create the aperture.
 
-        new_annotation : logical
+        newAnnotation : logical
             If True ``"apertures.ann"`` is overwritten. If False an old
             ``"apertures.ann"`` is used to append the new apertures. If it not
             exists a new one is created. The latter is the default.
@@ -604,32 +424,54 @@ class FitsMap(main.Map):
 
         """
         # Calculate the x,y Pixel coordinate of the position.
-        xCenter, yCenter = self._read_aperture_common(position, output)
-        # Convert the aperture sizes to Grad
+        xCenter, yCenter = self.sky2pix(position)
+        # Read the pixel Size (normaly in Grad FITS-Standard)
+        try:
+            self.pixSize1 = float(self.header['CDELT1'])
+            self.pixSize2 = float(self.header['CDELT2'])
+        except:
+            # sometimes the header keywords are different.
+            try:
+                self.pixSize1 = float(self.header['XPIXSIZE'])
+                self.pixSize2 = float(self.header['YPIXSIZE'])
+                self.pixSize1 = self.pixSize1 / 60 / 60
+                self.pixSize2 = self.pixSize2 / 60 / 60
+            except:
+                print 'No Header keyword for the pixsize found'
+                sys.exit()
+         # Check if the pixel size is quadratic, if not the function does not
+         # work correctly (yet)
+        if ((((self.pixSize1) ** 2 - (self.pixSize2) ** 2) ** 2 <
+             ((self.pixSize1) ** 2) * 0.01)):
+            if output is True:
+                print ('Pixel Size X: ' + str(self.pixSize1 / (1. / 60 / 60))
+                       + ' arcsec')
+                print ('Pixel Size Y: ' + str(self.pixSize2 / (1. / 60 / 60))
+                       + ' arcsec')
+                print ('Pixel Size quadratic to 1%, Go on with '
+                       'calculation of Apertures')
+        else:
+            if output is True:
+                print self.pixSize1, self.pixSize2
+                print ('Pixel Size *NOT* quadratic: Exit the program, '
+                       'please regrid!')
+            sys.exit()
+        # Convert the apertureSizes to Grad f
+        apertureSizeInGrad = (1. / 60 / 60) * (apertureSize) / 2
         # Calculate how many pixels are needed to cover the radius of the
         # aperture
-        pixy = float(self.header['CDELT1'])
-        apertureSteps = math.sqrt(math.floor((aperture_size / 2) /
-                                             self.pixelSizeArcsec[0]) ** 2)
-        fileout = open('circle.txt', 'w')
-        fileout.write(str(apertureSteps))
-        apsize = (1. / 60 / 60) * (aperture_size) / 2
-        apertureSteps = math.sqrt(math.floor((apsize) /
-                                             pixy) ** 2)
-        fileout.write(str(apertureSteps))
-        fileout.close()
+        apertureSteps = math.sqrt(math.floor(apertureSizeInGrad /
+                                             self.pixSize1) ** 2)
         # same for the backround annuli
-        if background_size != 0:
-            backgroundSteps = math.sqrt(math.floor(background_size /
-                                                   self.pixelSizeArcsec[0])
-                                        ** 2)
-            print backgroundSteps
+        if backgroundSize != 0:
+            backgroundSizeInGrad = (1. / 60 / 60) * (backgroundSize) / 2
+            backgroundSteps = math.sqrt(math.floor(backgroundSizeInGrad /
+                                                   self.pixSize1) ** 2)
             x_max, x_min = xCenter + backgroundSteps, xCenter - backgroundSteps
             y_max, y_min = yCenter + backgroundSteps, yCenter - backgroundSteps
         else:
             x_max, x_min = xCenter + apertureSteps, xCenter - apertureSteps
             y_max, y_min = yCenter + apertureSteps, yCenter - apertureSteps
-        print x_max, x_min, y_max, y_min
         # calculate the x and y range in Pixel coordinates that are needed at
         # most for the calculation of the aperture and background
         # Now: Initialize variables
@@ -639,7 +481,7 @@ class FitsMap(main.Map):
         sumBackgnd = 0  # the sum of all pixels in the background
         NBackgnd = 0   # number of pixels in the background
         # calculate the background
-        if background_size != 0:
+        if backgroundSize != 0:
             for x in range(int(x_min), int(x_max)):
                 for y in range(int(y_min), int(y_max)):
                     if ((math.floor(math.sqrt((xCenter - x) ** 2 +
@@ -649,54 +491,33 @@ class FitsMap(main.Map):
                                                                   (yCenter - y)
                                                                   ** 2))
                          > apertureSteps)):
-                        try:
-                            if np.isnan(self.data[y][x]):
-                                continue
-                            else:
-                                sumBackgnd += self.data[y][x]
-                                NBackgnd += 1
-                        except IndexError:
-                            continue
-            if NBackgnd != 0:
-                backgndMean = sumBackgnd / NBackgnd
-            else:
-                NBackgnd = np.nan
-                sumBackgnd = np.nan
-                backgndMean = np.nan
+                        sumBackgnd += self.data[y][x]
+                        NBackgnd += 1
+            backgndMean = sumBackgnd / NBackgnd
+            print backgndMean
         # caclulate the sum in the aperture
         for x in range(int(x_min), int(x_max)):
             for y in range(int(y_min), int(y_max)):
                 if (math.floor(math.sqrt((xCenter - x) ** 2 + (yCenter - y) **
                                          2)) < apertureSteps):
-                    try:
-                        if np.isnan(self.data[y][x]):
-                            continue
-                        else:
-                            sum += self.data[y][x]
-                        N += 1
-                    except IndexError:
-                        continue
-        if background_size != 0 and NBackgnd != np.nan:
-            mean = (sum / N)
-            sum_corrected = sum - ( N * backgndMean)
-            mean_corrected = mean - backgndMean
-            result = [sum, sum_corrected, mean, mean_corrected, N, backgndMean]
-        elif background_size != 0:
-            mean = (sum / N)
+                    if backgroundSize != 0:
+                        sum += self.data[y][x] - backgndMean
+                    else:
+                        sum += self.data[y][x]
+                    N += 1
+        if backgroundSize != 0:
+            mean = (sum / N) - backgndMean
+            sumcorrected = sum - (N * backgndMean)
             result = [sum, mean, N]
-        if background_size == 0:
+        if backgroundSize == 0:
             mean = (sum / N)
             result = [sum, mean, N]
         if output is True:
-            print 'Map: ' + self.map_name
-            print 'Sum:', result[0]
-            print 'Mean:', result[1],
-            print 'Number of Pixel:', result[2]
-            if background_size != 0:
-                print 'Background: ', backgndMean
-        if new_annotation is False:
+            print ('Sum:', result[0], 'Mean:', result[1],
+                   'Number of Pixel:', result[2])
+        if newAnnotation is False:
             fileout = open('apertures.ann', 'a')
-        if new_annotation is True:
+        if newAnnotation is True:
             fileout = open('apertures.ann', 'w')
         if annotation is True:
             position = astFunc.equatorial_to_degrees(position)
@@ -706,26 +527,17 @@ class FitsMap(main.Map):
                               'circle  ' +
                               str(position[0]) + ' ' +
                               str(position[1]) + ' ' +
-                              str(aperture_size * (1. / 60 / 60) / 2) + ' \n'
+                              str(apertureSize * (1. / 60 / 60) / 2) + ' \n'
                               'text ' +
                               str(position[0] + (1. / 60 / 60)) + ' ' +
                               str(position[1] + (1. / 60 / 60)) + '\n')
-            if background_size != 0:
-                apertureString += ('CROSS ' +
-                                   str(position[0]) + ' ' +
-                                   str(position[1]) + ' 0.0008 0.001 \n'
-                                   'circle  ' +
-                                   str(position[0]) + ' ' +
-                                   str(position[1]) + ' ' +
-                                   str(background_size * (1. / 60 / 60) / 2) +
-                                   ' \n')
             fileout.write(apertureString)
             fileout.close()
         return result
 
     def sky2pix(self, coordinate, origin=0):
         r"""
-        Calculates the pixel corresponding to a given coordinate.
+        Calculates the Pixel corresponding to a given coordinate.
 
         Parameters
         -----------
@@ -744,18 +556,14 @@ class FitsMap(main.Map):
         """
         # Equatorial_to_degrees is only possible to execute if coordinate is in
         # the correct form for RA DEC.
-        print coordinate
         try:
             coordinate = astFunc.equatorial_to_degrees(coordinate)
+            print coordinate
+            print [[coordinate[0]],[coordinate[1]]]
         except:
             pass
-        print coordinate, len(coordinate)
-        while len(coordinate) < self.wcs.naxis:
-            coordinate = coordinate + [0]
-        print coordinate, len(coordinate)
-        coordinate = np.array([coordinate], np.float_)
-        print self.wcs.naxis
-        pixel = self.wcs.wcs_world2pix(coordinate, origin)[0]
+        coordinate = np.array([[coordinate[0], coordinate[1]]], np.float_)
+        pixel = self.wcs.wcs_sky2pix(coordinate, origin)[0]
         # The pixels are floats. To get integers we get the floor value
         # of the floats
         pixel = [int(math.floor(float(pixel[0]))),
@@ -764,7 +572,7 @@ class FitsMap(main.Map):
 
     def pix2sky(self, pixel, degrees_or_equatorial='degrees'):
         r"""
-        Calculates the coordinate of a given pixel.
+        Calculates the Coordinates of a given Pixel.
 
         Parameters
         -----------
@@ -784,15 +592,14 @@ class FitsMap(main.Map):
         """
         # equatorial_to_degrees is only possible to execute if coordinate
         # is in RA DEC
-        coordinate = self.wcs.wcs_pix2world([[float(pixel[0]),
+        coordinate = self.wcs.wcs_pix2sky([[float(pixel[0]),
                                             float(pixel[1])]], 1)[0]
         if degrees_or_equatorial == 'equatorial':
             coordinate = astFunc.degrees_to_equatorial(coordinate)
         return coordinate
 
     def gauss_factor(self, beamConv, beamOrig=None, dx1=None, dy1=None):
-        r"""Gets scaling factor needed get flux per beam after convolving.
-
+        r"""
         Caluclates the scaling factor to be applied after convolving
         a map in Jy/beam with a gaussian to get fluxes in Jy/beam again.
 
@@ -819,7 +626,7 @@ class FitsMap(main.Map):
         fac :
             Factor for the output Units.
         amp :
-            Amplitude of resultant Gaussian.
+            Amplitude of resultant gaussian.
         bmaj, bmin :
             Major and minor axes of resultant gaussian.
         bpa :
@@ -902,7 +709,7 @@ class FitsMap(main.Map):
             conversions may work properly.
         """
         # Definition of the unit nomenclatures.
-        # TODO!! This should be User input.
+        # TODO!! This should be Uset input.
         _jansky_beam_names = ['JYB', 'JyBeam']
         _jansky_pixel_names = ['JYPIX', 'JYP', 'JYPIXEL']
         _tmb_names = ['TMB', 'T', 'KKMS']
@@ -936,7 +743,7 @@ class FitsMap(main.Map):
                 self.fluxUnit = 'JyB'
                 self.header.update('BUNIT', 'Jy/Beam')
             if invert:
-                factor = self.pixelSizeSterad / self.beamSizeSterad
+                factor = self.pixelSize / self.beamSize
                 self.data = self.data * factor
                 self.fluxUnit = 'JyPix'
                 self.header.update('BUNIT', 'Jy/Pixel')
@@ -988,10 +795,7 @@ class FitsMap(main.Map):
                     factor = self.flux_conversion()
                     self.data = self.data * factor
                     self.fluxUnit = 'Tmb'
-                    if 'km/s' in self.header['BUNIT']:
-                        self.header.update('BUNIT', 'K km/s')
-                    if 'km/s' not in self.header['BUNIT']:
-                        self.header.update('BUNIT', 'K')
+                    self.header.update('BUNIT', 'K km/s')
                 elif frequency is not None:
                     factor = self.flux_conversion(frequency=frequency)
                     self.data = self.data * factor
@@ -1033,74 +837,90 @@ class FitsMap(main.Map):
         if final_unit.upper() in _jansky_beam_names:
             if self.fluxUnit.upper() in _jansky_pixel_names:
                 JyPix_JyBeam()
+                self.update_file()
 
         if final_unit.upper() in _jansky_pixel_names:
             if self.fluxUnit.upper() in _jansky_beam_names:
                 JyPix_JyBeam(invert=True)
+                self.update_file()
 
         # Jy/beam <-> MJy/sterad.
         if final_unit.upper() in _jansky_beam_names:
             if self.fluxUnit.upper() in _MJy_per_sterad_names:
                 MJyPSr_JyBeam()
+                self.update_file()
         if final_unit.upper() in _MJy_per_sterad_names:
             if self.fluxUnit.upper() in _jansky_beam_names:
                 MJyPSr_JyBeam(invert=True)
+                self.update_file()
 
         # Jy/pixel <-> MJy/sterad.
         if final_unit.upper() in _jansky_pixel_names:
             if self.fluxUnit.upper() in _MJy_per_sterad_names:
                 MJyPSr_JyBeam()
                 JyPix_JyBeam(invert=True)
+                self.update_file()
         if final_unit.upper() in _MJy_per_sterad_names:
             if self.fluxUnit.upper() in _jansky_pixel_names:
                 JyPix_JyBeam()
                 MJyPSr_JyBeam(invert=True)
+                self.update_file()
 
         # MJy/sterad <-> Tmb
         if final_unit.upper() in _tmb_names:
             if self.fluxUnit.upper() in _MJy_per_sterad_names:
                 MJyPSr_JyBeam()
                 Tmb_JyBeam(invert=True)
+                self.update_file()
         if final_unit.upper() in _MJy_per_sterad_names:
             if self.fluxUnit.upper() in _tmb_names:
                 Tmb_JyBeam()
-                MJyPSr_JyBeam(invert=True)
+                MJyPSr_JyBeam(inver=True)
+                self.update_file()
 
         # Jy/Beam <-> Tmb (Main beam temperature).
         if final_unit.upper() in _tmb_names:
             if self.fluxUnit.upper() in _jansky_beam_names:
                 Tmb_JyBeam(invert=True)
+                self.update_file()
         if final_unit.upper() in _jansky_beam_names:
             if self.fluxUnit.upper() in _tmb_names:
                 Tmb_JyBeam()
+                self.update_file()
 
         # Tmb <-> Jy/pixel
         if final_unit.upper() in _tmb_names:
             if self.fluxUnit.upper() in _jansky_pixel_names:
                 JyPix_JyBeam()
                 Tmb_JyBeam(invert=True)
+                self.update_file()
         if final_unit.upper() in _jansky_pixel_names:
             if self.fluxUnit.upper() in _tmb_names:
                 Tmb_JyBeam()
                 JyPix_JyBeam(invert=True)
+                self.update_file()
 
         # Jy/beam <-> Erg/s/beam
         if final_unit.upper() in _erg_sec_beam_names:
             if self.fluxUnit.upper() in _jansky_beam_names:
                 ErgSecBeam_JyBeam(invert=True)
+                self.update_file()
         if final_unit.upper() in _jansky_beam_names:
             if self.fluxUnit.upper() in _erg_sec_beam_names:
                 ErgSecBeam_JyBeam()
+                self.update_file()
 
        # Jy/beam <-> Erg/s/pixel
         if final_unit.upper() in _erg_sec_pixel_names:
             if self.fluxUnit.upper() in _jansky_beam_names:
                 ErgSecBeam_JyBeam(invert=True)
                 ErgSecBeam_ErgSecPixel()
+                self.update_file()
         if final_unit.upper() in _jansky_beam_names:
             if self.fluxUnit.upper() in _erg_sec_pixel_names:
                 ErgSecBeam_ErgSecPixel(invert=True)
                 ErgSecBeam_JyBeam()
+                self.update_file()
 
        # Jy/pixel <-> Erg/s/pixel
         if final_unit.upper() in _erg_sec_pixel_names:
@@ -1108,21 +928,25 @@ class FitsMap(main.Map):
                 JyPix_JyBeam()
                 ErgSecBeam_JyBeam(invert=True)
                 ErgSecBeam_ErgSecPixel()
+                self.update_file()
         if final_unit.upper() in _jansky_pixel_names:
             if self.fluxUnit.upper() in _erg_sec_pixel_names:
                 ErgSecBeam_ErgSecPixel(invert=True)
                 ErgSecBeam_JyBeam()
                 JyPix_JyBeam(invert=True)
+                self.update_file()
 
        # Jy/pixel <-> Erg/s/beam
         if final_unit.upper() in _erg_sec_beam_names:
             if self.fluxUnit.upper() in _jansky_pixel_names:
                 JyPix_JyBeam()
                 ErgSecBeam_JyBeam(invert=True)
+                self.update_file()
         if final_unit.upper() in _jansky_pixel_names:
             if self.fluxUnit.upper() in _erg_sec_beam_names:
                 ErgSecBeam_JyBeam()
                 JyPix_JyBeam(invert=True)
+                self.update_file()
 
         # MJy/sterad <-> Erg/s/pixel
         if final_unit.upper() in _erg_sec_pixel_names:
@@ -1130,29 +954,35 @@ class FitsMap(main.Map):
                 MJyPSr_JyBeam()
                 ErgSecBeam_JyBeam(invert=True)
                 ErgSecBeam_ErgSecPixel()
+                self.update_file()
         if final_unit.upper() in _MJy_per_sterad_names:
             if self.fluxUnit.upper() in _erg_sec_pixel_names:
                 ErgSecBeam_ErgSecPixel(invert=True)
                 ErgSecBeam_JyBeam()
                 MJyPSr_JyBeam(invert=True)
+                self.update_file()
 
         # MJy/sterad <-> Erg/s/beam
         if final_unit.upper() in _erg_sec_beam_names:
             if self.fluxUnit.upper() in _MJy_per_sterad_names:
                 MJyPSr_JyBeam()
                 ErgSecBeam_JyBeam(invert=True)
+                self.update_file()
         if final_unit.upper() in _MJy_per_sterad_names:
             if self.fluxUnit.upper() in _erg_sec_beam_names:
                 ErgSecBeam_JyBeam()
                 MJyPSr_JyBeam(invert=True)
+                self.update_file()
 
         # MJy/sterad <-> Erg/s/beam
         if final_unit.upper() in _erg_sec_pixel_names:
             if self.fluxUnit.upper() in _erg_sec_beam_names:
                 ErgSecBeam_ErgSecPixel()
+                self.update_file()
         if final_unit.upper() in _erg_sec_beam_names:
             if self.fluxUnit.upper() in _erg_sec_pixel_names:
                 ErgSecBeam_ErgSecPixel(invert=True)
+                self.update_file()
 
        # Tmb <-> Erg/s/pixel
         if final_unit.upper() in _erg_sec_pixel_names:
@@ -1160,38 +990,34 @@ class FitsMap(main.Map):
                 Tmb_JyBeam()
                 ErgSecBeam_JyBeam(invert=True)
                 ErgSecBeam_ErgSecPixel()
+                self.update_file()
         if final_unit.upper() in _tmb_names:
             if self.fluxUnit.upper() in _erg_sec_pixel_names:
                 ErgSecBeam_ErgSecPixel(invert=True)
                 ErgSecBeam_JyBeam()
                 Tmb_JyBeam(invert=True)
+                self.update_file()
 
        # Tmb <-> Erg/s/beam
         if final_unit.upper() in _erg_sec_beam_names:
             if self.fluxUnit.upper() in _tmb_names:
                 Tmb_JyBeam()
                 ErgSecBeam_JyBeam(invert=True)
+                self.update_file()
         if final_unit.upper() in _tmb_names:
             if self.fluxUnit.upper() in _erg_sec_beam_names:
                 ErgSecBeam_JyBeam()
                 Tmb_JyBeam(invert=True)
+                self.update_file()
 
         # If the original flux unit is not known.
         elif self.fluxUnit.upper() not in _known_units:
-            print ('Flux unit ' + self.fluxUnit.upper()  +
-                   ' not known to astrolyze - Can not continue')
+            print ('Flux unit not known to astrolyze - '
+                   'Can not continue')
             if debug is True:
                 pass
             elif debug is False:
                 sys.exit()
-        # Set the new min and max keywords
-        # get the flux where it is not nan
-        max_flux = np.max(self.data[np.where(np.invert(np.isnan(self.data)))])
-        min_flux = np.min(self.data[np.where(np.invert(np.isnan(self.data)))])
-        self.header.update('DATAMAX', float(max_flux))
-        self.header.update('DATAMIN', float(min_flux))
-        # Write the changes to the maps
-        self.update_file()
         return FitsMap(self.returnName())
 
     def toGildas(self, prefix=None):
@@ -1266,11 +1092,8 @@ class FitsMap(main.Map):
         return miriad.MiriadMap(_miriad_name)
 
     def toFits(self):
-        r""" Changes the map to Fits Format.
-        """
         if self.map_name != self.returnName():
             os.system('cp -rf ' + self.map_name + ' ' + self.returnName())
-            self.map_name = self.returnName()
-            return self
+            return fits.FitsMap(self.returnName())
         else:
             return self
