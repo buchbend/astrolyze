@@ -22,17 +22,21 @@ astrolyze depends on the following python packages
   scipy
   pywcs
   pysqlite2
-
+  generaltools
+  
 In Ubuntu (and thus most probable also Debian) these dependencies can be
 installed via::
 
   sudo apt-get install python-matplotlib python-pywcs python-scipy python-numpy
   python-pysqlite2 python-pyfits
 
+`generaltools` can be installed via pypi::
 
+  sudo pip install generaltools
+  
 .. warning:: 
 
-   It does not work with python3!!
+   It does not work with python3 yet. Since the Gildas Python extension is not yet available for python 3!!
 
 Gildas
 ------
@@ -58,18 +62,11 @@ ftp://ftp.atnf.csiro.au/pub/software/miriad/INSTALL.html
 Installation
 ============
 
-If you are interested in the package please sent me a short E-Mail
-(buchbend@iram.es) and I'll send it to you. Later it will be available on-line.
+Astrolyze is available via pypi, use::
 
-So far it astrolyze is only available as a source distribution. To install
-astrolyze unpack the tar-ball via::
+  sudo pip install astrolzye
 
- tar -xvzf astrolyze-0.1.0.tar.gz
-
-which will unpack into a directory ''astrolyze-0.1.0'' in the current path.
-After entering this directory the installation of astrolyze is done via::
-
- sudo python setup.py install
+to install the package.
 
 In the current state the setup does not allow a custom installation path. The
 files will be installed depending on your system configuration in either of the
@@ -95,7 +92,7 @@ In the current state  astrolyze reads in
  - Calibration error for specific telescopes
 
 The database has to be populated by the user. This is done via the three text
-files in the ``cfg`` folder located in ``astrolyze-0.1.0`` that contains:
+files in the ``/home/USER/.astrolyze/cfg`` folder that contains:
 
 galaxy_parameter.txt:
 
@@ -113,3 +110,10 @@ The Names of the source telescope and lines have to be exactly how they are
 used in the map names. However the writing can be an arbitrary mix of upper an
 lower case characters. Internally Astrolyze converts them to upper case before
 comparing.
+
+To generate the database from these files you have to run the script::
+
+  > astrolyze_opt_db_setup.py
+
+installed in `/usr/bin`.
+
