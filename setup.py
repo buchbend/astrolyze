@@ -11,15 +11,24 @@ import subprocess
 from distutils.core import setup
 
 
-SUDO_USER = os.getenv("SUDO_USER")
+USER = os.getenv("SUDO_USER")
+if not USER:
+    USER = os.getenv("USER")
 
-CONFIG_FOLDER = "/home/{}/.astrolyze/".format(SUDO_USER)
 
-data_files = [("/home/{}/.astrolyze/cfg/".format(SUDO_USER),
+data_files=[]
+
+CONFIG_FOLDER = "/home/{}/.astrolyze/".format(USER)
+
+data_files = [("/home/{}/.astrolyze/cfg/".format(USER),
               ["cfg/calibration_error.txt", "cfg/galaxy_parameter.txt",
-               "cfg/line_parameter.txt"])]
-if not SUDO_USER:
-    data_files=[]
+               "cfg/line_parameter.txt"]),
+              ("/home/{}/.astrolyze/".format(USER),
+               ["cfg/astrolyze.cfg"])
+]
+
+if str(USER) == "None":
+    data_files = []
 
 setup(
     name='astrolyze',
@@ -52,8 +61,7 @@ setup(
     ],
     classifiers=[
           'Intended Audience :: Science/Research',
-          'License :: BSD License',
-          'Operating System :: OS Independent',
+          'Operating System :: Linux',
           'Programming Language :: C',
           'Programming Language :: Python :: 2.7',
           'Topic :: Scientific/Engineering :: Astronomy',
@@ -62,6 +70,6 @@ setup(
     scripts=['scripts/astrolyze_opt_db_setup.py']
 )
 
-subprocess.call("chown -R {0}:{0} {1}".format(SUDO_USER, CONFIG_FOLDER), shell=True)
-
-# change_permissions()
+subprocess.call("chown -R {0}:{0} {1}".format(USER,
+                                              CONFIG_FOLDER),
+                shell=True)

@@ -4,6 +4,8 @@ import math
 import os
 import string
 import sys
+import ConfigParser
+
 import pyfits
 import pywcs
 
@@ -13,9 +15,6 @@ from scipy.ndimage import gaussian_filter
 
 import astrolyze.functions.constants as const
 from astrolyze.functions import units
-
-from astrolyze.database import prefix_database
-
 
 class Map:
     '''
@@ -38,14 +37,36 @@ class Map:
         Initialize a map to maps.
         '''
         # Definition of the unit nomenclatures.
-        self.jansky_beam_names = ['JYB']
-        self.jansky_pixel_names = ['JYPIX', 'JYP', 'JY/PIXEL']
-        self.tmb_names = ['TMB', 'T', 'KKMS']
-        self.MJy_per_sterad_names = ['MJPSR', 'MJY/SR']
-        self.erg_sec_pixel_names = ['ERGPSECPPIX', 'ERGPSECPPIXEL',
-                                    'ERG-S-1-Pixel', 'ERG-S-1']
-        self.erg_sec_beam_names = ['ERGPSECPBEAM']
-        self.erg_sec_sterad_names = ['ERGPERSTER']
+        USER = os.getenv("USER")
+        config_path = "/home/{}/.astrolyze/".format(USER)
+        config_file = "astrolyze.cfg"
+        self.config = ConfigParser.ConfigParser()
+        self.config.read("{}{}".format(config_path, config_file))
+        self.database_prefix = self.config.get("General", "database_prefix")
+        self.database_prefix = self.database_prefix.format(USER)
+
+        self.jansky_beam_names = self.config.get(
+            "Units", "jansky_beam_names"
+        ).split(',')
+        self.jansky_pixel_names = self.config.get(
+            "Units", "jansky_pixel_names"
+        ).split(',')
+        self.tmb_names = self.config.get(
+            "Units", "tmb_names"
+        ).split(',')
+        self.MJy_per_sterad_names = self.config.get(
+            "Units", "MJy_per_sterad_names"
+        ).split(',')
+        self.erg_sec_pixel_names =  self.config.get(
+            "Units", "erg_sec_pixel_names"
+        ).split(',')
+        self.erg_sec_beam_names = self.config.get(
+            "Units", "erg_sec_beam_names"
+        ).split(',')
+        self.erg_sec_sterad_names =  self.config.get(
+            "Units", "erg_sec_sterad_names"
+        ).split(',')
+
         self.known_units = (self.jansky_beam_names + self.jansky_pixel_names +
                             self.tmb_names + self.MJy_per_sterad_names +
                             self.erg_sec_beam_names +
@@ -53,11 +74,17 @@ class Map:
                             self.erg_sec_pixel_names)
         # Definition of possible data format endings for the different
         # programs.
-        self.gildas_formats = ['gdf', 'mean', 'velo', 'width', 'lmv',
-                               'lmv-clean']
-        self.fits_formats = ['fits']
-        self.miriad_formats = ['', None]
-        self.class_formats = ['30m', 'apex']
+
+        self.gildas_formats = self.config.get(
+            "Formats", "gildas_formats"
+        ).split(',')
+        self.fits_formats = self.config.get(
+            "Formats", "fits_formats"
+        ).split(',')
+        self.miriad_formats = ['',None]
+        self.class_formats = self.config.get(
+            "Formats", "class_formats"
+        ).split(',')
         # name_convention is not needed anymore. Only kept for backward
         # compatibality.
         self.name_convention = name_convention
@@ -84,20 +111,21 @@ class Map:
             # Check dataFormat.
             if self.map_name.endswith('.fits'):
                 self.dataFormat = 'fits'
-                self.map_nameList[-1] = self.map_nameList[-1].replace('.fits',
-                                                                      '')
+                self.map_nameList[-1] = self.map_nameList[-1].replace(
+                    '.fits', ''
+                )
             for i in self.gildas_formats:
                 if self.map_name.endswith('.' + i):
                     self.dataFormat = i
-                    self.map_nameList[-1] = self.map_nameList[-1].replace('.' +
-                                                                          i,
-                                                                          '')
+                    self.map_nameList[-1] = self.map_nameList[-1].replace(
+                        '.' + i, ''
+                    )
             for i in self.class_formats:
                 if self.map_name.endswith('.' + i):
                     self.dataFormat = i
-                    self.map_nameList[-1] = self.map_nameList[-1].replace('.' +
-                                                                          i,
-                                                                          '')
+                    self.map_nameList[-1] = self.map_nameList[-1].replace(
+                        '.' + i, ''
+                    )
             if os.path.isdir(self.map_name):
                 # Miriad Data Format uses directories
                 self.dataFormat = None
@@ -116,7 +144,7 @@ class Map:
         # parts of the program otherwise errors in the program are camouflaged.
         # print  str(prefix_database) + 'parameter.db'
         try:
-            self.connection = sqlite.connect(str(prefix_database) +
+            self.connection = sqlite.connect(str(self.database_prefix) +
                                              'parameter.db')
             self.cursor = self.connection.cursor()
             self.cursor.execute("SELECT * FROM Galaxies WHERE Name = ?",
@@ -141,7 +169,7 @@ class Map:
             self.inclination = None
             self.R25 = None
         try:
-            self.connection = sqlite.connect(str(prefix_database) +
+            self.connection = sqlite.connect(str(self.database_prefix) +
                                              'parameter.db')
             self.cursor = self.connection.cursor()
             self.cursor.execute("SELECT * FROM Lines WHERE Name = ?",
@@ -154,7 +182,7 @@ class Map:
         except:
             pass
         try:
-            self.connection = sqlite.connect(str(prefix_database) +
+            self.connection = sqlite.connect(str(self.database_prefix) +
                                              'parameter.db')
             self.cursor = self.connection.cursor()
             self.cursor.execute("SELECT * FROM cal_error WHERE Telescope = "
