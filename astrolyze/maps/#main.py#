@@ -47,7 +47,6 @@ class Map(object):
             directory="/home/{}/.astrolyze/".format(USER),
             name="astrolyze"
         )
-        self.log.info("Test")
         USER = os.getenv("USER")
         self.database_prefix = self.config.get("General", "database_prefix")
         self.database_prefix = self.database_prefix.format(USER)

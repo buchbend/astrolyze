@@ -4,7 +4,6 @@ import os
 import string
 import sys
 import pyfits
-import pywcs
 import math
 
 from astropy import wcs
@@ -97,11 +96,11 @@ class FitsMap(main.Map):
         if backup is True:
             os.system('cp ' + str(map_name) + ' ' + str(map_name) + '_old')
         os.system('rm ' + str(map_name))
-        try:
-            fits.writeto(map_name, self.data, self.header)
-        except:
-            print 'Problem with the header or data format. -> Exit!'
-            raise SystemExit
+        # try:
+        fits.writeto(map_name, self.data, self.header)
+        # except:
+        #     print 'Problem with the header or data format. -> Exit!'
+        #     raise SystemExit
         return FitsMap(map_name)
 
     def updateHeader(self):
@@ -366,6 +365,7 @@ class FitsMap(main.Map):
 
         """
         self.log.debug("Determining the Flux at position: {}".format(position))
+        self.log.debug("NAXIS is {}".format(self.header["NAXIS"]))
         x, y = self.sky2pix(position)
         self.log.debug(
             "Sky2Pix returned coordinates: x={}, y={}".format(x, y)
@@ -577,8 +577,8 @@ class FitsMap(main.Map):
             self.log.debug("Calculated coordinate in "\
                            "Degrees: {}".format(coordinate))
         except AttributeError:
-            self.log.debug("Conversion to degrees not needed.")
-            pass
+            self.log.debug("Conversion to degrees failed. "\
+                           "This does not have to be a problem.")
         coordinate = np.array([[coordinate[0], coordinate[1]]], np.float_)
         self.log.debug("Retrieving the pixels of the map at given coordinate")
         sky2pix_result = self.wcs.wcs_world2pix(coordinate, origin)

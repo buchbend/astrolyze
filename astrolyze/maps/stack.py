@@ -14,8 +14,11 @@ import fits
 import gildas
 import miriad
 
+from generaltools import log_tools
+
 import astrolyze.functions.constants as const
 
+USER = os.getenv("USER")
 
 class Stack(object):
     r""" Allows to treat a folder of images as a whole and to perform the same
@@ -48,6 +51,10 @@ class Stack(object):
             self.resolutions += [i.resolution]
             self.units += [i.fluxUnit]
             self.dataFormats = [i.dataFormat]
+        self.log = log_tools.init_logger(
+            directory="/home/{}/.astrolyze/".format(USER),
+            name="astrolyze"
+        )
 
     def get_map_format(self, map_name):
         r""" This function creates returns the correct ``GildasMap``,
@@ -401,11 +408,22 @@ class Stack(object):
             old_map = map_.map_name
             map_ = map_.reproject(template=template.map_name)
             map_ = map_.toFits()
-            print map_.map_name
             while len(map_.data) == 1:
                 map_.data = map_.data[0]
-            max_value = max(map_.data[np.where(np.invert(np.isnan(map_.data)))])
-            min_value = min(map_.data[np.where(np.invert(np.isnan(map_.data)))])
+            max_value = max(
+                map_.data[np.where(np.invert(np.isnan(map_.data)))]
+            )
+            min_value = min(
+                map_.data[np.where(np.invert(np.isnan(map_.data)))]
+            )
+            map_.header["NAXIS"] = 2
+            for i in [3, 4]:
+                del map_.header['NAXIS{}'.format(i)]
+                del map_.header['CDELT{}'.format(i)]
+                del map_.header['CRPIX{}'.format(i)]
+                del map_.header['CRVAL{}'.format(i)]
+                del map_.header['CTYPE{}'.format(i)]
+                del map_.header['CROTA{}'.format(i)]
             map_.header['DATAMAX'] = max_value
             map_.header['DATAMIN'] = min_value
             map_ = map_.update_file()

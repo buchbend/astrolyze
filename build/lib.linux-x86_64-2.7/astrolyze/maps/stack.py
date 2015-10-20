@@ -14,10 +14,13 @@ import fits
 import gildas
 import miriad
 
+from generaltools import log_tools
+
 import astrolyze.functions.constants as const
 
+USER = os.getenv("USER")
 
-class Stack:
+class Stack(object):
     r""" Allows to treat a folder of images as a whole and to perform the same
     transformations on all of the maps. It is also the basis for the SED
     package. The images in the input folder can have arbitrary formats, units,
@@ -48,6 +51,10 @@ class Stack:
             self.resolutions += [i.resolution]
             self.units += [i.fluxUnit]
             self.dataFormats = [i.dataFormat]
+        self.log = log_tools.init_logger(
+            directory="/home/{}/.astrolyze/".format(USER),
+            name="astrolyze"
+        )
 
     def get_map_format(self, map_name):
         r""" This function creates returns the correct ``GildasMap``,
@@ -281,23 +288,26 @@ class Stack:
                     old_map = map_.map_name
                     if (float(max_major_fwhm) != float(map_.resolution[0]) and
                         float(max_minor_fwhm) != float(map_.resolution[1])):
-                        map_ = map_.smooth([max_major_fwhm, max_minor_fwhm, pa],
-                                           scale=scaling)
+                        map_ = map_.smooth([max_major_fwhm, max_minor_fwhm,
+                                            pa], scale=scaling)
                         os.system('rm -rf ' +
                                   str(map_.returnName(dataFormat='fits')))
                         map_ = map_.toFits()
                         new_stack += [map_]
-                        os.system('rm -rf ' +  map_.returnName(dataFormat=None))
+                        os.system('rm -rf ' + map_.returnName(dataFormat=None))
                         os.system('rm -rf ' +
                                   map_.returnName(dataFormat=None,
                                                   resolution=old_resolution))
-                    elif (float(max_major_fwhm) == float(map_.resolution[0]) and
-                        float(max_minor_fwhm) == float(map_.resolution[1])):
+                    elif (float(max_major_fwhm) == float(map_.resolution[0])
+                          and
+                          float(max_minor_fwhm) == float(map_.resolution[1])):
                         os.system('rm -rf ' +
                                   str(map_.returnName(dataFormat='fits')))
                         map_ = map_.toFits()
                         new_stack += [map_]
-                        os.system('rm -rf ' +  map_.returnName(dataFormat=None))
+                        os.system('rm -rf {}'.format(
+                            map_.returnName(dataFormat=None))
+                        )
         if resolution:
             for map_ in self.stack:
                 try:
@@ -398,11 +408,22 @@ class Stack:
             old_map = map_.map_name
             map_ = map_.reproject(template=template.map_name)
             map_ = map_.toFits()
-            print map_.map_name
             while len(map_.data) == 1:
                 map_.data = map_.data[0]
-            max_value = max(map_.data[np.where(np.invert(np.isnan(map_.data)))])
-            min_value = min(map_.data[np.where(np.invert(np.isnan(map_.data)))])
+            max_value = max(
+                map_.data[np.where(np.invert(np.isnan(map_.data)))]
+            )
+            min_value = min(
+                map_.data[np.where(np.invert(np.isnan(map_.data)))]
+            )
+            map_.header["NAXIS"] = 2
+            for i in [3, 4]:
+                del map_.header['NAXIS{}'.format(i)]
+                del map_.header['CDELT{}'.format(i)]
+                del map_.header['CRPIX{}'.format(i)]
+                del map_.header['CRVAL{}'.format(i)]
+                del map_.header['CTYPE{}'.format(i)]
+                del map_.header['CROTA{}'.format(i)]
             map_.header['DATAMAX'] = max_value
             map_.header['DATAMIN'] = min_value
             map_ = map_.update_file()
