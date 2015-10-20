@@ -4,8 +4,10 @@ import os
 import string
 import sys
 import pyfits
-import pywcs
 import math
+
+from astropy import wcs
+from astropy.io import fits
 
 from pysqlite2 import dbapi2 as sqlite
 from scipy.ndimage import gaussian_filter
@@ -28,11 +30,13 @@ class FitsMap(main.Map):
     def __init__(self, map_name):
         main.Map.__init__(self, map_name)
         if self.dataFormat not in self.fits_formats:
-            print 'Exiting: not the right format'
-            sys.exit()
+            self.log.critical("This is not a configured fits format. "\
+                              "Adapt /home/USER/.astrolyze/astrolyze.cfg "\
+                              "to add this format to known fits formats")
+            raise SystemExit
         self.__get_data()
         self.__get_header()
-        self.wcs = pywcs.WCS(self.hdulist[0].header)
+        self.wcs = wcs.WCS(self.hdulist[0].header)
         self.headerKeywords = {}
         self.headerKeywords['source'] = ['OBJECT', 'SOURCE', 'TARNAME']
         self.headerKeywords['telescope'] = ['TELESCOP']
@@ -49,7 +53,7 @@ class FitsMap(main.Map):
         try:
             self.data = self.hdulist[0].data
         except:
-            self.hdulist = pyfits.open(self.map_name)
+            self.hdulist = fits.open(self.map_name)
             self.data = self.hdulist[0].data
 
     def __get_header(self):
@@ -61,7 +65,7 @@ class FitsMap(main.Map):
         try:
             self.header = self.hdulist[0].header
         except:
-            self.hdulist = pyfits.open(self.map_name)
+            self.hdulist = fits.open(self.map_name)
             self.header = self.hdulist[0].header
 
     def update_file(self, backup=False):
@@ -93,7 +97,7 @@ class FitsMap(main.Map):
             os.system('cp ' + str(map_name) + ' ' + str(map_name) + '_old')
         os.system('rm ' + str(map_name))
         try:
-            pyfits.writeto(map_name, self.data, self.header)
+            fits.writeto(map_name, self.data, self.header)
         except:
             print 'Problem with the header or data format. -> Exit!'
             raise SystemExit
@@ -163,7 +167,7 @@ class FitsMap(main.Map):
         os.system('cp ' + str(self.map_name) + ' ' +
                   str(self.map_name) + '_old')
         os.system('rm ' + str(self.map_name))
-        pyfits.writeto(self.map_name, self.data, self.header)
+        fits.writeto(self.map_name, self.data, self.header)
 
     def get_pixel_size(self):
         r""" Calculates the Area of a pixel in m^2 and steradians if distance
@@ -360,7 +364,11 @@ class FitsMap(main.Map):
         sky2pix, astFunc.equatorial_to_degrees, wcs.wcs_sky2pix
 
         """
+        self.log.debug("Determining the Flux at position: {}".format(position))
         x, y = self.sky2pix(position)
+        self.log.debug(
+            "Sky2Pix returned coordinates: x={}, y={}".format(x, y)
+        )
         return self.data[y][x]
 
     def read_aperture(self, position, apertureSize=0, backgroundSize=0,
@@ -423,6 +431,11 @@ class FitsMap(main.Map):
         corresponding to the given coordinate.
 
         """
+        self.log.debug(
+            "Determining the Flux at position: {}; "\
+            "in aperture of size {} and background of {}".format(
+                position, apertureSize, backgroundSize)
+        )
         # Calculate the x,y Pixel coordinate of the position.
         xCenter, yCenter = self.sky2pix(position)
         # Read the pixel Size (normaly in Grad FITS-Standard)
@@ -556,18 +569,24 @@ class FitsMap(main.Map):
         """
         # Equatorial_to_degrees is only possible to execute if coordinate is in
         # the correct form for RA DEC.
+        self.log.debug("Calculate map pixel for coord. {}".format(coordinate))
         try:
+            self.log.debug("Test trying to convert coord. to degrees")
             coordinate = astFunc.equatorial_to_degrees(coordinate)
-            print coordinate
-            print [[coordinate[0]],[coordinate[1]]]
-        except:
+            self.log.debug("Calculated coordinate in "\
+                           "Degrees: {}".format(coordinate))
+        except AttributeError:
+            self.log.debug("Conversion to degrees not needed.")
             pass
         coordinate = np.array([[coordinate[0], coordinate[1]]], np.float_)
-        pixel = self.wcs.wcs_sky2pix(coordinate, origin)[0]
+        self.log.debug("Retrieving the pixels of the map at given coordinate")
+        sky2pix_result = self.wcs.wcs_world2pix(coordinate, origin)
+        pixel = sky2pix_result[0]
         # The pixels are floats. To get integers we get the floor value
         # of the floats
         pixel = [int(math.floor(float(pixel[0]))),
                  int(math.floor(float(pixel[1])))]
+        self.log.debug("Output pixel {}".format(pixel))
         return pixel
 
     def pix2sky(self, pixel, degrees_or_equatorial='degrees'):

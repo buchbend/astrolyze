@@ -406,10 +406,10 @@ class Sed:
             j+=1
 
     def create_figure(self, save=True, plotLegend=False,
-                     color=['black'], marker=['x'], title=None, x_label=None,
-                     y_label=None, nu_or_lambda='nu', fontdict=None,
-                     textStringLoc=[1,1], lineWidth=0.5,
-                     kappa='easy', x_range='normal'):
+                      color=['black'], marker=['x'], title=None, x_label=None,
+                      y_label=None, nu_or_lambda='nu', fontdict=None,
+                      textStringLoc=[1,1], lineWidth=0.5,
+                      kappa='easy', x_range='normal', prefix="./", **kwargs):
         r""" Creates a quick preview of the loaded SED. TODO: extend
         documentation.
         """
@@ -496,6 +496,6 @@ class Sed:
             fig1ax1.ylabel(y_label)
         fig1ax1.axis([xLimNu[0],xLimNu[1],ylim[0],ylim[1]])
         if save:
-            fig1.savefig(self.source_name + '_SED.eps', dpi=None, facecolor='w',
-                    edgecolor='w',orientation='portrait', papertype='a5',
-                    format='eps',bbox_inches='tight')
+            fig1.savefig(prefix + self.source_name + '_SED.eps', dpi=None,
+                         facecolor='w', edgecolor='w',orientation='portrait',
+                         papertype='a5', format='eps',bbox_inches='tight')

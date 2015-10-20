@@ -2,16 +2,25 @@
 # BSD Licencse
 import math
 import sys
-
+import os
 import scipy
+
 from scipy.optimize import leastsq as least
 from numpy import asarray, mean, std, where, exp, log, sqrt, arange
 from copy import deepcopy as copy
 import random as rnd
 
+from generaltools import log_tools
+
 import astrolyze.functions.constants as const
 import astrolyze.functions.units
 
+USER = os.getenv("USER")
+
+log = log_tools.init_logger(
+    directory="/home/{}/.astrolyze/".format(USER),
+    name="astrolyze"
+)
 
 def black_body(x, T, nu_or_lambda='nu'):
     r"""
@@ -1131,7 +1140,9 @@ def equatorial_to_degrees(equatorial):
         CoordsplitRA = equatorial[0].split(':')
         CoordsplitDec = equatorial[1].split(':')
     except AttributeError:
-        raise SystemExit('Input has to be equatorial coordinates.')
+        log.debug("equatorial_to_degrees needs a pair of RA DEC "\
+                       "coordinated in equatiorial notation as input")
+        raise
     if float(CoordsplitDec[0]) > 0:
         degrees = [(float(CoordsplitRA[0]) * (360. / 24) +
                   float(CoordsplitRA[1]) * (360. / 24 / 60) +

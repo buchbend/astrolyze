@@ -1,2 +1,7 @@
-pyfits
-pywcs
+astropy
+numpy
+scipy
+matplotlib
+pysqlite2
+docutils
+generaltools

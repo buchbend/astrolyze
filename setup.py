@@ -50,11 +50,10 @@ setup(
                  'Radioastronomical Data.'),
     long_description=open('README.txt').read(),
     requires=[
+        "astropy",
         "numpy",
-        "pyfits",
-        "matplotlib",
         "scipy",
-        "pywcs",
+        "matplotlib",
         "pysqlite2",
         "docutils",
         "generaltools"
