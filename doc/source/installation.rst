@@ -64,7 +64,7 @@ Installation
 
 Astrolyze is available via pypi, use::
 
-  sudo pip install astrolzye --user
+  sudo pip install astrolyze --user
 
 to install the package. 
 
