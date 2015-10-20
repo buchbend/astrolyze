@@ -2,6 +2,6 @@ astropy
 numpy
 scipy
 matplotlib
-pysqlite2
+pysqlite
 docutils
 generaltools
