@@ -43,7 +43,7 @@ setup(
               'astrolyze/lte',
               'astrolyze/functions',
              ],
-    package_data={"",["VERSION"]},
+    package_data={"astrolyze":["VERSION"]},
     data_files = data_files,
     license='LICENSE.txt',
     description=('Reduction and analysing tools for (mainly)'
