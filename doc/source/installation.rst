@@ -5,6 +5,29 @@
 
 astrolyze is only tested on Linux/Ubuntu so far.
 
+Installation
+============
+
+Astrolyze is available via pypi, use::
+
+  sudo pip install astrolyze --user
+
+to install the package. 
+
+When installed with the --user flag the package will be installed in::
+
+    /home/USERNAME/.local/lib/python2.7/site-packages/astrolyze
+
+The configuration files for `astrolyze` are installed in::
+
+    /home/USERNAME/.astrolyze/
+
+Further a script to configure the database for additional information is installed in::
+
+    /home/USERNAME/.local/bin/
+
+
+
 Dependencies
 ============
 
@@ -12,27 +35,17 @@ Dependencies
 Python
 ------
 
-astrolyze depends on the following python packages
+astrolyze depends on the following python packages:
 
-::
+ .. literalinclude:: ../../requirements.txt
 
-  numpy
-  pyfits
-  matplotlib
-  scipy
-  pywcs
-  pysqlite2
-  generaltools
-  
-In Ubuntu (and thus most probable also Debian) these dependencies can be
-installed via::
+After installation of astrolyze via pip a list of these packages "requirements.txt" is copied to
 
-  sudo apt-get install python-matplotlib python-pywcs python-scipy python-numpy
-  python-pysqlite2 python-pyfits
+`/home/USER/.astrolyze/`
 
-`generaltools` can be installed via pypi::
+The dependencies can be installed via pip::
 
-  sudo pip install generaltools
+  pip install -r ~/.astrolyze/requirements.txt
   
 .. warning:: 
 
@@ -55,31 +68,7 @@ Also Miriad just has to be installed and working. At the moment only the smooth
 function of miriad is used in astrolyze but it is worth installing it since it
 it a common task. Miriad and instructions for installation can be found here:
 
-
-ftp://ftp.atnf.csiro.au/pub/software/miriad/INSTALL.html
-
-
-Installation
-============
-
-Astrolyze is available via pypi, use::
-
-  sudo pip install astrolyze --user
-
-to install the package. 
-
-When installed with the --user flag the package will be installed in::
-
-    /home/USERNAME/.local/lib/python2.7/site-packages/astrolyze
-
-The configuration files for `astrolyze` are installed in::
-
-    /home/USERNAME/.astrolyze/
-
-Further a script to configure the database for additional information is installed in::
-
-    /home/USERNAME/.local/bin/
-
+http://www.astro.umd.edu/~teuben/miriad/install.html
 
 Configuration of the (optional) Database
 ========================================

@@ -17,7 +17,7 @@ import miriad
 import astrolyze.functions.constants as const
 
 
-class Stack:
+class Stack(object):
     r""" Allows to treat a folder of images as a whole and to perform the same
     transformations on all of the maps. It is also the basis for the SED
     package. The images in the input folder can have arbitrary formats, units,
@@ -281,23 +281,26 @@ class Stack:
                     old_map = map_.map_name
                     if (float(max_major_fwhm) != float(map_.resolution[0]) and
                         float(max_minor_fwhm) != float(map_.resolution[1])):
-                        map_ = map_.smooth([max_major_fwhm, max_minor_fwhm, pa],
-                                           scale=scaling)
+                        map_ = map_.smooth([max_major_fwhm, max_minor_fwhm,
+                                            pa], scale=scaling)
                         os.system('rm -rf ' +
                                   str(map_.returnName(dataFormat='fits')))
                         map_ = map_.toFits()
                         new_stack += [map_]
-                        os.system('rm -rf ' +  map_.returnName(dataFormat=None))
+                        os.system('rm -rf ' + map_.returnName(dataFormat=None))
                         os.system('rm -rf ' +
                                   map_.returnName(dataFormat=None,
                                                   resolution=old_resolution))
-                    elif (float(max_major_fwhm) == float(map_.resolution[0]) and
-                        float(max_minor_fwhm) == float(map_.resolution[1])):
+                    elif (float(max_major_fwhm) == float(map_.resolution[0])
+                          and
+                          float(max_minor_fwhm) == float(map_.resolution[1])):
                         os.system('rm -rf ' +
                                   str(map_.returnName(dataFormat='fits')))
                         map_ = map_.toFits()
                         new_stack += [map_]
-                        os.system('rm -rf ' +  map_.returnName(dataFormat=None))
+                        os.system('rm -rf {}'.format(
+                            map_.returnName(dataFormat=None))
+                        )
         if resolution:
             for map_ in self.stack:
                 try:
