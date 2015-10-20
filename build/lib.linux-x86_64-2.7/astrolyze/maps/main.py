@@ -32,8 +32,6 @@ class Map(object):
     map_name : string
         The name and path of the file that is to be initialized to the maps
         package.
-    name_convention : True or False
-        Only files following the name_convention are supported.
     '''
     def __init__(self, map_name, **kwargs):
         '''
@@ -46,13 +44,15 @@ class Map(object):
         self.config.read("{}{}".format(config_path, config_file))
         # Definition of the unit nomenclatures.
         self.log = log_tools.init_logger(
-            "/home/{}/.astrolyze/astrolyze.log".format(USER)
+            directory="/home/{}/.astrolyze/".format(USER),
+            name="astrolyze.log"
         )
         self.log.info("Test")
         USER = os.getenv("USER")
         self.database_prefix = self.config.get("General", "database_prefix")
         self.database_prefix = self.database_prefix.format(USER)
 
+        # Load configuration from config_file
         self.jansky_beam_names = self.config.get(
             "Units", "jansky_beam_names"
         ).split(',')
@@ -100,60 +100,58 @@ class Map(object):
         # File for Fits and GILDAS.
         if ((not os.path.isdir(self.map_name)
              and not os.path.isfile(self.map_name))):
-            print 'Exiting: ' + self.map_name + ' does not exist'
-            sys.exit()
+            self.log.critical(
+                'Exiting: {} does not exist'.format(self.map_name)
+            )
+            raise SystemExit
         # Get Informations from the file name.
-        try:
-            self.map_nameList = map_name.split('/')[-1].split('_')
-        except:
-            self.log
-        if name_convention:
-            self.map_nameList = map_name.split('/')[-1].split('_')
-            self.prefix_list = map_name.split('/')[0:-1]
-            self.comments = []
-            self.source = self.map_nameList[0].split('/')[-1]
-            if len(self.prefix_list) > 0:
-                self.prefix = string.join(self.prefix_list, '/') + '/'
-            elif len(self.prefix_list) == 0:
-                self.prefix = ''
-            self.telescope = self.map_nameList[1]
-            self.species = self._resolveSpecies()
-            self.fluxUnit = self.map_nameList[3]
-            # Check dataFormat.
-            if self.map_name.endswith('.fits'):
-                self.dataFormat = 'fits'
+
+        self.map_nameList = map_name.split('/')[-1].split('_')
+        if len(self.map_nameList) < 5:
+            self.log.critical(
+                "This map does not follow the Naming Convention for Astrolyze"
+            )
+            raise SystemExit
+        self.map_nameList = map_name.split('/')[-1].split('_')
+        self.prefix_list = map_name.split('/')[0:-1]
+        self.comments = []
+        self.source = self.map_nameList[0].split('/')[-1]
+        if len(self.prefix_list) > 0:
+            self.prefix = string.join(self.prefix_list, '/') + '/'
+        elif len(self.prefix_list) == 0:
+            self.prefix = ''
+        self.telescope = self.map_nameList[1]
+        self.species = self._resolveSpecies()
+        self.fluxUnit = self.map_nameList[3]
+        # Check dataFormat.
+        if self.map_name.endswith('.fits'):
+            self.dataFormat = 'fits'
+            self.map_nameList[-1] = self.map_nameList[-1].replace(
+                '.fits', ''
+            )
+        for i in self.gildas_formats:
+            if self.map_name.endswith('.' + i):
+                self.dataFormat = i
                 self.map_nameList[-1] = self.map_nameList[-1].replace(
-                    '.fits', ''
+                    '.' + i, ''
                 )
-            for i in self.gildas_formats:
-                if self.map_name.endswith('.' + i):
-                    self.dataFormat = i
-                    self.map_nameList[-1] = self.map_nameList[-1].replace(
-                        '.' + i, ''
-                    )
-            for i in self.class_formats:
-                if self.map_name.endswith('.' + i):
-                    self.dataFormat = i
-                    self.map_nameList[-1] = self.map_nameList[-1].replace(
-                        '.' + i, ''
-                    )
-            if os.path.isdir(self.map_name):
-                # Miriad Data Format uses directories
-                self.dataFormat = None
-            self.resolution = self._resolveResolution()
-            # Entries after the fifth are considered comments.
-            if len(self.map_nameList) > 5:
-                for i in range(len(self.map_nameList) - 6):
-                    self.comments += [self.map_nameList[i + 5]]
-                self.comments += [self.map_nameList[-1]]
-        # Only load the File if no Name Convention is given
-        if not name_convention:
-            print 'Only Files with correct naming are supported!!!'
-            sys.exit()
-        # Getting information from the databases.
+        for i in self.class_formats:
+            if self.map_name.endswith('.' + i):
+                self.dataFormat = i
+                self.map_nameList[-1] = self.map_nameList[-1].replace(
+                    '.' + i, ''
+                )
+        if os.path.isdir(self.map_name):
+            # Miriad Data Format uses directories
+            self.dataFormat = None
+        self.resolution = self._resolveResolution()
+        # Entries after the fifth are considered comments.
+        if len(self.map_nameList) > 5:
+            for i in range(len(self.map_nameList) - 6):
+                self.comments += [self.map_nameList[i + 5]]
+            self.comments += [self.map_nameList[-1]]
         #!!!!!  TODO: Bas implementation. Try should only contain very short
         # parts of the program otherwise errors in the program are camouflaged.
-        # print  str(prefix_database) + 'parameter.db'
         try:
             self.connection = sqlite.connect(str(self.database_prefix) +
                                              'parameter.db')
@@ -373,33 +371,37 @@ class Map(object):
         prefix = prefix or self.prefix
         if comments is None:
             comments = comments or self.comments
-        self.source = source or self.source
-        self.telescope = telescope or self.telescope
-        self.species = species or self.species
-        self.fluxUnit = fluxUnit or self.fluxUnit
-        self.resolution = resolution or self.resolution
+
+        # Now update the variables
+        self.source = source
+        self.telescope = telescope
+        self.species = species
+        self.fluxUnit = fluxUnit
+        self.resolution = resolution
         if dataFormat is not False:
             self.dataFormat = dataFormat
-        self.prefix = prefix or self.prefix
+        self.prefix = prefix 
         if comments is not None:
             comments = self.comments + comments
             self.comments = self.comments + comments
+        comment_string = _comment_to_string()
+        target_file_name = "{}{}_{}_{}_{}_{}{}.{}".format(
+            prefix,
+            source, telescope, species, fluxUnit,
+            self.resolutionToString(self.resolution),
+            comment_string,
+            dataFormat
+        )
         if len(self.comments) == 0:
             if  str(self.map_name) != (str(prefix) + str(source) + '_' +
                                        str(telescope) + '_' + str(species) +
                                        '_' + str(fluxUnit) + '_' +
                                        str(resolution) + '.' +
                                        str(dataFormat)):
-                os.system('cp ' + str(self.map_name) + ' ' +
-                          str(prefix) + str(source) + '_' + str(telescope) +
-                          '_' + str(species) + '_' + str(fluxUnit) +
-                          '_' + self.resolutionToString(self.resolution) +
-                          '.' + str(dataFormat))
-                self.map_name = (str(prefix) + str(source) + '_' +
-                                 str(telescope) + '_' + str(species) + '_' +
-                                 str(fluxUnit) + '_' +
-                                 self.resolutionToString(self.resolution) +
-                                 '.' + str(dataFormat))
+                copy_command = "cp {} {}".format(self.map_name,
+                                                 target_file_name)
+                subprocess.call(copy_command, shell=True)
+                self.map_name = target_file_name
 
         if len(self.comments) != 0:
             if ((str(self.map_name) != str(prefix) + str(source) + '_' +
@@ -418,6 +420,14 @@ class Map(object):
                                  self.resolutionToString(self.resolution) +
                                  '_' + '_'.join(self.comments) +
                                  '.' + str(dataFormat))
+
+    def _comment_to_string(self):
+        """ Converts the comment list to a string 
+        """
+        comment_string = "_".join(self.comments)
+        if comment_string != "":
+            comment_string = "_{}".format(comment_string)
+        return comment_string
 
     def returnName(self, source=None, telescope=None, species=None,
                    fluxUnit=None, resolution=None, comments=None,

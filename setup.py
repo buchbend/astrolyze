@@ -59,16 +59,6 @@ setup(
         "docutils",
         "generaltools"
     ],
-    install_requires=[
-        "numpy",
-        "pyfits",
-        "matplotlib",
-        "scipy",
-        "pywcs",
-        "pysqlite2",
-        "docutils",
-        "generaltools"
-    ],
     classifiers=[
         'Intended Audience :: Science/Research',
         'Operating System :: POSIX :: Linux',
