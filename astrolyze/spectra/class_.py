@@ -4,8 +4,6 @@ import math
 import os
 import string
 import sys
-import pyfits
-import pywcs
 
 from pysqlite2 import dbapi2 as sqlite
 from scipy.ndimage import gaussian_filter

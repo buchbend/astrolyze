@@ -6,9 +6,6 @@ import string
 import sys
 import ConfigParser
 
-import pyfits
-import pywcs
-
 import numpy as np
 from pysqlite2 import dbapi2 as sqlite
 from scipy.ndimage import gaussian_filter

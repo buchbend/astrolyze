@@ -3,7 +3,7 @@
 import sys
 import os
 import numpy as np
-import pyfits
+import astropy.io.fits
 import matplotlib.pyplot as plt
 
 import astrolyze.maps.main as main
@@ -121,21 +121,13 @@ class SedStack(stack.Stack):
             self.sed_stack += [Sed(self.source_names[x], coordinate,
                                    flux_array, self.number_components)]
 
-    def get_map_seds(self, folder):
+    def get_map_seds(self, output_folder):
         r""" This functions fits the SED at every pixel of the input maps.
-        Note that the maps have to be exactly the same size for this function to
-        work. This can be achieved with e.g.::
-
-          from astrolyze import *
-          stack = Stack('some_input_folder')
-          folder = 'some_output_folder'
-          template = 'Path_to_a _template_map'
-          stack = stack.unify_dimension(template, folder)
 
         Parameters
         ----------
 
-        folder : string
+        output_folder : string
             The path to the folder where the temperature, mass, beta and chisq
             maps are created. If the folder does not exist is will be created.
 
@@ -144,6 +136,18 @@ class SedStack(stack.Stack):
 
         Depending on the number of pixels in the input image this function may
         take a good while to finish.
+
+        Examples
+        --------
+        Note that the maps have to be exactly the same size for this function
+        to work. This can be achieved with e.g.::
+
+          from astrolyze import *
+          stack = Stack('some_input_folder')
+          output_folder = 'some_output_folder'
+          template = 'Path_to_a _template_map'
+          stack = stack.unify_dimension(template, folder)
+
         """
         def progress(x):
             out = '%1.1f %% Done.' % x  # The output
@@ -152,7 +156,7 @@ class SedStack(stack.Stack):
             print out,
         source_name = self.stack[0].source
         # Assure that the data array has only 2 dimensions. Sometimes there are
-        # higher unused dimensions stores int he fits files.
+        # higher unused dimensions stores in the fits files.
         while len(self.stack[0].data) == 1:
             self.stack[0].data = self.stack[0].data[0]
         # Initialization of the arrays that store the fitted values at every
@@ -192,42 +196,53 @@ class SedStack(stack.Stack):
         # Finally we create fits maps from the stored results and save them in
         # the given output folder. It the latter does not exist we create it.
         print 'Creating Maps ...'
-        if folder is not None and '/' not in folder[-1]:
-            folder = folder + '/'
-        if not os.path.isdir(folder):
-            os.system('mkdir ' + folder)
+        if output_folder is not None and '/' not in output_folder[-1]:
+            output_folder = output_folder + '/'
+        if not os.path.isdir(output_folder):
+            os.system('mkdir ' + output_folder)
         header = self.stack[0].header
         for x, item in enumerate(self.temperature_maps):
             header['BUNIT'] = 'Kelvin'
             header['DATAMIN'] = item.min()
             header['DATAMAX'] = item.max()
-            pyfits.writeto('{0}{1}_SED_Temp{2}_Kelvin_{3}'
-                           '.fits'.format(folder, str(self.stack[0].source),
-                                       str(x+1),
-                                       str(self.stack[0].resolutionToString())),
-                           item, header)
+            astropy.io.fits.writeto('{0}{1}_SED_Temp{2}_Kelvin_{3}'
+                           '.fits'.format(
+                               output_folder, str(self.stack[0].source),
+                               str(x+1),
+                               str(self.stack[0].resolutionToString())),
+                         item, header)
         for x, item in enumerate(self.mass_maps):
             header['BUNIT'] = 'Msun'
             header['DATAMIN'] = item.min()
             header['DATAMAX'] = item.max()
-            pyfits.writeto('{0}{1}_SED_Mass{2}_Msun_{3}'
-                           '.fits'.format(folder, str(self.stack[0].source),
-                                       str(x+1),
-                                       str(self.stack[0].resolutionToString())),
-                           item, self.stack[0].header)
+            header=self.stack[0].header
+            astropy.io.fits.writeto('{0}{1}_SED_Mass{2}_Msun_{3}'
+                           '.fits'.format(
+                               output_folder, str(self.stack[0].source),
+                               str(x+1),
+                               str(self.stack[0].resolutionToString())),
+                            item, header)
         header['BUNIT'] = ''
         header['DATAMIN'] = self.beta_map.min()
         header['DATAMAX'] = self.beta_map.max()
-        pyfits.writeto('{0}{1}_SED_Beta_None_{2}'
-                       '.fits'.format(folder, str(self.stack[0].source),
-                                      str(self.stack[0].resolutionToString())),
-                       self.beta_map, self.stack[0].header)
+        data = self.beta_map
+        header = header=self.stack[0].header
+        astropy.io.fits.writeto(
+            '{0}{1}_SED_Beta_None_{2}' \
+            '.fits'.format(output_folder, str(self.stack[0].source),
+                           str(self.stack[0].resolutionToString())),
+            data, header
+        )
         header['DATAMIN'] = self.chisq_map.min()
         header['DATAMAX'] = self.chisq_map.max()
-        pyfits.writeto('{0}{1}_SED_Chisq_None_{2}'
-                       '.fits'.format(folder, str(self.stack[0].source),
-                                      str(self.stack[0].resolutionToString())),
-                       self.chisq_map, self.stack[0].header)
+        data = self.chisq_map
+        header = header=self.stack[0].header
+        astropy.io.fits.writeto(
+            '{0}{1}_SED_Chisq_None_{2}' \
+            '.fits'.format(output_folder, str(self.stack[0].source),
+                           str(self.stack[0].resolutionToString())),
+            data, header
+        )
         print 'Finished!'
 
 

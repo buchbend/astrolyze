@@ -4,8 +4,6 @@ import math
 import os
 import string
 import sys
-import pyfits
-import pywcs
 import matplotlib.pyplot as plt
 
 import astrolyze.maps.main

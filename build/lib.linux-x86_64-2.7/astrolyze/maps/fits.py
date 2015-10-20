@@ -7,7 +7,7 @@ import pyfits
 import math
 
 from astropy import wcs
-from astropy.io import fits
+import astropy.io.fits
 
 from pysqlite2 import dbapi2 as sqlite
 from scipy.ndimage import gaussian_filter
@@ -53,7 +53,7 @@ class FitsMap(main.Map):
         try:
             self.data = self.hdulist[0].data
         except:
-            self.hdulist = fits.open(self.map_name)
+            self.hdulist = astropy.io.fits.open(self.map_name)
             self.data = self.hdulist[0].data
 
     def __get_header(self):
@@ -65,7 +65,7 @@ class FitsMap(main.Map):
         try:
             self.header = self.hdulist[0].header
         except:
-            self.hdulist = fits.open(self.map_name)
+            self.hdulist = astropy.io.fits.open(self.map_name)
             self.header = self.hdulist[0].header
 
     def update_file(self, backup=False):
@@ -96,78 +96,8 @@ class FitsMap(main.Map):
         if backup is True:
             os.system('cp ' + str(map_name) + ' ' + str(map_name) + '_old')
         os.system('rm ' + str(map_name))
-        # try:
-        fits.writeto(map_name, self.data, self.header)
-        # except:
-        #     print 'Problem with the header or data format. -> Exit!'
-        #     raise SystemExit
+        astropy.io.fits.writeto(map_name, self.data, self.header)
         return FitsMap(map_name)
-
-    def updateHeader(self):
-        try:
-            self.header
-        except:
-            self.get_header()
-        self.changemap_name()
-        # Print source
-        updateCheck = 0
-        for i in self.headerKeyWords['source']:
-            if str(i) in self.header.keys():
-                self.header.update(str(i), self.source)
-                updateCheck = 1
-        if updateCheck == 0:
-            self.header.update(str(self.headerKeyWords['source'][0]),
-                               str(self.source))
-        # Print telescope
-        updateCheck = 0
-        for i in self.headerKeyWords['telescope']:
-            if str(i) in self.header.keys():
-                self.header.update(str(i), self.telescope)
-                updateCheck = 1
-        if updateCheck == 0:
-            self.header.update(str(self.headerKeyWords['telescope'][0]),
-                               str(self.telescope))
-        # Print species
-        updateCheck = 0
-        for i in self.headerKeyWords['species']:
-            if str(i) in self.header.keys():
-                self.header.update(str(i), self.species)
-                updateCheck = 1
-        if updateCheck == 0:
-            self.header.update(str(self.headerKeyWords['species'][0]),
-                               str(self.species))
-        # Update fluxUnit
-        for i in self.headerKeyWords['fluxUnit']:
-            if str(i) in self.header.keys():
-                self.header.update(str(i), self.fluxUnit)
-                updateCheck = 1
-        if updateCheck == 0:
-            self.header.update(str(self.headerKeyWords['fluxUnit'][0]),
-                               str(self.fluxUnit))
-        # Update resolution
-        for i in self.headerKeyWords['resolution']:
-            if str(i) in self.header.keys():
-                self.header.update(str(i),
-                                   str(float(self.resolution[0]) / 60 / 60))
-                updateCheck = 1
-        if updateCheck == 0:
-            self.header.update(str(self.headerKeyWords['resolution'][0]),
-                               str(self.resolution[0]))
-        # update header information about the minimum and maximum of the map
-        try:
-            self.header['DATAMIN'] = self.data.min() - 0.1 * self.data.min()
-        except:
-            self.header.update('DATAMIN', self.data.min() - 0.1 *
-                               self.data.min())
-        try:
-            self.header['DATAMAX'] = self.data.max() + 0.1 * self.data.max()
-        except:
-            self.header.update('DATAMAX', self.data.max() + 0.1 *
-                               self.data.max())
-        os.system('cp ' + str(self.map_name) + ' ' +
-                  str(self.map_name) + '_old')
-        os.system('rm ' + str(self.map_name))
-        fits.writeto(self.map_name, self.data, self.header)
 
     def get_pixel_size(self):
         r""" Calculates the Area of a pixel in m^2 and steradians if distance
