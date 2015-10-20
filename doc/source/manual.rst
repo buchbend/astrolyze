@@ -32,8 +32,11 @@ Please note the special format of the map name. The format follows a certain
 ``naming convention`` that has to be used with astrolyze. The reason for the
 naming conventions and it's internal logic is explained below.
 
-As a side note I use an underscore for the ``map_`` variable, because
-otherwise the python function ``map`` is overwritten which may lead to problems.
+.. note::
+   
+   As a side note I use an underscore for the ``map_`` variable, because
+   otherwise the python function ``map`` is overwritten which may lead to
+   problems.
 
 Changing map units
 ------------------
