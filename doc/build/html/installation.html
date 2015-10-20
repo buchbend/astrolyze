@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Installation of astrolyze &mdash; astrolyze 0.1.2 documentation</title>
+  <title>Installation of astrolyze &mdash; astrolyze 0.1.5 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.2 documentation" href="index.html"/>
+    <link rel="top" title="astrolyze 0.1.5 documentation" href="index.html"/>
         <link rel="next" title="Motivation" href="manual.html"/>
         <link rel="prev" title="astrolyze Documentation" href="index.html"/> 
 
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                0.1.2
+                0.1.5
               </div>
             
           
@@ -186,7 +186,7 @@ python-pysqlite2 python-pyfits
 </div>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<p class="last">It does not work with python3 yet. Since the Gildas Python extension is not yet available for python 3!!</p>
+<p class="last">Astrolyze does not work in python3 yet. Since the Gildas Python extension is not yet available for python 3!!</p>
 </div>
 </div>
 <div class="section" id="gildas">
@@ -207,25 +207,30 @@ it a common task. Miriad and instructions for installation can be found here:</p
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
 <p>Astrolyze is available via pypi, use:</p>
-<div class="highlight-python"><div class="highlight"><pre>sudo pip install astrolzye --user
+<div class="highlight-python"><div class="highlight"><pre>sudo pip install astrolyze --user
 </pre></div>
 </div>
 <p>to install the package.</p>
-<p>In the current state the setup does not allow a custom installation path. The
-files will be installed depending on your system configuration in either of the
-following locations:</p>
-<div class="highlight-python"><div class="highlight"><pre>/usr/lib/pythonX.Y/site-packages
-/usr/local/lib/pythonX.Y/site-packages
+<p>When installed with the &#8211;user flag the package will be installed in:</p>
+<div class="highlight-python"><div class="highlight"><pre>/home/USERNAME/.local/lib/python2.7/site-packages/astrolyze
 </pre></div>
 </div>
-<p>Here X and Y are the major and minor number your python installations.</p>
+<p>The configuration files for <cite>astrolyze</cite> are installed in:</p>
+<div class="highlight-python"><div class="highlight"><pre>/home/USERNAME/.astrolyze/
+</pre></div>
+</div>
+<p>Further a script to configure the database for additional information is installed in:</p>
+<div class="highlight-python"><div class="highlight"><pre>/home/USERNAME/.local/bin/
+</pre></div>
+</div>
 </div>
 <div class="section" id="configuration-of-the-optional-database">
 <h2>Configuration of the (optional) Database<a class="headerlink" href="#configuration-of-the-optional-database" title="Permalink to this headline">¶</a></h2>
-<p>The setup.py script will generate a <code class="docutils literal"><span class="pre">parameter.db</span></code> sqlite database containing
-information about the maps and files opened in Astrolyze. From the keyword of
-the &#8216;&#8217;Naming Convention&#8217;&#8216;.</p>
-<p>In the current state  astrolyze reads in</p>
+<p>Astrolyze can store META Information for Sources, Lines and Calibration
+Uncertainties in a database. Based on the information deduced from the naming
+convention the additional information is loaded automatically when a map is
+opened.</p>
+<p><cite>astrolyze</cite> can read:</p>
 <blockquote>
 <div><ul class="simple">
 <li>Additional informations of the source</li>
@@ -233,7 +238,7 @@ the &#8216;&#8217;Naming Convention&#8217;&#8216;.</p>
 <li>Calibration error for specific telescopes</li>
 </ul>
 </div></blockquote>
-<p>The database has to be populated by the user. This is done via the three text
+<p>The database has to be populated after installation This is done via the three text
 files in the <code class="docutils literal"><span class="pre">/home/USER/.astrolyze/cfg</span></code> folder that contains:</p>
 <p>galaxy_parameter.txt:</p>
 <div class="highlight-python"><div class="highlight"><pre>#   Name    MorphType   Distance[pc]    VLSR[km/s]  RA           DEC            PA[degrees] Inclination[degrees]    R25[kpc] 
@@ -325,7 +330,7 @@ comparing.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.1.2',
+            VERSION:'0.1.5',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

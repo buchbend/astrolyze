@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>astrolyze.maps.main &mdash; astrolyze 0.1.2 documentation</title>
+  <title>astrolyze.maps.main &mdash; astrolyze 0.1.5 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.2 documentation" href="../../../index.html"/>
+    <link rel="top" title="astrolyze 0.1.5 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -62,7 +62,7 @@
             
             
               <div class="version">
-                0.1.2
+                0.1.5
               </div>
             
           
@@ -153,6 +153,8 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">ConfigParser</span>
+
 <span class="kn">import</span> <span class="nn">pyfits</span>
 <span class="kn">import</span> <span class="nn">pywcs</span>
 
@@ -162,9 +164,6 @@
 
 <span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
 <span class="kn">from</span> <span class="nn">astrolyze.functions</span> <span class="kn">import</span> <span class="n">units</span>
-
-<span class="kn">from</span> <span class="nn">astrolyze.database</span> <span class="kn">import</span> <span class="n">prefix_database</span>
-
 
 <div class="viewcode-block" id="Map"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map">[docs]</a><span class="k">class</span> <span class="nc">Map</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
@@ -187,14 +186,36 @@
 <span class="sd">        Initialize a map to maps.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="c"># Definition of the unit nomenclatures.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">jansky_beam_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;JYB&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">jansky_pixel_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;JYPIX&#39;</span><span class="p">,</span> <span class="s">&#39;JYP&#39;</span><span class="p">,</span> <span class="s">&#39;JY/PIXEL&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tmb_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;TMB&#39;</span><span class="p">,</span> <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="s">&#39;KKMS&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">MJy_per_sterad_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;MJPSR&#39;</span><span class="p">,</span> <span class="s">&#39;MJY/SR&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_pixel_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;ERGPSECPPIX&#39;</span><span class="p">,</span> <span class="s">&#39;ERGPSECPPIXEL&#39;</span><span class="p">,</span>
-                                    <span class="s">&#39;ERG-S-1-Pixel&#39;</span><span class="p">,</span> <span class="s">&#39;ERG-S-1&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_beam_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;ERGPSECPBEAM&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_sterad_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;ERGPERSTER&#39;</span><span class="p">]</span>
+        <span class="n">USER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">&quot;USER&quot;</span><span class="p">)</span>
+        <span class="n">config_path</span> <span class="o">=</span> <span class="s">&quot;/home/{}/.astrolyze/&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">USER</span><span class="p">)</span>
+        <span class="n">config_file</span> <span class="o">=</span> <span class="s">&quot;astrolyze.cfg&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">ConfigParser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s">&quot;{}{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="n">config_file</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">database_prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;General&quot;</span><span class="p">,</span> <span class="s">&quot;database_prefix&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">database_prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database_prefix</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">USER</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">jansky_beam_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">&quot;Units&quot;</span><span class="p">,</span> <span class="s">&quot;jansky_beam_names&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jansky_pixel_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">&quot;Units&quot;</span><span class="p">,</span> <span class="s">&quot;jansky_pixel_names&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tmb_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">&quot;Units&quot;</span><span class="p">,</span> <span class="s">&quot;tmb_names&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MJy_per_sterad_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">&quot;Units&quot;</span><span class="p">,</span> <span class="s">&quot;MJy_per_sterad_names&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_pixel_names</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">&quot;Units&quot;</span><span class="p">,</span> <span class="s">&quot;erg_sec_pixel_names&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_beam_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">&quot;Units&quot;</span><span class="p">,</span> <span class="s">&quot;erg_sec_beam_names&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_sterad_names</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">&quot;Units&quot;</span><span class="p">,</span> <span class="s">&quot;erg_sec_sterad_names&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">known_units</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">jansky_beam_names</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">jansky_pixel_names</span> <span class="o">+</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">tmb_names</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">MJy_per_sterad_names</span> <span class="o">+</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_beam_names</span> <span class="o">+</span>
@@ -202,11 +223,17 @@
                             <span class="bp">self</span><span class="o">.</span><span class="n">erg_sec_pixel_names</span><span class="p">)</span>
         <span class="c"># Definition of possible data format endings for the different</span>
         <span class="c"># programs.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;gdf&#39;</span><span class="p">,</span> <span class="s">&#39;mean&#39;</span><span class="p">,</span> <span class="s">&#39;velo&#39;</span><span class="p">,</span> <span class="s">&#39;width&#39;</span><span class="p">,</span> <span class="s">&#39;lmv&#39;</span><span class="p">,</span>
-                               <span class="s">&#39;lmv-clean&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;fits&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">miriad_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">class_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;30m&#39;</span><span class="p">,</span> <span class="s">&#39;apex&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">&quot;Formats&quot;</span><span class="p">,</span> <span class="s">&quot;gildas_formats&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">&quot;Formats&quot;</span><span class="p">,</span> <span class="s">&quot;fits_formats&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">miriad_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;&#39;</span><span class="p">,</span><span class="bp">None</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">class_formats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">&quot;Formats&quot;</span><span class="p">,</span> <span class="s">&quot;class_formats&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
         <span class="c"># name_convention is not needed anymore. Only kept for backward</span>
         <span class="c"># compatibality.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name_convention</span> <span class="o">=</span> <span class="n">name_convention</span>
@@ -233,20 +260,21 @@
             <span class="c"># Check dataFormat.</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.fits&#39;</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="s">&#39;fits&#39;</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.fits&#39;</span><span class="p">,</span>
-                                                                      <span class="s">&#39;&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                    <span class="s">&#39;.fits&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span>
+                <span class="p">)</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">):</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="n">i</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span>
-                                                                          <span class="n">i</span><span class="p">,</span>
-                                                                          <span class="s">&#39;&#39;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                        <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="s">&#39;&#39;</span>
+                    <span class="p">)</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_formats</span><span class="p">:</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">):</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="n">i</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span>
-                                                                          <span class="n">i</span><span class="p">,</span>
-                                                                          <span class="s">&#39;&#39;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                        <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="s">&#39;&#39;</span>
+                    <span class="p">)</span>
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">):</span>
                 <span class="c"># Miriad Data Format uses directories</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="bp">None</span>
@@ -265,7 +293,7 @@
         <span class="c"># parts of the program otherwise errors in the program are camouflaged.</span>
         <span class="c"># print  str(prefix_database) + &#39;parameter.db&#39;</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix_database</span><span class="p">)</span> <span class="o">+</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database_prefix</span><span class="p">)</span> <span class="o">+</span>
                                              <span class="s">&#39;parameter.db&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT * FROM Galaxies WHERE Name = ?&quot;</span><span class="p">,</span>
@@ -290,7 +318,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">inclination</span> <span class="o">=</span> <span class="bp">None</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">R25</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix_database</span><span class="p">)</span> <span class="o">+</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database_prefix</span><span class="p">)</span> <span class="o">+</span>
                                              <span class="s">&#39;parameter.db&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT * FROM Lines WHERE Name = ?&quot;</span><span class="p">,</span>
@@ -303,7 +331,7 @@
         <span class="k">except</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix_database</span><span class="p">)</span> <span class="o">+</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database_prefix</span><span class="p">)</span> <span class="o">+</span>
                                              <span class="s">&#39;parameter.db&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT * FROM cal_error WHERE Telescope = &quot;</span>
@@ -682,7 +710,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.1.2',
+            VERSION:'0.1.5',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

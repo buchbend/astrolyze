@@ -24,7 +24,7 @@ astrolyze depends on the following python packages
   pysqlite2
   generaltools
   
-For Ubuntu (and thus most probable also Debian) these dependencies can be
+In Ubuntu (and thus most probable also Debian) these dependencies can be
 installed via::
 
   sudo apt-get install python-matplotlib python-pywcs python-scipy python-numpy
@@ -51,9 +51,10 @@ http://www.iram.fr/IRAMFR/GILDAS/
 Miriad
 ------
 
-Also Miriad just has to be installed and working. At the moment only the `smooth`
+Also Miriad just has to be installed and working. At the moment only the smooth
 function of miriad is used in astrolyze but it is worth installing it since it
 it a common task. Miriad and instructions for installation can be found here:
+
 
 ftp://ftp.atnf.csiro.au/pub/software/miriad/INSTALL.html
 
@@ -63,7 +64,7 @@ Installation
 
 Astrolyze is available via pypi, use::
 
-  sudo pip install astrolzye --user
+  sudo pip install astrolyze --user
 
 to install the package. 
 
@@ -75,25 +76,26 @@ The configuration files for `astrolyze` are installed in::
 
     /home/USERNAME/.astrolyze/
 
-Further a script to configure the database for additional information is installed in
+Further a script to configure the database for additional information is installed in::
 
     /home/USERNAME/.local/bin/
+
 
 Configuration of the (optional) Database
 ========================================
 
+Astrolyze can store META Information for Sources, Lines and Calibration
+Uncertainties in a database. Based on the information deduced from the naming
+convention the additional information is loaded automatically when a map is
+opened.
 
-The setup.py script will generate a ``parameter.db`` sqlite database containing
-information about the maps and files opened in Astrolyze. From the keyword of
-the ''Naming Convention''.
-
-In the current state  astrolyze reads in
+`astrolyze` can read:
 
  - Additional informations of the source
  - Frequencies and wavelengths
  - Calibration error for specific telescopes
 
-The database has to be populated by the user. This is done via the three text
+The database has to be populated after installation This is done via the three text
 files in the ``/home/USER/.astrolyze/cfg`` folder that contains:
 
 galaxy_parameter.txt:

@@ -4,14 +4,13 @@ Motivation
 
 First, before delving into the details of the astrolyze package, here a few
 examples are given of what astrolyze is all about. The following is a short
-teaser of some of the most powerful features of astrolyze; a thorough
-introduction with more features and possibilities are given in the
-:ref:`label-naming-convention`.
+teaser of some of the features of astrolyze; a thorough introduction with more
+features and possibilities are given in the :ref:`label-naming-convention`.
 
 Inter-operating Fits, Gildas and Miriad
 ---------------------------------------
 
-Using the astrolyze package it is possible to use different file formats and
+A central concept of `astrolyze` is to enable to use different astronomically map formats and
 different programs from within python seamlessly. Say, for example, that you
 have a Fits image called ``M33_30m_12CO10_Tmb_12.fits`` and that you want to
 smooth it in miriad to 40 arcsec resolution, re-project it with Gildas to a new
@@ -28,13 +27,14 @@ This is how you would do it with astrolyze::
   map_ = map_.toFits()
 
 Please note the special format of the map name. The format follows a certain
-``naming convention`` that has to be used with astrolyze. The reason for the
+``naming convention`` that **has** to be used with astrolyze. The reason for the
 naming conventions and it's internal logic is explained below.
 
-..note ::
-
-As a side note I use an underscore for the ``map_`` variable, because
-otherwise the python function ``map`` is overwritten which may lead to problems.
+.. note::
+   
+   As a side note I use an underscore for the ``map_`` variable, because
+   otherwise the python function ``map`` is overwritten which may lead to
+   problems.
 
 Changing map units
 ------------------
@@ -49,21 +49,23 @@ Following the naming convention this map is in main beam temperature
   map_ = FitsMap('M33_30m_12CO10_Tmb_12.fits')
   map_ = map_.change_unit('JyB')
 
-Another side note: It's only that easy when astrolyze is set-up
-correctly as described in TODO. Link to Installation.  Also please check the
-results for plausibility in case there are faults in the internal conversion
-algorithms.
+Another side note: It's only that easy when astrolyze is set-up with the
+database so that astrolyze knows about the frequency/wavelenght of the line in
+the map.
+
+.. warning::
+   Please double check the results of the unit conversion.  
 
 Working with stacks of images
 -----------------------------
 
-The previous examples show the principles how a single map can be treated in
-astrolyze. However the package also includes a way to work on a stack of images
-and perform tasks on all of them.
+The previous examples demonstrated how single maps can be used in astrolyze.
+It is further possible to work on a stack of images and perform tasks on all of
+them.
 
 To create a stack, all files that are going to be in the stack have to be
 located in one folder (with possible sub-folders NOTE: The functionality with
-sub-folders are is however not thoroughly tested however.)
+sub-folders is not thoroughly tested, yet.)
 A stack is initialized as follows::
 
   from astrolyze import *
@@ -79,16 +81,16 @@ analysis. The maps can be all re-gridded and re-projected to the same central
 coordinates, pixel-sizes and dimensions as a given template image via::
 
   example_stack.unify_dimensions(template='path_to_template_file',
-                  folder='path_to_output_folder') .
+                                 folder='path_to_output_folder') .
 
 Also the maps can be all smoothed to the same resolution, by default this is
 the largest resolution found in the stack but can also be given manually::
 
   example_stack.unify_resolutions(folder='path_to_output_folder') .
 
-Astrolyze includes also some unit conversions that can be used to change all
-maps to the same resolutions as long as the input and output units are
-programmed. See (TODO) for more details. For the stack::
+Astrolyze includes unit conversions that can be used to change all maps to the
+same resolutions as long as the input and output units are programmed. For
+the stack::
 
   example_stack.unify_units(folder='path_to_output_folder') ,
 
@@ -99,7 +101,7 @@ Producing SEDs
 
 Build on-top of the stack module astrolyze also contains an ``sed`` module
 which allows to analyze and plot dust-seds. The SEDs can be read out for an
-arbitrary number of positions or for a full maps. In the latter case
+arbitrary number of positions or for the entire maps. In the latter case
 temperature and mass maps will be created.
 
 When all maps have the same resolution and dimension (i.e. pixel size and
@@ -110,7 +112,7 @@ number) producing temperature maps can be done as follows::
          output_folder='path_to_output_folder') .
 
 To generate SEDs at given coordinates it is easiest to provide a separate file
-(e.g. ``coordinates.txt``)with the names and coordinates of the positions to be
+(e.g. ``coordinates.txt``) with the names and coordinates of the positions to be
 extracted as follows::
 
   source_1    1:34:7.00     +30:47:52.00
@@ -139,7 +141,7 @@ Last but not least astrolyze is also able to work with 30m class spectra from
 within python based on the same principles used to work with images/maps. The
 implementation makes extensive use of pyGildas_.  For example if you have a
 file with the spectra of a cube, e.g. ``M33_30m_12CO10_Tmb_21_cube.30m`` you
-can extract the spectra that corresponds closest to a given variable as
+can extract the spectra that corresponds closest to a given coordinate as
 follows::
 
   from astrolyze import *
@@ -157,7 +159,7 @@ Manual
 ======
 
 This manual explains how astrolyze can be used to ease reduction,
-analysis and modification of (radio-) astronomical data and images.
+analysis and modification of (radio-)astronomical data and images.
 
 astrolyze
 =========
@@ -170,12 +172,11 @@ vice-versa, due to different sets of features.
 
 However, the real power of astrolyze comes from it's internal tracking of
 changes to the most important parameters of the maps (or spectral-files), which
-are stored directly in the file-names, following a naming-convention as well as
-additional databases, from that more informations can be loaded depending on
-the file-name-keywords.
+are stored directly in the file-names. This principle is based on a
+`naming-convention`.  An additional databases can be setup so that more informations can
+be loaded depending on the file-name-keywords.
 
 .. _label-naming-convention:
-
 Naming Convention
 =================
 
@@ -183,7 +184,7 @@ A Name that follows the 'Naming Convention' is for example:
 ``M33_30m-HERA_CO21_Ta*_12_cube_regrid.fits``
 
 All items **MUST** be separated by an underscore (_) and **HAVE** to include at
-the following properties in the same order:
+the following properties in this very order:
 
 1. source
 2. telescope
@@ -195,7 +196,7 @@ When opening a map with astrolyze these items are transferred to python
 variables of the `Map class` (see below).  All additional items
 separated by underscores are treated as comments. Comments are not
 transferred to individual internal variables of the map objects but are passed
-on as a list to the single variable comments.
+on as a list to the single variable `comments`.
 
 The last item is followed by the files extension:
 
@@ -205,15 +206,14 @@ The last item is followed by the files extension:
 
 Maps that are not following this name convention are **not** supported. This is
 to assure that all parts of the program work, since they strongly depend on the
-parameters passed on by the file-name, as is explained in this tutorial or the
-documentation of the functions.
+parameters passed on by the file-name.
 
 Using the example file-name above, opening this file with astrolyze as follows::
 
   from astrolyze import *
   map_ = FitsMap('M33_30m_12CO10_Tmb_12_cube_regrid.fits')
 
-would generate the following python variables::
+would generate the following variables::
 
   map_.source = 'M33'
   map_.telescope = '30m'
@@ -223,11 +223,10 @@ would generate the following python variables::
   map_.comments = ['cube', 'regrid']
   map_.dataFormat = 'fits'
 
-Using one parameter database with line-names, objects and telescope parameters
-which can be edited by the user (see :doc:`installation`), astrolyze is able to
-pull more information about the object, telescope and line emission of the
-map. When the information is present it generates automatically the following
-variables::
+Using the parameter database with line-names, objects and telescope parameters,
+that can be edited by the user (see :doc:`installation`), astrolyze pulls more
+information about the object, telescope and line emission of the map. When the
+information is present it generates automatically the following variables::
 
   map_.frequency [Hz]
   map_.wavelength [m]
@@ -247,9 +246,9 @@ information in the files, it has been decided to go that way since
 unfortunately not all headers are kept up to date and manipulating the file
 name is easier to do.
 
-The maps module tries to keep track if a variable that should go into the
-header of a fits file is changed and up-dates the header subsequently (Maybe
-not true in all cases, though.).
+Nevertheless, the maps module tries to keep track if a variable that should go
+into the header of a fits file is changed and up-dates the header subsequently
+(This is however hard to maintain and  not true in all cases, though.).
 
 Last but not least using this name convention has another benefit since it
 makes the life of your fellow astronomers easier when they have to work with

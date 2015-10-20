@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Motivation &mdash; astrolyze 0.1.2 documentation</title>
+  <title>Motivation &mdash; astrolyze 0.1.5 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.2 documentation" href="index.html"/>
+    <link rel="top" title="astrolyze 0.1.5 documentation" href="index.html"/>
         <link rel="next" title="Maps" href="maps.html"/>
         <link rel="prev" title="Installation of astrolyze" href="installation.html"/> 
 
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                0.1.2
+                0.1.5
               </div>
             
           
@@ -191,12 +191,11 @@
 <h1>Motivation<a class="headerlink" href="#motivation" title="Permalink to this headline">¶</a></h1>
 <p>First, before delving into the details of the astrolyze package, here a few
 examples are given of what astrolyze is all about. The following is a short
-teaser of some of the most powerful features of astrolyze; a thorough
-introduction with more features and possibilities are given in the
-<span class="xref std std-ref">label-naming-convention</span>.</p>
+teaser of some of the features of astrolyze; a thorough introduction with more
+features and possibilities are given in the <span class="xref std std-ref">label-naming-convention</span>.</p>
 <div class="section" id="inter-operating-fits-gildas-and-miriad">
 <h2>Inter-operating Fits, Gildas and Miriad<a class="headerlink" href="#inter-operating-fits-gildas-and-miriad" title="Permalink to this headline">¶</a></h2>
-<p>Using the astrolyze package it is possible to use different file formats and
+<p>A central concept of <cite>astrolyze</cite> is to enable to use different astronomically map formats and
 different programs from within python seamlessly. Say, for example, that you
 have a Fits image called <code class="docutils literal"><span class="pre">M33_30m_12CO10_Tmb_12.fits</span></code> and that you want to
 smooth it in miriad to 40 arcsec resolution, re-project it with Gildas to a new
@@ -212,11 +211,14 @@ central coordinate and finally convert it back to fits-format:</p>
 </pre></div>
 </div>
 <p>Please note the special format of the map name. The format follows a certain
-<code class="docutils literal"><span class="pre">naming</span> <span class="pre">convention</span></code> that has to be used with astrolyze. The reason for the
+<code class="docutils literal"><span class="pre">naming</span> <span class="pre">convention</span></code> that <strong>has</strong> to be used with astrolyze. The reason for the
 naming conventions and it&#8217;s internal logic is explained below.</p>
-<p>..note</p>
-<p>As a side note I use an underscore for the <code class="docutils literal"><span class="pre">map_</span></code> variable, because
-otherwise the python function <code class="docutils literal"><span class="pre">map</span></code> is overwritten which may lead to problems.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">As a side note I use an underscore for the <code class="docutils literal"><span class="pre">map_</span></code> variable, because
+otherwise the python function <code class="docutils literal"><span class="pre">map</span></code> is overwritten which may lead to
+problems.</p>
+</div>
 </div>
 <div class="section" id="changing-map-units">
 <h2>Changing map units<a class="headerlink" href="#changing-map-units" title="Permalink to this headline">¶</a></h2>
@@ -230,19 +232,22 @@ Following the naming convention this map is in main beam temperature
 <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">change_unit</span><span class="p">(</span><span class="s">&#39;JyB&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Another side note: It&#8217;s only that easy when astrolyze is set-up
-correctly as described in TODO. Link to Installation.  Also please check the
-results for plausibility in case there are faults in the internal conversion
-algorithms.</p>
+<p>Another side note: It&#8217;s only that easy when astrolyze is set-up with the
+database so that astrolyze knows about the frequency/wavelenght of the line in
+the map.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Please double check the results of the unit conversion.</p>
+</div>
 </div>
 <div class="section" id="working-with-stacks-of-images">
 <h2>Working with stacks of images<a class="headerlink" href="#working-with-stacks-of-images" title="Permalink to this headline">¶</a></h2>
-<p>The previous examples show the principles how a single map can be treated in
-astrolyze. However the package also includes a way to work on a stack of images
-and perform tasks on all of them.</p>
+<p>The previous examples demonstrated how single maps can be used in astrolyze.
+It is further possible to work on a stack of images and perform tasks on all of
+them.</p>
 <p>To create a stack, all files that are going to be in the stack have to be
 located in one folder (with possible sub-folders NOTE: The functionality with
-sub-folders are is however not thoroughly tested however.)
+sub-folders is not thoroughly tested, yet.)
 A stack is initialized as follows:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="n">example_stack</span> <span class="o">=</span> <span class="n">Stack</span><span class="p">(</span><span class="s">&#39;path_to_folder&#39;</span><span class="p">)</span>
@@ -256,7 +261,7 @@ and MiriadMap).</p>
 analysis. The maps can be all re-gridded and re-projected to the same central
 coordinates, pixel-sizes and dimensions as a given template image via:</p>
 <div class="highlight-python"><div class="highlight"><pre>example_stack.unify_dimensions(template=&#39;path_to_template_file&#39;,
-                folder=&#39;path_to_output_folder&#39;) .
+                               folder=&#39;path_to_output_folder&#39;) .
 </pre></div>
 </div>
 <p>Also the maps can be all smoothed to the same resolution, by default this is
@@ -264,9 +269,9 @@ the largest resolution found in the stack but can also be given manually:</p>
 <div class="highlight-python"><div class="highlight"><pre>example_stack.unify_resolutions(folder=&#39;path_to_output_folder&#39;) .
 </pre></div>
 </div>
-<p>Astrolyze includes also some unit conversions that can be used to change all
-maps to the same resolutions as long as the input and output units are
-programmed. See (TODO) for more details. For the stack:</p>
+<p>Astrolyze includes unit conversions that can be used to change all maps to the
+same resolutions as long as the input and output units are programmed. For
+the stack:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">example_stack</span><span class="o">.</span><span class="n">unify_units</span><span class="p">(</span><span class="n">folder</span><span class="o">=</span><span class="s">&#39;path_to_output_folder&#39;</span><span class="p">)</span> <span class="p">,</span>
 </pre></div>
 </div>
@@ -276,7 +281,7 @@ programmed. See (TODO) for more details. For the stack:</p>
 <h2>Producing SEDs<a class="headerlink" href="#producing-seds" title="Permalink to this headline">¶</a></h2>
 <p>Build on-top of the stack module astrolyze also contains an <code class="docutils literal"><span class="pre">sed</span></code> module
 which allows to analyze and plot dust-seds. The SEDs can be read out for an
-arbitrary number of positions or for a full maps. In the latter case
+arbitrary number of positions or for the entire maps. In the latter case
 temperature and mass maps will be created.</p>
 <p>When all maps have the same resolution and dimension (i.e. pixel size and
 number) producing temperature maps can be done as follows:</p>
@@ -286,7 +291,7 @@ sed = SedStack(folder=&#39;path_to_input_folder&#39;, full_map=True,
 </pre></div>
 </div>
 <p>To generate SEDs at given coordinates it is easiest to provide a separate file
-(e.g. <code class="docutils literal"><span class="pre">coordinates.txt</span></code>)with the names and coordinates of the positions to be
+(e.g. <code class="docutils literal"><span class="pre">coordinates.txt</span></code>) with the names and coordinates of the positions to be
 extracted as follows:</p>
 <div class="highlight-python"><div class="highlight"><pre>source_1    1:34:7.00     +30:47:52.00
 source_2    1:33:55.80    +30:43:2.00
@@ -314,7 +319,7 @@ plot of the SEDs via:</p>
 within python based on the same principles used to work with images/maps. The
 implementation makes extensive use of <a href="#id2"><span class="problematic" id="id3">pyGildas_</span></a>.  For example if you have a
 file with the spectra of a cube, e.g. <code class="docutils literal"><span class="pre">M33_30m_12CO10_Tmb_21_cube.30m</span></code> you
-can extract the spectra that corresponds closest to a given variable as
+can extract the spectra that corresponds closest to a given coordinate as
 follows:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="n">spectra</span> <span class="o">=</span> <span class="n">ClassSpectra</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_21_cube.30m&#39;</span><span class="p">)</span>
@@ -330,7 +335,7 @@ follows:</p>
 <div class="section" id="manual">
 <h1>Manual<a class="headerlink" href="#manual" title="Permalink to this headline">¶</a></h1>
 <p>This manual explains how astrolyze can be used to ease reduction,
-analysis and modification of (radio-) astronomical data and images.</p>
+analysis and modification of (radio-)astronomical data and images.</p>
 <p>I started to develop astrolyze to be able to inter-operate the Programs PyFits,
 MIRIAD and GILDAS. One reason was that the Gildas task are very cumbersome to
 script and once scripted, the scripts are not very flexible. Also there are
@@ -338,13 +343,13 @@ some tasks in GILDAS that are (in my opinion) easier to use than in miriad and
 vice-versa, due to different sets of features.</p>
 <p>However, the real power of astrolyze comes from it&#8217;s internal tracking of
 changes to the most important parameters of the maps (or spectral-files), which
-are stored directly in the file-names, following a naming-convention as well as
-additional databases, from that more informations can be loaded depending on
-the file-name-keywords.</p>
+are stored directly in the file-names. This principle is based on a
+<cite>naming-convention</cite>.  An additional databases can be setup so that more informations can
+be loaded depending on the file-name-keywords.</p>
 <p>A Name that follows the &#8216;Naming Convention&#8217; is for example:
 <code class="docutils literal"><span class="pre">M33_30m-HERA_CO21_Ta*_12_cube_regrid.fits</span></code></p>
 <p>All items <strong>MUST</strong> be separated by an underscore (_) and <strong>HAVE</strong> to include at
-the following properties in the same order:</p>
+the following properties in this very order:</p>
 <ol class="arabic simple">
 <li>source</li>
 <li>telescope</li>
@@ -356,7 +361,7 @@ the following properties in the same order:</p>
 variables of the <cite>Map class</cite> (see below).  All additional items
 separated by underscores are treated as comments. Comments are not
 transferred to individual internal variables of the map objects but are passed
-on as a list to the single variable comments.</p>
+on as a list to the single variable <cite>comments</cite>.</p>
 <p>The last item is followed by the files extension:</p>
 <ul class="simple">
 <li>.fits -&gt; FITS</li>
@@ -365,14 +370,13 @@ on as a list to the single variable comments.</p>
 </ul>
 <p>Maps that are not following this name convention are <strong>not</strong> supported. This is
 to assure that all parts of the program work, since they strongly depend on the
-parameters passed on by the file-name, as is explained in this tutorial or the
-documentation of the functions.</p>
+parameters passed on by the file-name.</p>
 <p>Using the example file-name above, opening this file with astrolyze as follows:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="n">map_</span> <span class="o">=</span> <span class="n">FitsMap</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_12_cube_regrid.fits&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>would generate the following python variables:</p>
+<p>would generate the following variables:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">map_</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="s">&#39;M33&#39;</span>
 <span class="n">map_</span><span class="o">.</span><span class="n">telescope</span> <span class="o">=</span> <span class="s">&#39;30m&#39;</span>
 <span class="n">map_</span><span class="o">.</span><span class="n">species</span> <span class="o">=</span> <span class="s">&#39;12CO10&#39;</span>
@@ -382,11 +386,10 @@ documentation of the functions.</p>
 <span class="n">map_</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="s">&#39;fits&#39;</span>
 </pre></div>
 </div>
-<p>Using one parameter database with line-names, objects and telescope parameters
-which can be edited by the user (see <a class="reference internal" href="installation.html"><em>Installation of astrolyze</em></a>), astrolyze is able to
-pull more information about the object, telescope and line emission of the
-map. When the information is present it generates automatically the following
-variables:</p>
+<p>Using the parameter database with line-names, objects and telescope parameters,
+that can be edited by the user (see <a class="reference internal" href="installation.html"><em>Installation of astrolyze</em></a>), astrolyze pulls more
+information about the object, telescope and line emission of the map. When the
+information is present it generates automatically the following variables:</p>
 <div class="highlight-python"><div class="highlight"><pre>map_.frequency [Hz]
 map_.wavelength [m]
 map_.calibrationError
@@ -404,9 +407,9 @@ map_.R25 [kpc]
 information in the files, it has been decided to go that way since
 unfortunately not all headers are kept up to date and manipulating the file
 name is easier to do.</p>
-<p>The maps module tries to keep track if a variable that should go into the
-header of a fits file is changed and up-dates the header subsequently (Maybe
-not true in all cases, though.).</p>
+<p>Nevertheless, the maps module tries to keep track if a variable that should go
+into the header of a fits file is changed and up-dates the header subsequently
+(This is however hard to maintain and  not true in all cases, though.).</p>
 <p>Last but not least using this name convention has another benefit since it
 makes the life of your fellow astronomers easier when they have to work with
 your data since they readily know their most important basic properties.</p>
@@ -549,7 +552,7 @@ type :  The Hubble type of the galaxy.
 <hr class="docutils" />
 <div class="section" id="fits">
 <h1>fits<a class="headerlink" href="#fits" title="Permalink to this headline">¶</a></h1>
-<p>The fits module contains the class <code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code>. This class inherits all functions from
+<p>The fits module contains the class <a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap" title="astrolyze.maps.fits.FitsMap"><code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code></a>. This class inherits all functions from
 <code class="xref py py-func docutils literal"><span class="pre">Main</span></code> but adds functionality and methods
 needed to work with fits data. This class makes use of the <a class="reference internal" href="#python-pyfits">python-pyfits</a>
 package. Please check the pyfits web-page (follow the previous link) for the
@@ -561,7 +564,7 @@ pyfits documentation.</p>
 </div>
 <p>Opening a Fits map creates, besides the variables discussed in
 <a class="reference internal" href="maps.html#main-label"><span>Main</span></a> the following additional variables specific to the
-<code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code>:</p>
+<a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap" title="astrolyze.maps.fits.FitsMap"><code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code></a>:</p>
 <div class="section" id="variables-loaded-with-pyfits">
 <h2>Variables loaded with pyfits<a class="headerlink" href="#variables-loaded-with-pyfits" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-python"><div class="highlight"><pre>header : a dictionary with the fits-header cards
@@ -589,7 +592,7 @@ pixelSizeSterad [sterad] .
 </div>
 <div class="section" id="known-names-of-units">
 <h2>Known names of units<a class="headerlink" href="#known-names-of-units" title="Permalink to this headline">¶</a></h2>
-<p>The <code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code> class contains the
+<p>The <a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap" title="astrolyze.maps.fits.FitsMap"><code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code></a> class contains the
 method <code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code> which is able to
 check the conversion that is needed to change to the desired unit. However for
 this another <code class="docutils literal"><span class="pre">Unit</span> <span class="pre">Naming</span> <span class="pre">Convention</span></code> is needed. The following variables
@@ -693,9 +696,9 @@ done with:</p>
 <div class="section" id="change-map-units">
 <h2>Change Map Units<a class="headerlink" href="#change-map-units" title="Permalink to this headline">¶</a></h2>
 <p>Since it is easy to modify all pixel via <a class="reference internal" href="#python-pyfits">python-pyfits</a> the function
-<code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code> that converts
+<a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap.change_unit" title="astrolyze.maps.fits.FitsMap.change_unit"><code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code></a> that converts
 units into another is implemented in the <code class="docutils literal"><span class="pre">FitsMap</span></code>-class. See the
-documentation of <code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code>
+documentation of <a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap.change_unit" title="astrolyze.maps.fits.FitsMap.change_unit"><code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code></a>
 for the conversions that are implemented.</p>
 <p>Using the information from the &#8220;Naming Convention&#8221; and the additional
 information from the database, the code has all information to calculate the
@@ -790,7 +793,7 @@ deleted after execution. The standard script looks as follows:</p>
 </div>
 <p>In this mode only the variables created by <code class="xref py py-class docutils literal"><span class="pre">main</span></code> are created.</p>
 <p>Only the <code class="docutils literal"><span class="pre">&quot;smooth&quot;</span></code> function from miriad is implemented in astrolyze see
-<code class="xref py py-func docutils literal"><span class="pre">smooth()</span></code>.  When all header
+<a class="reference internal" href="maps.html#astrolyze.maps.miriad.MiriadMap.smooth" title="astrolyze.maps.miriad.MiriadMap.smooth"><code class="xref py py-func docutils literal"><span class="pre">smooth()</span></code></a>.  When all header
 variables are set correctly this function is aware of the map units and beam
 sizes and can calculate the correct scaling that has to be applied after
 convolution. The way astrolyze is set up the smooth function expects the map
@@ -804,7 +807,7 @@ wrapper is programmed such that it is aware of different input variables.</p>
 <hr class="docutils" />
 <div class="section" id="using-the-stack-module">
 <h1>Using the stack module<a class="headerlink" href="#using-the-stack-module" title="Permalink to this headline">¶</a></h1>
-<p>The <code class="xref py py-func docutils literal"><span class="pre">Stack</span></code> class builds on top of the
+<p>The <a class="reference internal" href="maps.html#astrolyze.maps.stack.Stack" title="astrolyze.maps.stack.Stack"><code class="xref py py-func docutils literal"><span class="pre">Stack</span></code></a> class builds on top of the
 classes:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">Main</span>
 <span class="n">FitsMap</span>
@@ -890,7 +893,7 @@ installation (this may not be true however.).</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.1.2',
+            VERSION:'0.1.5',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
