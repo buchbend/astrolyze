@@ -1,159 +1,206 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 
-<html xmlns="http://www.w3.org/1999/xhtml">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Motivation &mdash; astrolyze 0.0.2 documentation</title>
-    
-    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.0.2',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
-      };
-    </script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="astrolyze 0.0.2 documentation" href="index.html" />
-    <link rel="next" title="Maps" href="maps.html" />
-    <link rel="prev" title="Installation of astrolyze" href="installation.html" /> 
-  </head>
-  <body role="document">
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="maps.html" title="Maps"
-             accesskey="N">next</a> |</li>
-        <li class="right" >
-          <a href="installation.html" title="Installation of astrolyze"
-             accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">astrolyze 0.0.2 documentation</a> &raquo;</li> 
-      </ul>
-    </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-            <p class="logo"><a href="index.html">
-              <img class="logo" src="_static/logo1.jpg" alt="Logo"/>
-            </a></p>
-  <h3><a href="index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Motivation</a><ul>
-<li><a class="reference internal" href="#inter-operating-fits-gildas-and-miriad">Inter-operating Fits, Gildas and Miriad</a></li>
-<li><a class="reference internal" href="#changing-map-units">Changing map units</a></li>
-<li><a class="reference internal" href="#working-with-stacks-of-images">Working with stacks of images</a></li>
-<li><a class="reference internal" href="#producing-seds">Producing SEDs</a></li>
-<li><a class="reference internal" href="#not-only-images">Not only images ...</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#manual">Manual</a></li>
-<li><a class="reference internal" href="#modules">Modules</a></li>
-<li><a class="reference internal" href="#maps">maps</a></li>
-<li><a class="reference internal" href="#main">main</a><ul>
-<li><a class="reference internal" href="#from-naming-convention">From naming convention</a><ul>
-<li><a class="reference internal" href="#calculated-values">Calculated Values</a></li>
-<li><a class="reference internal" href="#known-format-endings-of-the-different-file-types">Known Format endings of the different file types</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#variables-loaded-from-database">Variables loaded from Database</a><ul>
-<li><a class="reference internal" href="#from-line-database">From Line Database</a></li>
-<li><a class="reference internal" href="#from-galaxy-database">From Galaxy Database</a></li>
-<li><a class="reference internal" href="#from-calibration-database">From Calibration Database</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#fits">fits</a><ul>
-<li><a class="reference internal" href="#variables-loaded-with-pyfits">Variables loaded with pyfits</a></li>
-<li><a class="reference internal" href="#id1">Calculated values</a></li>
-<li><a class="reference internal" href="#known-header-keywords">Known header keywords</a></li>
-<li><a class="reference internal" href="#known-names-of-units">Known names of units</a></li>
-<li><a class="reference internal" href="#changing-formats">Changing Formats</a></li>
-<li><a class="reference internal" href="#making-use-of-pyfits">Making use of Pyfits</a></li>
-<li><a class="reference internal" href="#change-map-units">Change Map Units</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#using-gildas">Using gildas</a><ul>
-<li><a class="reference internal" href="#variables">Variables</a><ul>
-<li><a class="reference internal" href="#gildas-specific">Gildas Specific</a><ul>
-<li><a class="reference internal" href="#how-is-gildas-used-by-astrolyze">How is Gildas used by astrolyze</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#wrapping-gildas-tasks">Wrapping Gildas Tasks</a></li>
-<li><a class="reference internal" href="#direc-use-of-pygildas">Direc use of pyGildas</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#using-miriad">Using miriad</a></li>
-<li><a class="reference internal" href="#using-the-stack-module">Using the stack module</a></li>
-<li><a class="reference internal" href="#using-the-sed-module">Using the sed module</a></li>
-</ul>
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Motivation &mdash; astrolyze 0.1.2 documentation</title>
+  
 
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="installation.html"
-                        title="previous chapter">Installation of astrolyze</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="maps.html"
-                        title="next chapter">Maps</a></p>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/manual.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
-    </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="astrolyze 0.1.2 documentation" href="index.html"/>
+        <link rel="next" title="Maps" href="maps.html"/>
+        <link rel="prev" title="Installation of astrolyze" href="installation.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> astrolyze
+          
+
+          
+            
+            <img src="_static/logo1.jpg" class="logo" />
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation of astrolyze</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Motivation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#inter-operating-fits-gildas-and-miriad">Inter-operating Fits, Gildas and Miriad</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#changing-map-units">Changing map units</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#working-with-stacks-of-images">Working with stacks of images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#producing-seds">Producing SEDs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#not-only-images">Not only images ...</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#manual">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#modules">Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#maps">maps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#main">main</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#from-naming-convention">From naming convention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#calculated-values">Calculated Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#known-format-endings-of-the-different-file-types">Known Format endings of the different file types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#variables-loaded-from-database">Variables loaded from Database</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#from-line-database">From Line Database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#from-galaxy-database">From Galaxy Database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#from-calibration-database">From Calibration Database</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#fits">fits</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#variables-loaded-with-pyfits">Variables loaded with pyfits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id1">Calculated values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#known-header-keywords">Known header keywords</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#known-names-of-units">Known names of units</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#changing-formats">Changing Formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#making-use-of-pyfits">Making use of Pyfits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#change-map-units">Change Map Units</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#using-gildas">Using gildas</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#variables">Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gildas-specific">Gildas Specific</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-is-gildas-used-by-astrolyze">How is Gildas used by astrolyze</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#wrapping-gildas-tasks">Wrapping Gildas Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#direc-use-of-pygildas">Direc use of pyGildas</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#using-miriad">Using miriad</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#using-the-stack-module">Using the stack module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#using-the-sed-module">Using the sed module</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="maps.html">Maps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectra.html">Spectra</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sed.html">SEDs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lte.html">LTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="functions.html">Functions</a></li>
+</ul>
+
+            
+          
         </div>
       </div>
+    </nav>
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">astrolyze</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Motivation</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/manual.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
             
   <div class="section" id="motivation">
 <h1>Motivation<a class="headerlink" href="#motivation" title="Permalink to this headline">¶</a></h1>
-<p>First, before we delve into details, let me give some examples of what
-astrolyze is capable of, so that you can decide if it could be of use for you.
-This is a snapshot of some of the most powerful features of astrolyze; a
-thorough introduction with more features and possibilities are given in the
+<p>First, before delving into the details of the astrolyze package, here a few
+examples are given of what astrolyze is all about. The following is a short
+teaser of some of the most powerful features of astrolyze; a thorough
+introduction with more features and possibilities are given in the
 <span class="xref std std-ref">label-naming-convention</span>.</p>
 <div class="section" id="inter-operating-fits-gildas-and-miriad">
 <h2>Inter-operating Fits, Gildas and Miriad<a class="headerlink" href="#inter-operating-fits-gildas-and-miriad" title="Permalink to this headline">¶</a></h2>
 <p>Using the astrolyze package it is possible to use different file formats and
-different programs from within python seamlessly. Say, for the sake of
-demonstrations, that you have a Fits image called
-<code class="docutils literal"><span class="pre">M33_30m_12CO10_Tmb_12.fits</span></code> and that you want to smooth it in miriad to 40
-arcsec resolution, re-project it with Gildas to a new central coordinate and
-finally convert it back to fits-format:</p>
+different programs from within python seamlessly. Say, for example, that you
+have a Fits image called <code class="docutils literal"><span class="pre">M33_30m_12CO10_Tmb_12.fits</span></code> and that you want to
+smooth it in miriad to 40 arcsec resolution, re-project it with Gildas to a new
+central coordinate and finally convert it back to fits-format:</p>
 <p>This is how you would do it with astrolyze:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="n">map_</span> <span class="o">=</span> <span class="n">FitsMap</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_12.fits&#39;</span><span class="p">)</span>
@@ -167,6 +214,7 @@ finally convert it back to fits-format:</p>
 <p>Please note the special format of the map name. The format follows a certain
 <code class="docutils literal"><span class="pre">naming</span> <span class="pre">convention</span></code> that has to be used with astrolyze. The reason for the
 naming conventions and it&#8217;s internal logic is explained below.</p>
+<p>..note</p>
 <p>As a side note I use an underscore for the <code class="docutils literal"><span class="pre">map_</span></code> variable, because
 otherwise the python function <code class="docutils literal"><span class="pre">map</span></code> is overwritten which may lead to problems.</p>
 </div>
@@ -501,7 +549,7 @@ type :  The Hubble type of the galaxy.
 <hr class="docutils" />
 <div class="section" id="fits">
 <h1>fits<a class="headerlink" href="#fits" title="Permalink to this headline">¶</a></h1>
-<p>The fits module contains the class <a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap" title="astrolyze.maps.fits.FitsMap"><code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code></a>. This class inherits all functions from
+<p>The fits module contains the class <code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code>. This class inherits all functions from
 <code class="xref py py-func docutils literal"><span class="pre">Main</span></code> but adds functionality and methods
 needed to work with fits data. This class makes use of the <a class="reference internal" href="#python-pyfits">python-pyfits</a>
 package. Please check the pyfits web-page (follow the previous link) for the
@@ -513,7 +561,7 @@ pyfits documentation.</p>
 </div>
 <p>Opening a Fits map creates, besides the variables discussed in
 <a class="reference internal" href="maps.html#main-label"><span>Main</span></a> the following additional variables specific to the
-<a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap" title="astrolyze.maps.fits.FitsMap"><code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code></a>:</p>
+<code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code>:</p>
 <div class="section" id="variables-loaded-with-pyfits">
 <h2>Variables loaded with pyfits<a class="headerlink" href="#variables-loaded-with-pyfits" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-python"><div class="highlight"><pre>header : a dictionary with the fits-header cards
@@ -541,7 +589,7 @@ pixelSizeSterad [sterad] .
 </div>
 <div class="section" id="known-names-of-units">
 <h2>Known names of units<a class="headerlink" href="#known-names-of-units" title="Permalink to this headline">¶</a></h2>
-<p>The <a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap" title="astrolyze.maps.fits.FitsMap"><code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code></a> class contains the
+<p>The <code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code> class contains the
 method <code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code> which is able to
 check the conversion that is needed to change to the desired unit. However for
 this another <code class="docutils literal"><span class="pre">Unit</span> <span class="pre">Naming</span> <span class="pre">Convention</span></code> is needed. The following variables
@@ -645,9 +693,9 @@ done with:</p>
 <div class="section" id="change-map-units">
 <h2>Change Map Units<a class="headerlink" href="#change-map-units" title="Permalink to this headline">¶</a></h2>
 <p>Since it is easy to modify all pixel via <a class="reference internal" href="#python-pyfits">python-pyfits</a> the function
-<a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap.change_unit" title="astrolyze.maps.fits.FitsMap.change_unit"><code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code></a> that converts
+<code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code> that converts
 units into another is implemented in the <code class="docutils literal"><span class="pre">FitsMap</span></code>-class. See the
-documentation of <a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap.change_unit" title="astrolyze.maps.fits.FitsMap.change_unit"><code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code></a>
+documentation of <code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code>
 for the conversions that are implemented.</p>
 <p>Using the information from the &#8220;Naming Convention&#8221; and the additional
 information from the database, the code has all information to calculate the
@@ -742,7 +790,7 @@ deleted after execution. The standard script looks as follows:</p>
 </div>
 <p>In this mode only the variables created by <code class="xref py py-class docutils literal"><span class="pre">main</span></code> are created.</p>
 <p>Only the <code class="docutils literal"><span class="pre">&quot;smooth&quot;</span></code> function from miriad is implemented in astrolyze see
-<a class="reference internal" href="maps.html#astrolyze.maps.miriad.MiriadMap.smooth" title="astrolyze.maps.miriad.MiriadMap.smooth"><code class="xref py py-func docutils literal"><span class="pre">smooth()</span></code></a>.  When all header
+<code class="xref py py-func docutils literal"><span class="pre">smooth()</span></code>.  When all header
 variables are set correctly this function is aware of the map units and beam
 sizes and can calculate the correct scaling that has to be applied after
 convolution. The way astrolyze is set up the smooth function expects the map
@@ -756,7 +804,7 @@ wrapper is programmed such that it is aware of different input variables.</p>
 <hr class="docutils" />
 <div class="section" id="using-the-stack-module">
 <h1>Using the stack module<a class="headerlink" href="#using-the-stack-module" title="Permalink to this headline">¶</a></h1>
-<p>The <a class="reference internal" href="maps.html#astrolyze.maps.stack.Stack" title="astrolyze.maps.stack.Stack"><code class="xref py py-func docutils literal"><span class="pre">Stack</span></code></a> class builds on top of the
+<p>The <code class="xref py py-func docutils literal"><span class="pre">Stack</span></code> class builds on top of the
 classes:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">Main</span>
 <span class="n">FitsMap</span>
@@ -802,32 +850,71 @@ installation (this may not be true however.).</p>
 </div>
 
 
+           </div>
           </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="maps.html" class="btn btn-neutral float-right" title="Maps" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="installation.html" class="btn btn-neutral" title="Installation of astrolyze" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Christof Buchbender.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
         </div>
       </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="maps.html" title="Maps"
-             >next</a> |</li>
-        <li class="right" >
-          <a href="installation.html" title="Installation of astrolyze"
-             >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">astrolyze 0.0.2 documentation</a> &raquo;</li> 
-      </ul>
-    </div>
-    <div class="footer" role="contentinfo">
-        &copy; Copyright 2015, Christof Buchbender.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.1.
-    </div>
-  </body>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1.2',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
 </html>

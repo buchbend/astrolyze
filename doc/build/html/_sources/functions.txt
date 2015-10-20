@@ -16,7 +16,7 @@ units
 
 Constant unit conversions available in this module are:
 
-.. literalinclude:: ../astrolyze/functions/units.py
+.. literalinclude:: ../../astrolyze/functions/units.py
     :language: python
     :lines: 7-15
 
@@ -28,6 +28,6 @@ Constant unit conversions available in this module are:
 constants
 #########
 
-.. literalinclude:: ../astrolyze/functions/constants.py
+.. literalinclude:: ../../astrolyze/functions/constants.py
     :language: python
     :lines: 5-40

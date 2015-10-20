@@ -2,21 +2,20 @@
 Motivation
 ==========
 
-First, before we delve into details, let me give some examples of what
-astrolyze is capable of, so that you can decide if it could be of use for you.
-This is a snapshot of some of the most powerful features of astrolyze; a
-thorough introduction with more features and possibilities are given in the
+First, before delving into the details of the astrolyze package, here a few
+examples are given of what astrolyze is all about. The following is a short
+teaser of some of the most powerful features of astrolyze; a thorough
+introduction with more features and possibilities are given in the
 :ref:`label-naming-convention`.
 
 Inter-operating Fits, Gildas and Miriad
 ---------------------------------------
 
 Using the astrolyze package it is possible to use different file formats and
-different programs from within python seamlessly. Say, for the sake of
-demonstrations, that you have a Fits image called
-``M33_30m_12CO10_Tmb_12.fits`` and that you want to smooth it in miriad to 40
-arcsec resolution, re-project it with Gildas to a new central coordinate and
-finally convert it back to fits-format:
+different programs from within python seamlessly. Say, for example, that you
+have a Fits image called ``M33_30m_12CO10_Tmb_12.fits`` and that you want to
+smooth it in miriad to 40 arcsec resolution, re-project it with Gildas to a new
+central coordinate and finally convert it back to fits-format:
 
 This is how you would do it with astrolyze::
 
@@ -31,6 +30,8 @@ This is how you would do it with astrolyze::
 Please note the special format of the map name. The format follows a certain
 ``naming convention`` that has to be used with astrolyze. The reason for the
 naming conventions and it's internal logic is explained below.
+
+..note ::
 
 As a side note I use an underscore for the ``map_`` variable, because
 otherwise the python function ``map`` is overwritten which may lead to problems.

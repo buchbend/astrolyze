@@ -13,10 +13,14 @@ import numpy as np
 from pysqlite2 import dbapi2 as sqlite
 from scipy.ndimage import gaussian_filter
 
+from generaltools import server_tools
+
 import astrolyze.functions.constants as const
 from astrolyze.functions import units
 
-class Map:
+
+
+class Map(server_tools.GeneralServer):
     '''
     ``Map`` is the parent Class for the ``maps``-package. It contains all
     functions that are common to all supported map-formats, i.e. Fits,
@@ -32,16 +36,18 @@ class Map:
     name_convention : True or False
         Only files following the name_convention are supported.
     '''
-    def __init__(self, map_name, name_convention=True):
+    def __init__(self, map_name, **kwargs):
         '''
         Initialize a map to maps.
         '''
-        # Definition of the unit nomenclatures.
-        USER = os.getenv("USER")
         config_path = "/home/{}/.astrolyze/".format(USER)
         config_file = "astrolyze.cfg"
-        self.config = ConfigParser.ConfigParser()
-        self.config.read("{}{}".format(config_path, config_file))
+        GeneralServer.__init__(config_file=config_file,
+                               config_path=config_path)
+        # Definition of the unit nomenclatures.
+        self.log = self._init_logger("~/.astrolyze/astrolyze.log")
+        self.log.info("Test")
+        USER = os.getenv("USER")
         self.database_prefix = self.config.get("General", "database_prefix")
         self.database_prefix = self.database_prefix.format(USER)
 
@@ -87,7 +93,6 @@ class Map:
         ).split(',')
         # name_convention is not needed anymore. Only kept for backward
         # compatibality.
-        self.name_convention = name_convention
         self.map_name = map_name
         # Test if the file exists. Directory for Miriad.
         # File for Fits and GILDAS.
@@ -96,6 +101,10 @@ class Map:
             print 'Exiting: ' + self.map_name + ' does not exist'
             sys.exit()
         # Get Informations from the file name.
+        try:
+            self.map_nameList = map_name.split('/')[-1].split('_')
+        except:
+            self.log
         if name_convention:
             self.map_nameList = map_name.split('/')[-1].split('_')
             self.prefix_list = map_name.split('/')[0:-1]

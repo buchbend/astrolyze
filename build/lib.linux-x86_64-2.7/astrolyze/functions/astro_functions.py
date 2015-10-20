@@ -5,12 +5,12 @@ import sys
 
 import scipy
 from scipy.optimize import leastsq as least
-from numpy import asarray, mean, std, where, exp, log, sqrt, arange, float64, floor
+from numpy import asarray, mean, std, where, exp, log, sqrt, arange
 from copy import deepcopy as copy
 import random as rnd
 
 import astrolyze.functions.constants as const
-import astrolyze.functions.units as units
+import astrolyze.functions.units
 
 
 def black_body(x, T, nu_or_lambda='nu'):
@@ -75,9 +75,8 @@ def black_body(x, T, nu_or_lambda='nu'):
        plt.savefig('black_body.eps')
 
     """
-    x = float64(x)
     if nu_or_lambda == 'nu':
-        return float64((2 * const.h * ((x * 1e9) ** 3) / (const.c ** 2)) *
+        return ((2 * const.h * ((x * 1e9) ** 3) / (const.c ** 2)) *
                 (1 / (math.e ** ((const.h * x * 1e9) / (const.k *
                 float(T))) - 1)) / 1e-26)
     if nu_or_lambda == 'lambda':
@@ -170,7 +169,6 @@ def grey_body(p, x, nu_or_lambda='nu', kappa='Kruegel', distance=840e3):
     .. [KS] Kruegel, E. & Siebenmorgen, R. 1994, A&A, 288, 929
 
     """
-    x = float64(x)
     T, N, beta = p
     # Switch to choose kappa
     if kappa == 'easy':
@@ -541,8 +539,8 @@ def _grid_fit(data, beta, nu_or_lambda='nu', fit_beta=False, rawChiSq=False,
     return sorted(chisq)[0]
 
 
-def LTIR(p2, kappa='Kruegel', xmin=3., xmax=1100.,
-         distance=False, unit='JyB'):
+def LTIR(p2, kappa='Kruegel', xmin=3., xmax=1100., beamConv=True,
+         distance=847e3, unit='JyB'):
     r"""
     Integration of a multi-component greybody model.
 
@@ -556,13 +554,15 @@ def LTIR(p2, kappa='Kruegel', xmin=3., xmax=1100.,
         The dust extinction coefficient used to describe the greybodies. See:
         py:func:`grey_body`
     xmin, xmax : float
-        The integration range in units of micron. Defaults to 3 -- 1100 micron.
+        The integration range in units of micron. Defaults to 3 -- 110 micron.
         The definition of LTIR from [DA]
+    beamConv : True or False
+        For units in Lsun the code is not well written. Hardcoded conversion
+        between an 28" and 40" beam. !! CHANGE !!
     unit : string
         If ``'Lsun'`` the returned integrated flux is in units of solar
         luminosities (erg s^-1). For this a distance is needed. If ``'JyB'``
-        the units are Jy/beam; distance is not used. If distance is not given
-        JyB is used.
+        the units are Jy/beam; distance is not used.
 
     Notes
     -----
@@ -583,11 +583,16 @@ def LTIR(p2, kappa='Kruegel', xmin=3., xmax=1100.,
     model, grey = multi_component_grey_body(p2, x, 'nu', kappa)
     # integrate the SED
     LTIR1 = sum(model) * (step * 1e9)  # Jy/Beam*Hz
-    if unit == 'Lsun' and distance:
+    if unit == 'Lsun':
+        # conversion factor between 40 and 28 arcsc beam
+        beamsize_conversion = (28. ** 2) / (40 ** 2)
+        if beamConv:
+            conv = (units.JanskyToErgs_m * units.Int2Lum(distance,
+                    cm_or_m='m') * beamsize_conversion)
         # convert to erg s-1 /beam in terms of 1e6*Lsun
-        conv = 1 / units.ErgsToJansky_m * units.Int2Lum(distance, cm_or_m='m')
-        LTIR1 = LTIR1 * conv / const.Lsunergs / 1e6
-    if unit == 'JyB' or not distance:
+        conv = Jy_to_FluxDensityInErg_s * units.Int2Lum(distance, cm_or_m='m')
+        LTIR1 = LTIR1 * conv / luminositySun / 1e6
+    if unit == 'JyB':
         pass
     return LTIR1
 
@@ -782,7 +787,7 @@ def linear_error_function(p, x, y, y_error, x_error):
     if not x_error.all():
         return sqrt(((line(p, x) - y) / y_error) ** 2)
 
-def line_fit(p, x, y, y_error, x_error=asarray([None]), iterations=10000):
+def line_fit(p, x, y, y_error, x_error=False, iterations=10000):
     """
     Linear Fit to data, taking either errors in y or both in x and y into
     account.
@@ -883,9 +888,7 @@ def analytic_linear_fit(x, y, x_error, y_error):
     Chisq = sum((y - A - B * x) ** 2 / equivalentError ** 2) / (N - 2)
     print ('m = ' + '%1.2f' % A + '+/-' + '%1.2f' % SigmaA + ' b = ' + '%1.2f'
            % B + '+/-' + '%1.2f' % SigmaB + ' chisq:' + '%1.2f' % Chisq)
-    p1 = [B,A]
-    error = [SigmaB, SigmaA]
-    return p1, error, Chisq
+    return A, SigmaA, B, SigmaB, Chisq
 
 
 def generate_monte_carlo_data_line(data, errors):
@@ -987,7 +990,7 @@ def line_monte_carlo(p, x, y, x_error, y_error, iterations,
     return string, BList, MList, chisqList, resultArray
 
 
-def gauss1D(x, fwhm, area, offset=0):
+def gauss1D(x, fwhm, offset=0, amplitude=1):
     r"""
     Calulcates 1D Gaussian.
 
@@ -999,6 +1002,8 @@ def gauss1D(x, fwhm, area, offset=0):
         The width of the Gaussian.
     offset :
         The offset in x direction from 0. Default is 0.
+    amplitude :
+        The height of the Gaussian. Default is 1.
 
     Returns
     -------
@@ -1013,54 +1018,10 @@ def gauss1D(x, fwhm, area, offset=0):
 
         f = \frac{1}{fwhm * sqrt(2 * \pi)} * e^{-1/2 (\frac{x-x0}{fwhm})^2}
     """
-
-    gauss_factor_1 = 1.665109
-    gauss_factor_2 = 1.064467
-    gauss =  ((x - offset) / fwhm * gauss_factor_1) ** 2
+    gauss = 1 / 2 * ((x - offset) / fwhm) ** 2
     gauss = exp(-1 * gauss)
-    height = area / (fwhm * gauss_factor_2)
-    gauss = height * gauss
+    gauss = 1 / (fwhm * math.sqrt(2 * math.pi)) * gauss
     return gauss
-
-
-def fwzi(noise, fwhm, area, offset=0):
-    r"""
-    Calulcates 1D Gaussian.
-
-    Parameters
-    ----------
-    x : float or numpy.ndarray
-        the x-axis value/values where the Gaussian is to be caluclated.
-    fwhm : float
-        The width of the Gaussian.
-    offset :
-        The offset in x direction from 0. Default is 0.
-
-    Returns
-    -------
-    gauss : float or np.ndarray
-        The y value for the specified Gaussian distribution evaluated at x.
-
-    Notes
-    -----
-    The function used to describe the Gaussian is:
-
-    .. math::
-
-        f = \frac{1}{fwhm * sqrt(2 * \pi)} * e^{-1/2 (\frac{x-x0}{fwhm})^2}
-    """
-    gauss_factor_1 = 1.665109
-    gauss_factor_2 = 1.064467
-    height = area / (fwhm * gauss_factor_2)
-    ratio = height / noise
-    print ratio
-    if ratio < 1:
-        fwzi = 0
-        return 0
-    # see wikipedia
-    c = (fwhm) / math.sqrt(2) / gauss_factor_1
-    fwzi = 2. * math.sqrt(2. * math.log(ratio)) * c
-    return fwzi
 
 
 def gauss2D(x, y, major, minor, pa=0, xOffset=0, yOffset=0, amplitude=1):
@@ -1169,8 +1130,7 @@ def equatorial_to_degrees(equatorial):
     try:
         CoordsplitRA = equatorial[0].split(':')
         CoordsplitDec = equatorial[1].split(':')
-    except AttributeError, e:
-        print e
+    except AttributeError:
         raise SystemExit('Input has to be equatorial coordinates.')
     if float(CoordsplitDec[0]) > 0:
         degrees = [(float(CoordsplitRA[0]) * (360. / 24) +
@@ -1188,7 +1148,7 @@ def equatorial_to_degrees(equatorial):
 
 
 def calc_offset(central_coordinate, offset_coordinate, angle = 0,
-                output_unit='arcsec'):
+                output_unit='farcsec'):
     r"""
     Calculates the offset between two coordinates.
 
@@ -1237,7 +1197,6 @@ def calc_offset(central_coordinate, offset_coordinate, angle = 0,
         rotated_offset = rotated_offset * 60
     if output_unit.upper() in ['ARCSEC', 'ARCSECS']:
         rotated_offset = rotated_offset * 60 * 60
-        print rotated_offset
     return rotated_offset
 
 
