@@ -7,10 +7,12 @@ astrolyze Documentation
 =======================
 
 Astrolyze is a python-package with several functions for reduction and analysis
-of (mainly) radioastronomical data analysis. It is developed over the course of 
-my Diploma and PhD thesis. I decided to package the functions because I think
-that they may be useful to other astronomers. The package is open for 
+of (mainly) radioastronomical data. It is developed over the course of my
+Diploma and PhD thesis and beyond. I share this package here because I
+think that they may be useful to other astronomers. The package is open for
 collaboration.
+
+Please read the `Motivation - What is this package about`  section if you are new to the package.
 
 .. toctree::
    :maxdepth: 1

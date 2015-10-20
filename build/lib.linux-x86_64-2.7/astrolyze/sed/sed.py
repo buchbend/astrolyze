@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2013, Christof Buchbender
+# Copyright (C) 2012, Christof Buchbender
 # BSD Licencse
 import sys
 import os
@@ -15,7 +15,6 @@ import astrolyze.maps.stack as stack
 import astrolyze.maps.tools as mtools
 import astrolyze.functions.astro_functions as astro_functions
 import astrolyze.functions.constants as const
-import astrolyze.functions.units as units
 
 
 class SedStack(stack.Stack):
@@ -25,8 +24,7 @@ class SedStack(stack.Stack):
     """
     def __init__(self, folder, data_format='.fits', coordinates=False,
                  flux_acquisition='aperture', aperture=120, annotation=False,
-                 full_map=False, output_folder=None, number_components=2,
-                 latex_file='sed_fit_results.tab', monteCarlo=False):
+                 full_map=False, output_folder=None, number_components=2):
         # Read in the stack from the input folder.
         stack.Stack.__init__(self, folder=folder, data_format=data_format)
         # Pass the input parameters to the variables
@@ -47,8 +45,6 @@ class SedStack(stack.Stack):
             if type(coordinates) is list:
                 self.coordinates = coordinates
             self.get_seds()
-        self.latex_file = latex_file
-        self.monteCarlo = monteCarlo
 
     def info(self):
         for sed in self.sed_stack:
@@ -106,33 +102,24 @@ class SedStack(stack.Stack):
         self.sed_stack = []
         for x, coordinate in enumerate(self.coordinates):
             flux_array = [[], [], []]
-            telescopes = []
             names = []
             for maps in self.stack:
                 if self.flux_acquisition == 'aperture':
-                    flux = maps.read_aperture_circle(coordinate,
-                                         aperture_size=self.aperture,
+                    flux = maps.read_aperture(coordinate,
+                                         apertureSize=self.aperture,
                                          annotation=self.annotation)
                     flux_array[0] += [maps.frequency/1e9]
                     flux_array[1] += [flux[0]]
                     flux_array[2] += [flux[0] * maps.calibrationError]
-                    distance = maps.distance
-                    telescopes += [maps.telescope]
-
                 if self.flux_acquisition == 'pixel':
                     flux = maps.read_flux(coordinate)
                     flux_array[0] += [maps.frequency/1e9]
                     flux_array[1] += [flux]
                     flux_array[2] += [flux * maps.calibrationError]
-
-                    telescopes += [maps.telescope]
-                    distance = maps.distance
                 names += self.source_names[x]
             flux_array = np.asarray(flux_array)
             self.sed_stack += [Sed(self.source_names[x], coordinate,
-                                   flux_array, telescopes,
-                                   self.number_components,
-                                   distance=distance)]
+                                   flux_array, self.number_components)]
 
     def get_map_seds(self, folder):
         r""" This functions fits the SED at every pixel of the input maps.
@@ -243,24 +230,6 @@ class SedStack(stack.Stack):
                        self.chisq_map, self.stack[0].header)
         print 'Finished!'
 
-    def latex_table(self, file=False):
-        if not file:
-            file = self.latex_file
-        fileout = open(file, 'w')
-        string = '\\begin{tabular}{ccccccccc}\n'
-        string += '\\hline\\hline\n'
-        for x,i in enumerate(self.sed_stack):
-            if x == 0:
-                string += i.tex_table_header() + '\n\\hline\n'
-            string += i.tex_table_entry()
-        string += '\\hline\n\\end{tabular}\n'
-        fileout.write(string)
-        fileout.close()
-
-
-    def summary_thumbnails():
-        pass
-
 
 class Sed:
     r""" This class handles a single SED. Basically it is able to fit,
@@ -279,30 +248,21 @@ class Sed:
     init_fit : logic
         Steers whether the SED is fitted already during creation.
     """
-    def __init__(self, source_name, coordinate, flux_array, telescopes,
-                 number_components=2, init_fit=True, init_guess=False,
-                 distance=False, monteCarlo=False):
-        self.distance = distance
+    def __init__(self, source_name, coordinate, flux_array,
+                 number_components=2, init_fit=True):
         self.source_name = source_name
         self.coordinate = coordinate
         self.number_components = number_components
         self.flux_array = flux_array
-        self.telescopes = telescopes
         self.fit_temperatures = None
         self.fit_masses = None
         self.fit_beta = None
         self.fit_done = False
-        if os.path.isfile('init_guess.py'):
-            init_guess = True
-        self.set_defaults(init_guess)
+        self.set_defaults()
         if init_fit:
             self.grey_body_fit()
-            self.get_LTIR()
-            if monteCarlo:
-                self.get_errors(monteCarlo)
 
     def info(self):
-        print '###############################################################################'
         print 'Source Name: ' + str(self.source_name)
         print 'Coordinate: ' + str(self.coordinate)
         print 'flux_array: ' + str(self.flux_array)
@@ -313,83 +273,27 @@ class Sed:
             print 'Chisq: ' + str(self.fit_chisq)
         if not self.fit_done:
             print 'SED not fitted yet'
-        print '###############################################################################'
 
-    def tex_table_header(self):
-        string = (r'Source & T$_{\rm cold}$ & T$_{\rm warm}$ & '
-                  r'M$_{\rm cold}$ & M$_{\rm warm}$ & M$_{\rm cold}$/M$_{\rm warm}$ & '
-                   r' $\beta$ & LTIR & $\chi^2$\\'
-                  '\n'
-                  )
-        return string
-
-    def tex_table_entry(self):
-        string = ('{0} & {1:d} & {2:d} &'+
-                  ' {3:d} & {4:1.2f} & {5:1.2f} & {6} & {7:1.2f} & '
-                  '{8:1.2f} \\\\\n').format(self.source_name,
-                                                int(round(self.fit_temperatures[0],0)),
-                                                int(round(self.fit_temperatures[1],0)),
-                                                int(round(self.fit_masses[0],0)),
-                                                int(round(self.fit_masses[1],0)),
-                                                int(round(self.fit_masses[0]/self.fit_masses[1],0)),
-                                                self.fit_beta[0],
-                                                self.LTIR,
-                                                self.fit_chisq)
-        return string
-
-    def set_defaults(self, init_guess):
-        r""" Set a default guess for the input parameter needed
-        to run a greybody Fit.
-
-        If a file init_guess.py exists in the same folder from that the SED
-        class is called. Its contents are used to override the default guesses
-        hard-coded in this function. Below the format of this file is displayed.
-
-        Examples
-        --------
-
-        >>> dic = {}
-        >>> dic['sourcename' or 'general'] = [[[T1, T2, T3,  ... , Tn],'fix' or 'free'],
-        >>>                                   [[M1, M2, M3, ... , Mn], fix' or 'free'],
-        >>>                                   [beta, beta_type, 'fix' or 'free']]
-        """
-        if init_guess:
-            import init_guess
-            try:
-                guess = init_guess.dic[self.source_name]
-            except:
-                guess = init_guess.dic['general']
-            init_guess_temperature = guess[0][0]
-            init_guess_masses = guess[1][0]
-            init_beta_guess = guess[2][0]
-            self.kappa = guess[2][1]
-            if guess[0][1] == 'free':
-                self.fix_temperature = False
-            if guess[0][1] == 'fix':
-                self.fix_temperature = True
-            if guess[2][2] == 'free':
-                self.fit_beta =True
-            if guess[2][2] == 'fix':
-                self.fit_beta = False
-        if not init_guess:
-            init_guess_temperature = [20, 40, 100, 150, 200]
-            init_guess_masses = [1e5, 1e2, 1e1 ,1e-1, 1e-2]
-            init_beta_guess = [1.5]
-            self.fix_temperature = False
-            self.fit_beta = False
-            self.kappa = 'Kruegel'
+    def set_defaults(self):
+        # Set a default guess for the input parameter
+        # needed to run a greybody Fit.
+        init_guess_temperature = [20, 50, 100, 150, 200]
+        init_guess_masses = [1e5, 1e2, 1e1 ,1e-1, 1e-2]
+        init_beta_guess = [2.]
         self.temperature_guess = []
         self.mass_guess = []
         for x in range(self.number_components):
             self.temperature_guess += [init_guess_temperature[x]]
             self.mass_guess += [init_guess_masses[x]]
-        self.beta_guess = [init_beta_guess]
+        self.beta_guess = [2.]
         self.p1 = [self.temperature_guess, self.mass_guess, self.beta_guess]
         self.p2 = None
         # Setting up default input choices for the
         # grey_body_fit function from astroFunctions.
         # please check this function for more details.
+        self.fit_beta = False
         self.kappa = 'Kruegel'
+        self.fix_temperature = False
         self.rawChiSq = None
         self.residuals = False
         self.nu_or_lambda = 'nu'
@@ -403,10 +307,9 @@ class Sed:
 
         ..  :py:func:`astrolyze.functions.astro_functions.grey_body_fit`
         """
-        print self.p2
-        print self.flux_array
-        (self.p2,
-         self.fit_chisq) = astro_functions.grey_body_fit(
+        try:
+            (self.p2,
+             self.fit_chisq) = astro_functions.grey_body_fit(
                                            data=self.flux_array,
                                            start_parameter=self.p1,
                                            nu_or_lambda=self.nu_or_lambda,
@@ -414,6 +317,8 @@ class Sed:
                                            fix_temperature=self.fix_temperature,
                                            kappa=self.kappa,
                                            residuals=self.residuals)
+        except:
+            raise ValueError('Data could not be fitted!')
         self.fit_temperatures = self.p2[0]
         self.fit_masses = self.p2[1]
         self.fit_beta = self.p2[2]
@@ -449,7 +354,7 @@ class Sed:
         # Plot the SED in the range of the determination
             # of the L_TIR: 3-1100 micron
             xmin =  3e-6# micron
-            xmax =  1100e-6 # micron
+            xmax =  4000e-6 # micron
             # conversion to frequency in GHz
             xmin = const.c/xmax/1e9
             xmax = const.c/xmin/1e9
@@ -500,46 +405,25 @@ class Sed:
             plt.loglog(x, i, color=color, ls=linestyles[j], lw=0.5, marker='')
             j+=1
 
+    def create_figure(self, save=True, plotLegend=False,
+                     color=['black'], marker=['x'], title=None, x_label=None,
+                     y_label=None, nu_or_lambda='nu', fontdict=None,
+                     textStringLoc=[1,1], lineWidth=0.5,
+                     kappa='easy', x_range='normal'):
+        r""" Creates a quick preview of the loaded SED. TODO: extend
+        documentation.
+        """
+        fig1 = plt.figure()
+        fig1ax1 = fig1.add_subplot(111)
+        textString = ''
+        for i in range(len(self.p2[0])):
+            textString += ('T=' + str('%1.1f' % self.p2[0][i]) +
+                           ' K\nM=' + str("%1.2e" % self.p2[1][i]) + ' Msun\n')
 
-    def plot_data_points(self, axes=plt.gca(), markersize=5, no_marker=False):
-        markersize = markersize
-        #Plotting the data points
-        colors=['green','blue','#ff0000','#008000','black']
-        ecolors=['black'] * len(colors)
-        markers=['x','*','o','^','D']
-        if no_marker:
-            markers=[None, None, None, None]
-        unique_tels = list(set(self.telescopes))
-        design_dic = {}
-        for x, tel in enumerate(unique_tels):
-            design_dic[tel] = [colors[x], markers[x],ecolors[x]]
-        points = []
-        label = []
-        for x, tel in enumerate(self.telescopes):
-            if tel not in label:
-                points += [axes.errorbar(self.flux_array[0][x],
-                                         self.flux_array[1][x],
-                                         yerr=self.flux_array[2][x],
-                                         fmt=design_dic[tel][1],
-                                         marker=design_dic[tel][1],
-                                         mfc='None', ecolor=design_dic[tel][2],
-                                         mew=0.5, mec=design_dic[tel][0],
-                                         ms=markersize,
-                                         color=design_dic[tel][0])]
-                label += [tel]
-            else:
-                axes.errorbar(self.flux_array[0][x],
-                              self.flux_array[1][x],
-                              yerr=self.flux_array[2][x],
-                              fmt=design_dic[tel][1],
-                              marker=design_dic[tel][1],
-                              mfc='None', ecolor=design_dic[tel][2],
-                              mew=0.5, mec=design_dic[tel][0],
-                              ms=markersize,
-                              color=design_dic[tel][0])
-        return points, label
-
-    def set_limits(self, axes=plt.gca(), nu_or_lambda='lambda'):
+        if len(self.p2[0])==2:
+            textString+= 'N1/N2 = '+str('%i'%(self.p2[1][0]/self.p2[1][1]))+'\n'
+        textString += ('beta = ' + str("%1.2f" % self.p2[2][0]) +
+                       '\nchi$^2$ =' + str("%1.2f" % self.fit_chisq) + '\n')
         # sets the limits of the plot Page
         plotSize = 0.9 # how much in percentace should the plotpage be larger
                        # than the plotted values?
@@ -547,79 +431,71 @@ class Sed:
             xLimNu = [min(self.flux_array[0]) -
                       min(self.flux_array[0]) * plotSize,
                       max(self.flux_array[0]) + max(self.flux_array[0])]
+
         if nu_or_lambda == 'lambda':
             newSelf_Flux_Array = []
             for i in self.flux_array[0]:
+                print i
                 newSelf_Flux_Array += [astro_functions.frequency_to_wavelength(i)]
-            self.flux_array[0] = newSelf_Flux_Array
+
+            self.flux_array[0] =newSelf_Flux_Array
             xLimNu = [min(self.flux_array[0]) -
-                      min(self.flux_array[0]) * 0.5 * plotSize,
+                      min(self.flux_array[0]) * plotSize * 2,
                       max(self.flux_array[0]) +
-                      max(self.flux_array[0]) * 2 *plotSize]
+                      max(self.flux_array[0]) * plotSize]
         ylim = [min(self.flux_array[1]) - min(self.flux_array[1]) * plotSize,
                 max(self.flux_array[1]) +
                 max(self.flux_array[1]) * plotSize / 2]
         # makes the plot page squared; TBD not really square yet
-        axes.set_xlim(xLimNu[0],xLimNu[1])
-        axes.set_ylim(ylim[0],ylim[1])
-        return xLimNu,ylim
+        fig1ax1.set_xlim(xLimNu[0],xLimNu[1])
+        fig1ax1.set_ylim(ylim[0],ylim[1])
 
-    def get_LTIR(self):
-        if self.distance:
-            self.LTIR = astro_functions.LTIR(self.p2, kappa='Kruegel', xmin=3.,
-                                             xmax=1100., distance=self.distance,
-                                             unit='Lsun')
-        if not self.distance:
-            self.LTIR = astro_functions.LTIR(self.p2, kappa='Kruegel', xmin=3.,
-                                             xmax=1100., unit='JyB')
-
-    def get_errors(self, iterations=10):
-        self.errors,self.betaTList = astro_functions.grey_body_monte_carlo(self.p1,self.flux_array,iterations)
-
-    def create_figure(self, quick=True, save=True, plotLegend=False,
-                     x_label=None, y_label=None, nu_or_lambda='lambda',
-                     fontdict=None, title=None,
-                     textStringLoc=[1,1], lineWidth=0.5,
-                      kappa='Kruegel', x_range='normal',prefix=''):
-        r""" Creates a quick preview of the loaded SED. TODO: extend
-        documentation.
-        """
-        fig1 = plt.figure()
-        fig1ax1 = fig1.add_subplot(111)
-        if quick:
-            textString = ''
-            for i in range(len(self.p2[0])):
-                textString += ('T=' + str('%1.1f' % self.p2[0][i]) +
-                               ' K\nM=' + str("%1.2e" % self.p2[1][i]) + ' Msun\n')
-            if len(self.p2[0])==2:
-                textString+= 'N1/N2 = '+str('%i'%(self.p2[1][0]/self.p2[1][1]))+'\n'
-            #print self.fit_chisq
-            # textString += ('beta = ' + str("%1.2f" % self.p2[2][0]) +
-            #                '\nchi$^2$ =' + str("%1.2f" % self.fit_chisq) + '\n')
-        xLimNu, ylim = self.set_limits(axes=fig1ax1,
-                                       nu_or_lambda=nu_or_lambda)
         # PLots the model given in self.p2
-        self.plot_sed(axes=fig1ax1, nu_or_lambda=nu_or_lambda, color='black',
+        self.plot_sed(axes=plt.gca(), nu_or_lambda=nu_or_lambda, color='black',
                       linewidth=0.5, x_range=x_range)
-        legend_points, label = self.plot_data_points(axes=fig1ax1)
+
+        markersize =7
+        #Plotting the data points
+        parted = [1]
+        if len(parted)==1:
+            fig1ax1.errorbar(self.flux_array[0], self.flux_array[1],
+                         yerr=self.flux_array[2], fmt='o', marker='p',
+                         mfc='None', mew=0.5, mec='#00ffff', ms=markersize,
+                         color='black', lw=lineWidth)
+        else:
+            for i in range(len(parted)):
+                if i == 0:
+                    fig1ax1.errorbar(self.flux_array[0][0:parted[i]],
+                                 self.flux_array[1][0:parted[i]],
+                                 yerr=self.flux_array[2][0:parted[i]],
+                                 fmt=marker[i],
+                                 marker=marker[i], mfc='None', label=label[i],
+                                 mew=0.5, mec=color[i], ms=markersize,
+                                 color=color[i], lw=lineWidth)
+                else:
+                    fig1ax1.errorbar(self.flux_array[0][parted[i-1]:parted[i]],
+                                self.flux_array[1][parted[i-1]:parted[i]],
+                                yerr=self.flux_array[2][parted[i-1]:parted[i]],
+                                fmt=marker[i], marker=marker[i],
+                                mfc='None', label=label[i], mew=0.5,
+                                mec=color[i], ms=markersize, color=color[i],
+                                lw=lineWidth)
 
         # setting up legend,title, xlabel.
-        if plotLegend:
+        if plotLegend == 'yes':
             fontdict={'size':'11'}
-            fig1ax1.legend((legend_points), label, numpoints=1, 
-                           loc = 'upper left' )
+            plt.legend(loc='upper right', numpoints=1, fancybox=False,
+                      prop=fontdict, markerscale=1)
         fontdict={'size':'17'}
-        if quick:
-            plt.text(90,0.2,s=textString, fontdict=fontdict, alpha=0.4)
+        plt.text(90,0.2,s=textString, fontdict=fontdict, alpha=0.4)
         if title:
             fig1ax1.title(title)
         if x_label:
-            fig1ax1.set_xlabel(x_label)
+            fig1ax1.xlabel(x_label)
         if y_label:
-            fig1ax1.set_ylabel(y_label)
+            fig1ax1.ylabel(y_label)
         fig1ax1.axis([xLimNu[0],xLimNu[1],ylim[0],ylim[1]])
         if save:
-            fig1.savefig(prefix + self.source_name + '_SED.eps',
-                         dpi=None, facecolor='w',
-                         edgecolor='w',orientation='portrait', papertype='a5',
-                         format='eps',bbox_inches='tight')
+            fig1.savefig(self.source_name + '_SED.eps', dpi=None, facecolor='w',
+                    edgecolor='w',orientation='portrait', papertype='a5',
+                    format='eps',bbox_inches='tight')

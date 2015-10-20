@@ -36,7 +36,7 @@ installed via::
   
 .. warning:: 
 
-   It does not work with python3 yet. Since the Gildas Python extension is not yet available for python 3!!
+   Astrolyze does not work in python3 yet. Since the Gildas Python extension is not yet available for python 3!!
 
 Gildas
 ------
@@ -68,30 +68,34 @@ Astrolyze is available via pypi, use::
 
 to install the package. 
 
-In the current state the setup does not allow a custom installation path. The
-files will be installed depending on your system configuration in either of the
-following locations::
+When installed with the --user flag the package will be installed in::
 
- /usr/lib/pythonX.Y/site-packages
- /usr/local/lib/pythonX.Y/site-packages
+    /home/USERNAME/.local/lib/python2.7/site-packages/astrolyze
 
-Here X and Y are the major and minor number your python installations.
+The configuration files for `astrolyze` are installed in::
+
+    /home/USERNAME/.astrolyze/
+
+Further a script to configure the database for additional information is installed in::
+
+    /home/USERNAME/.local/bin/
 
 
 Configuration of the (optional) Database
 ========================================
 
-The setup.py script will generate a ``parameter.db`` sqlite database containing
-information about the maps and files opened in Astrolyze. From the keyword of
-the ''Naming Convention''.
+Astrolyze can store META Information for Sources, Lines and Calibration
+Uncertainties in a database. Based on the information deduced from the naming
+convention the additional information is loaded automatically when a map is
+opened.
 
-In the current state  astrolyze reads in
+`astrolyze` can read:
 
  - Additional informations of the source
  - Frequencies and wavelengths
  - Calibration error for specific telescopes
 
-The database has to be populated by the user. This is done via the three text
+The database has to be populated after installation This is done via the three text
 files in the ``/home/USER/.astrolyze/cfg`` folder that contains:
 
 galaxy_parameter.txt:
