@@ -24,9 +24,9 @@ class GildasMap(main.Map):
     r"""
     Wrapping GILDAS functions to use them inline with Python.
     """
-    def __init__(self, map_name, name_convention=True):
+    def __init__(self, map_name):
         r"""Initializes a Gildas map"""
-        main.Map.__init__(self, map_name, name_convention)
+        main.Map.__init__(self, map_name)
         self._init_map_to_greg()
         if self.dataFormat not in self.gildas_formats:
             print ('Exiting: Not a Gildas format (AFAIK). Supported'

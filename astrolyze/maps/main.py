@@ -19,7 +19,6 @@ import astrolyze.functions.constants as const
 from astrolyze.functions import units
 
 
-
 class Map(object):
     '''
     ``Map`` is the parent Class for the ``maps``-package. It contains all
@@ -40,10 +39,15 @@ class Map(object):
         '''
         Initialize a map to maps.
         '''
+        USER = os.getenv("USER")
         config_path = "/home/{}/.astrolyze/".format(USER)
         config_file = "astrolyze.cfg"
+        self.config = ConfigParser.ConfigParser()
+        self.config.read("{}{}".format(config_path, config_file))
         # Definition of the unit nomenclatures.
-        self.log = log_tools._init_logger("~/.astrolyze/astrolyze.log")
+        self.log = log_tools.init_logger(
+            "/home/{}/.astrolyze/astrolyze.log".format(USER)
+        )
         self.log.info("Test")
         USER = os.getenv("USER")
         self.database_prefix = self.config.get("General", "database_prefix")

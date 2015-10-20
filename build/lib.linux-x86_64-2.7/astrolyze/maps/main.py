@@ -13,14 +13,13 @@ import numpy as np
 from pysqlite2 import dbapi2 as sqlite
 from scipy.ndimage import gaussian_filter
 
-from generaltools import server_tools
+from generaltools import log_tools
 
 import astrolyze.functions.constants as const
 from astrolyze.functions import units
 
 
-
-class Map(server_tools.GeneralServer):
+class Map(object):
     '''
     ``Map`` is the parent Class for the ``maps``-package. It contains all
     functions that are common to all supported map-formats, i.e. Fits,
@@ -40,12 +39,15 @@ class Map(server_tools.GeneralServer):
         '''
         Initialize a map to maps.
         '''
+        USER = os.getenv("USER")
         config_path = "/home/{}/.astrolyze/".format(USER)
         config_file = "astrolyze.cfg"
-        GeneralServer.__init__(config_file=config_file,
-                               config_path=config_path)
+        self.config = ConfigParser.ConfigParser()
+        self.config.read("{}{}".format(config_path, config_file))
         # Definition of the unit nomenclatures.
-        self.log = self._init_logger("~/.astrolyze/astrolyze.log")
+        self.log = log_tools.init_logger(
+            "/home/{}/.astrolyze/astrolyze.log".format(USER)
+        )
         self.log.info("Test")
         USER = os.getenv("USER")
         self.database_prefix = self.config.get("General", "database_prefix")

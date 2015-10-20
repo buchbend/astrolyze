@@ -25,8 +25,8 @@ class FitsMap(main.Map):
     Fits Map manipulation making extensive use of the
     pyfits package.
     """
-    def __init__(self, map_name, name_convention=True):
-        main.Map.__init__(self, map_name, name_convention)
+    def __init__(self, map_name):
+        main.Map.__init__(self, map_name)
         if self.dataFormat not in self.fits_formats:
             print 'Exiting: not the right format'
             sys.exit()
