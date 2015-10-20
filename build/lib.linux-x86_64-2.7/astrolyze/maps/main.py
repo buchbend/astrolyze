@@ -45,7 +45,7 @@ class Map(object):
         # Definition of the unit nomenclatures.
         self.log = log_tools.init_logger(
             directory="/home/{}/.astrolyze/".format(USER),
-            name="astrolyze.log"
+            name="astrolyze"
         )
         self.log.info("Test")
         USER = os.getenv("USER")

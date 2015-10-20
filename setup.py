@@ -10,7 +10,6 @@ import site
 import subprocess
 from distutils.core import setup
 
-VERSION = open("VERSION", 'r').read().strip()
 
 USER = os.getenv("SUDO_USER")
 if not USER:
@@ -33,7 +32,7 @@ if str(USER) == "None":
 
 setup(
     name='astrolyze',
-    version=VERSION,
+    version=open('VERSION').read().strip(),
     author='Christof Buchbender',
     author_email='buchbend@ph1.uni-koeln.de',
     url='https://github.com/buchbend/astrolyze.git',
