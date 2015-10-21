@@ -32,6 +32,7 @@ class Stack(object):
     resolutions and other properties. The Stack class can help to unify the
     different parameters of the maps to help comparing them.
 
+
     Parameters
     ----------
 
@@ -40,10 +41,19 @@ class Stack(object):
     data_format : str
         If not None filter images by format.
 
+    Examples
+    --------
+
+    The stack class can be used like builtin objects that are iterable e.g.:
+
+        >>> st = Stack("folder_name")
+        >>> list_map_names = [i.map_name for i in st]
+
+
     .. note::
 
         `Stack` is also the basis for the :py:mod:`astrolyze.sed.Sed`
-         package.  
+         package.
     """
     def __init__(self, folder, data_format=None):
         r"""
