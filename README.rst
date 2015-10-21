@@ -10,12 +10,7 @@ my Diploma and PhD thesis. I decided to package the functions because I think
 that they may be useful to other astronomers. The package is open for
 collaboration.
 
-Documentation
-#############
 
-Is hosted here http://astrolyze.readthedocs.org/en/latest/index.html
-
-
-.. image:: https://img.shields.io/badge/awesome-yes-brightgreen.svg
+.. image:: https://img.shields.io/badge/documented-here-brightgreen.svg
     :target: http://astrolyze.readthedocs.org/en/latest/index.html
     :alt: Status
