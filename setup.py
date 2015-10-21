@@ -48,7 +48,7 @@ setup(
     license='LICENSE.txt',
     description=('Reduction and analysing tools for (mainly)'
                  'Radioastronomical Data.'),
-    long_description=open('README.txt').read(),
+    long_description=open('README.rst').read(),
     requires=[
         "astropy",
         "numpy",
