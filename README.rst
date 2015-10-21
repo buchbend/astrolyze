@@ -16,6 +16,6 @@ Documentation
 Is hosted here http://astrolyze.readthedocs.org/en/latest/index.html
 
 
-* .. image:: https://img.shields.io/badge/awesome-yes-brightgreen.svg
+.. image:: https://img.shields.io/badge/awesome-yes-brightgreen.svg
     :target: http://astrolyze.readthedocs.org/en/latest/index.html
     :alt: Status
