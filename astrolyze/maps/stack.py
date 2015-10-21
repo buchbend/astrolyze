@@ -59,7 +59,7 @@ class Stack(object):
         )
 
     def __repr__(self):
-        string = "Stack({})\nContains:\n".format(self.folder)
+        string = "Stack(\"{}\")\nContains:\n".format(self.folder)
         for map_ in self.stack:
             string += "{}\n".format(map_)
         return string

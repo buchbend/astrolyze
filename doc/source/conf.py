@@ -279,5 +279,5 @@ class Mock(MagicMock):
             return Mock()
 
 MOCK_MODULES = ['pysqlite2', 'pygreg', 'pyclass', 'pysic',
-                'generaltools', 'astropy', "astropy.io"]
+                'generaltools', 'astropy', "astropy.io", "astropy.io.fits"]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
