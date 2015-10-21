@@ -31,6 +31,10 @@ class Stack(object):
         Initialization of the stack. Reading in the maps and creating a list
         of ``Map`` class objects, depending on the input format.
         """
+        self.log = log_tools.init_logger(
+            directory="/home/{}/.astrolyze/".format(USER),
+            name="astrolyze"
+        )
         self.gildas_formats = ['gdf', 'mean', 'velo', 'width', 'lmv',
                                'lmv-clean']
         self.fits_formats = ['fits']
@@ -53,6 +57,21 @@ class Stack(object):
             directory="/home/{}/.astrolyze/".format(USER),
             name="astrolyze"
         )
+
+    def __repr__(self):
+        string = "Stack({})\nContains:\n".format(self.folder)
+        for map_ in self.stack:
+            string += "{}\n".format(map_)
+        return string
+
+    def __len__(self):
+        return len(self.stack)
+
+    def __getitem__(self, position):
+        return self.stack[position]
+
+    def __iter__(self):
+        return (i for i in self.stack)
 
     def get_map_format(self, map_name):
         r""" This function creates returns the correct ``GildasMap``,

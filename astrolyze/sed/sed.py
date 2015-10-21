@@ -6,6 +6,8 @@ import numpy as np
 import astropy.io.fits
 import matplotlib.pyplot as plt
 
+from generaltools import log_tools
+
 import astrolyze.maps.main as main
 import astrolyze.maps.fits as fits
 import astrolyze.maps.gildas as gildas
@@ -16,6 +18,7 @@ import astrolyze.maps.tools as mtools
 import astrolyze.functions.astro_functions as astro_functions
 import astrolyze.functions.constants as const
 
+USER = os.getenv("USER")
 
 class SedStack(stack.Stack):
     r"""
@@ -45,6 +48,21 @@ class SedStack(stack.Stack):
             if type(coordinates) is list:
                 self.coordinates = coordinates
             self.get_seds()
+
+    def __repr__(self):
+        string = "SedStack({})\nContains:\n".format(self.folder)
+        for map_ in self.stack:
+            string += "{}\n".format(map_)
+        return string
+
+    def __len__(self):
+        return len(self.stack)
+
+    def __getitem__(self, position):
+        return self.stack[position]
+
+    def __iter__(self):
+        return (i for i in self.stack)
 
     def info(self):
         for sed in self.sed_stack:
@@ -160,7 +178,7 @@ class SedStack(stack.Stack):
         while len(self.stack[0].data) == 1:
             self.stack[0].data = self.stack[0].data[0]
         # Initialization of the arrays that store the fitted values at every
-        # points of the maps. We make a copy of an original data array.
+        # point of the maps. We make a copy of an original data array.
         self.temperature_maps = []
         self.mass_maps = []
         for i in range(self.number_components):
@@ -186,7 +204,8 @@ class SedStack(stack.Stack):
                 flux_array = np.asarray(flux_array)
                 coordinate = [i, j]
                 sed = Sed(source_name, coordinate, flux_array,
-                    self.number_components, init_fit=True)
+                          self.number_components,
+                          init_fit=True)
                 for x, temp in enumerate(sed.fit_temperatures):
                     self.temperature_maps[x][i][j] = temp
                 for x, mass in enumerate(sed.fit_masses):
@@ -246,7 +265,7 @@ class SedStack(stack.Stack):
         print 'Finished!'
 
 
-class Sed:
+class Sed(object):
     r""" This class handles a single SED. Basically it is able to fit,
     and plot the sed.
 
@@ -265,6 +284,10 @@ class Sed:
     """
     def __init__(self, source_name, coordinate, flux_array,
                  number_components=2, init_fit=True):
+        self.log = log_tools.init_logger(
+            directory="/home/{}/.astrolyze/".format(USER),
+            name="astrolyze"
+        )
         self.source_name = source_name
         self.coordinate = coordinate
         self.number_components = number_components
@@ -276,6 +299,7 @@ class Sed:
         self.set_defaults()
         if init_fit:
             self.grey_body_fit()
+            self.log.debug(self.info())
 
     def info(self):
         print 'Source Name: ' + str(self.source_name)

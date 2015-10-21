@@ -45,6 +45,9 @@ class FitsMap(main.Map):
         self.headerKeywords['resolution'] = ['BMAJ', 'BMIN']
         self.get_pixel_size()
 
+    def __repr__(self):
+        return "FitsMap(\"{}\")".format(self.map_name)
+
     def __get_data(self):
         r"""
         Creates a self.data variable containing an array with the maps data.

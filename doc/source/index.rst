@@ -14,6 +14,11 @@ collaboration.
 
 Please read the `Motivation - What is this package about`  section if you are new to the package.
 
+.. warning::
+
+   AstroLyze is functional but not stable. It is provided on a best-effort base
+   momentarily.
+
 .. toctree::
    :maxdepth: 1
 
