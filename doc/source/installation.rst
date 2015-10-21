@@ -66,9 +66,16 @@ Miriad
 
 Also Miriad just has to be installed and working. At the moment only the smooth
 function of miriad is used in astrolyze but it is worth installing it since it
-it a common task. Miriad and instructions for installation can be found here:
+it a common task.
 
-http://www.astro.umd.edu/~teuben/miriad/install.html
+A package for Ubuntu 14 can be found here:
+
+ftp://ftp.astro.umd.edu/progs/carma/miriad_2014.7/miriad_linux64_u14_gfortran.tar.gz
+
+and instructions for the installation of the package here:
+
+http://vilhelmp.blogspot.de/2011/10/installing-sma-miriad-in-latest-ubuntu.html
+
 
 Configuration of the (optional) Database
 ========================================
