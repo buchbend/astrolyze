@@ -126,10 +126,10 @@ class GildasMap(main.Map):
 
     def spectrum(self, coordinate, fileout=None, prefix=None,
                  create_spectrum=True):
-        r"""
-        Wrapper to the spectrum command from greg that extracts
-        a spectrum from a cube at a given positions. By default it also creates
-        a 30m file readable by class from the table.
+        r""" Wrapper to the GILDAS/GREG spectrum command.
+
+        Extracting a spectrum from a cube at a given positions. By default it
+        also creates a 30m file readable by class from the table.
 
         Parameters
         ----------
@@ -193,13 +193,11 @@ class GildasMap(main.Map):
             pyclass.comm('write')
 
     def lmv(self, fileout=None, prefix=None):
-        r"""
-        Wrapper to the lmv command of Class to extract spectra from a
-        spectral cube.
+        r"""Wrapper for the lmv command of GILDAS/CLASS.
+        Extracts spectra from a spectral cube.
 
         Parameters
         ----------
-
         fileout : string
             The name of the class file to write the spectra to. Defaults to
             the map_name with .30m ending.
@@ -208,7 +206,6 @@ class GildasMap(main.Map):
             The path were the class file will be stores. Defaults to
             the current path.
 
-..        Tested and working.
         """
         if prefix is None:
             prefix = self.prefix
@@ -216,19 +213,13 @@ class GildasMap(main.Map):
             fileout = self.returnName(prefix=prefix, dataFormat='30m')
         else:
             fileout = prefix + fileout
-        string = ('file out ' + str(fileout) + ' single /overwrite\n'
-                  'lmv ' + str(self.map_name) + '\n'
-                  'exit')
-        classScript = open('temp.class', 'w')
-        classScript.write(string)
-        classScript.close()
-        os.system('class -nw @temp.class')
-        os.system('rm temp.class')
+        pyclass.comm('file out {} single /over'.format(file_30m))
+        pyclass.comm('lmv {}'.format(self.map_name))
         return ClassSpectra(fileout)
 
     def mask(self, polygon, prefix=None):
         r"""
-        Wrapper to the GREG task mask:
+        Wrapper for the GREG task mask:
 
         Parameters
         ----------
@@ -437,9 +428,9 @@ class GildasMap(main.Map):
 
     def moments(self, velo_range=[0, 0], threshold=0,
                 smooth='YES', prefix=None, comment=None):
-        r"""
-        Wraps the GREG task moments creating the first three moments
-        of the map.
+        r""" Wraps the GILDAS/GREG task moments.
+
+        Creates the first three moments of the map.
 
         Parameters
         ----------
@@ -515,7 +506,7 @@ class GildasMap(main.Map):
 
     def goRot(self, angle, prefix=None):
         r"""
-        Wrapper to the GREG go rot command, which rotates maps around their
+        Wrapper for the GREG go rot command, which rotates maps around their
         central coordinate stored in the header.
 
         Parameters
@@ -539,6 +530,7 @@ class GildasMap(main.Map):
 
         >>> map = map.reproject(coord=['new_RA_string','new_DEC_string'])
         >>> map.goRot(45)
+
         """
         rotate = open('rotateTemp.greg', 'w')
         rotate.write('let name ' +
@@ -613,20 +605,21 @@ class GildasMap(main.Map):
         return GildasMap(self.returnName(prefix=prefix, comments=comment))
 
     def smooth(self, new_resolution, old_resolution=None, prefix=None):
-        r"""
-        Wrapper to the GREG task gauss_smooth.
+        r"""Wrapper for the GILDAS/GREG task gauss_smooth.
 
         Parameters
         ----------
         new_resolution : float or list
             The resulting resolution after the smoothing.
             It can be:
-                1. a float: i.e. the final major and minor beamsize.
-                   The position angle will default to 0.
-                2. a list with two floats: [major_axis, minor_axis]. The
-                   position angle defaults to 0.
-                3. a list with three floats: [major_axis, minor_axis,
-                   position_angle].
+
+            1. a float: i.e. the final major and minor beamsize.
+               The position angle will default to 0.
+            2. a list with two floats: [major_axis, minor_axis]. The
+               position angle defaults to 0.
+            3. a list with three floats: [major_axis, minor_axis,
+               position_angle].
+
         old_resolution : float or list
             Same format as new_resolution. Defaults to self.resolution of the
             map instance.

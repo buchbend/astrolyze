@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>astrolyze.maps.main &mdash; astrolyze 0.1.5 documentation</title>
+  <title>astrolyze.maps.main &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="../../../index.html"/>
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -62,7 +62,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -85,23 +85,10 @@
             
                 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -155,17 +142,17 @@
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">ConfigParser</span>
 
-<span class="kn">import</span> <span class="nn">pyfits</span>
-<span class="kn">import</span> <span class="nn">pywcs</span>
-
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">pysqlite2</span> <span class="kn">import</span> <span class="n">dbapi2</span> <span class="k">as</span> <span class="n">sqlite</span>
 <span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
 
+<span class="kn">from</span> <span class="nn">generaltools</span> <span class="kn">import</span> <span class="n">log_tools</span>
+
 <span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
 <span class="kn">from</span> <span class="nn">astrolyze.functions</span> <span class="kn">import</span> <span class="n">units</span>
 
-<div class="viewcode-block" id="Map"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map">[docs]</a><span class="k">class</span> <span class="nc">Map</span><span class="p">:</span>
+
+<div class="viewcode-block" id="Map"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.main.Map">[docs]</a><span class="k">class</span> <span class="nc">Map</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    ``Map`` is the parent Class for the ``maps``-package. It contains all</span>
 <span class="sd">    functions that are common to all supported map-formats, i.e. Fits,</span>
@@ -178,22 +165,26 @@
 <span class="sd">    map_name : string</span>
 <span class="sd">        The name and path of the file that is to be initialized to the maps</span>
 <span class="sd">        package.</span>
-<span class="sd">    name_convention : True or False</span>
-<span class="sd">        Only files following the name_convention are supported.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Initialize a map to maps.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="c"># Definition of the unit nomenclatures.</span>
         <span class="n">USER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">&quot;USER&quot;</span><span class="p">)</span>
         <span class="n">config_path</span> <span class="o">=</span> <span class="s">&quot;/home/{}/.astrolyze/&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">USER</span><span class="p">)</span>
         <span class="n">config_file</span> <span class="o">=</span> <span class="s">&quot;astrolyze.cfg&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">ConfigParser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s">&quot;{}{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="n">config_file</span><span class="p">))</span>
+        <span class="c"># Definition of the unit nomenclatures.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">log_tools</span><span class="o">.</span><span class="n">init_logger</span><span class="p">(</span>
+            <span class="n">directory</span><span class="o">=</span><span class="s">&quot;/home/{}/.astrolyze/&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">USER</span><span class="p">),</span>
+            <span class="n">name</span><span class="o">=</span><span class="s">&quot;astrolyze&quot;</span>
+        <span class="p">)</span>
+        <span class="n">USER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">&quot;USER&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">database_prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;General&quot;</span><span class="p">,</span> <span class="s">&quot;database_prefix&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">database_prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database_prefix</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">USER</span><span class="p">)</span>
 
+        <span class="c"># Load configuration from config_file</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">jansky_beam_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
             <span class="s">&quot;Units&quot;</span><span class="p">,</span> <span class="s">&quot;jansky_beam_names&quot;</span>
         <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
@@ -236,62 +227,63 @@
         <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
         <span class="c"># name_convention is not needed anymore. Only kept for backward</span>
         <span class="c"># compatibality.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name_convention</span> <span class="o">=</span> <span class="n">name_convention</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="n">map_name</span>
         <span class="c"># Test if the file exists. Directory for Miriad.</span>
         <span class="c"># File for Fits and GILDAS.</span>
         <span class="k">if</span> <span class="p">((</span><span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
              <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">))):</span>
-            <span class="k">print</span> <span class="s">&#39;Exiting: &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">+</span> <span class="s">&#39; does not exist&#39;</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span>
+                <span class="s">&#39;Exiting: {} does not exist&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">SystemExit</span>
         <span class="c"># Get Informations from the file name.</span>
-        <span class="k">if</span> <span class="n">name_convention</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span> <span class="o">=</span> <span class="n">map_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span> <span class="o">=</span> <span class="n">map_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span><span class="p">,</span> <span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span>
-            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">species</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolveSpecies</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
-            <span class="c"># Check dataFormat.</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.fits&#39;</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="s">&#39;fits&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span> <span class="o">=</span> <span class="n">map_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span>
+                <span class="s">&quot;This map does not follow the Naming Convention for Astrolyze&quot;</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">SystemExit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span> <span class="o">=</span> <span class="n">map_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span> <span class="o">=</span> <span class="n">map_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span><span class="p">,</span> <span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">species</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolveSpecies</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="c"># Check dataFormat.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.fits&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="s">&#39;fits&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="s">&#39;.fits&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="n">i</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
-                    <span class="s">&#39;.fits&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span>
+                    <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="s">&#39;&#39;</span>
                 <span class="p">)</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span><span class="p">:</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="n">i</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
-                        <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="s">&#39;&#39;</span>
-                    <span class="p">)</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_formats</span><span class="p">:</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="n">i</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
-                        <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="s">&#39;&#39;</span>
-                    <span class="p">)</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">):</span>
-                <span class="c"># Miriad Data Format uses directories</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="bp">None</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolveResolution</span><span class="p">()</span>
-            <span class="c"># Entries after the fifth are considered comments.</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">)</span> <span class="o">-</span> <span class="mi">6</span><span class="p">):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">5</span><span class="p">]]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
-        <span class="c"># Only load the File if no Name Convention is given</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">name_convention</span><span class="p">:</span>
-            <span class="k">print</span> <span class="s">&#39;Only Files with correct naming are supported!!!&#39;</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
-        <span class="c"># Getting information from the databases.</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_formats</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="n">i</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                    <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="s">&#39;&#39;</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">):</span>
+            <span class="c"># Miriad Data Format uses directories</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolveResolution</span><span class="p">()</span>
+        <span class="c"># Entries after the fifth are considered comments.</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">)</span> <span class="o">-</span> <span class="mi">6</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">5</span><span class="p">]]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">map_nameList</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
         <span class="c">#!!!!!  TODO: Bas implementation. Try should only contain very short</span>
         <span class="c"># parts of the program otherwise errors in the program are camouflaged.</span>
-        <span class="c"># print  str(prefix_database) + &#39;parameter.db&#39;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database_prefix</span><span class="p">)</span> <span class="o">+</span>
                                              <span class="s">&#39;parameter.db&#39;</span><span class="p">)</span>
@@ -425,7 +417,7 @@
             <span class="n">pa</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">,</span> <span class="n">pa</span><span class="p">]</span>
 
-<div class="viewcode-block" id="Map.resolutionToString"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map.resolutionToString">[docs]</a>    <span class="k">def</span> <span class="nf">resolutionToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Map.resolutionToString"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.main.Map.resolutionToString">[docs]</a>    <span class="k">def</span> <span class="nf">resolutionToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot; Converts the resolution list to a string to be printed and</span>
 <span class="sd">        included in the file names.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -464,7 +456,7 @@
             <span class="n">string</span> <span class="o">=</span> <span class="n">resolution</span>
         <span class="k">return</span> <span class="n">string</span>
 </div>
-<div class="viewcode-block" id="Map.get_beam_size"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map.get_beam_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_beam_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Map.get_beam_size"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.main.Map.get_beam_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_beam_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot; Calculates the beam-size in steradians and in m^2. Fot the latter</span>
 <span class="sd">        the distance to the source has to be given.</span>
 
@@ -494,7 +486,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">beamSize</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
 </div>
-<div class="viewcode-block" id="Map.change_map_name"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map.change_map_name">[docs]</a>    <span class="k">def</span> <span class="nf">change_map_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">telescope</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">species</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+<div class="viewcode-block" id="Map.change_map_name"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.main.Map.change_map_name">[docs]</a>    <span class="k">def</span> <span class="nf">change_map_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">telescope</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">species</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                         <span class="n">fluxUnit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                         <span class="n">dataFormat</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
@@ -511,33 +503,37 @@
         <span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
         <span class="k">if</span> <span class="n">comments</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">comments</span> <span class="o">=</span> <span class="n">comments</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span> <span class="o">=</span> <span class="n">telescope</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">species</span> <span class="o">=</span> <span class="n">species</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">species</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="n">fluxUnit</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span> <span class="o">=</span> <span class="n">resolution</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span>
+
+        <span class="c"># Now update the variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span> <span class="o">=</span> <span class="n">telescope</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">species</span> <span class="o">=</span> <span class="n">species</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span> <span class="o">=</span> <span class="n">fluxUnit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span> <span class="o">=</span> <span class="n">resolution</span>
         <span class="k">if</span> <span class="n">dataFormat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">False</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="o">=</span> <span class="n">dataFormat</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> 
         <span class="k">if</span> <span class="n">comments</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">comments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+</span> <span class="n">comments</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+</span> <span class="n">comments</span>
+        <span class="n">comment_string</span> <span class="o">=</span> <span class="n">_comment_to_string</span><span class="p">()</span>
+        <span class="n">target_file_name</span> <span class="o">=</span> <span class="s">&quot;{}{}_{}_{}_{}_{}{}.{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">prefix</span><span class="p">,</span>
+            <span class="n">source</span><span class="p">,</span> <span class="n">telescope</span><span class="p">,</span> <span class="n">species</span><span class="p">,</span> <span class="n">fluxUnit</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">),</span>
+            <span class="n">comment_string</span><span class="p">,</span>
+            <span class="n">dataFormat</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">if</span>  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
                                        <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span>
                                        <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
                                        <span class="nb">str</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span>
                                        <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">)):</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
-                          <span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span>
-                          <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span>
-                          <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span>
-                          <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">))</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
-                                 <span class="nb">str</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">species</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
-                                 <span class="nb">str</span><span class="p">(</span><span class="n">fluxUnit</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
-                                 <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span>
-                                 <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">))</span>
+                <span class="n">copy_command</span> <span class="o">=</span> <span class="s">&quot;cp {} {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">,</span>
+                                                 <span class="n">target_file_name</span><span class="p">)</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">copy_command</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="n">target_file_name</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">if</span> <span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">str</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
@@ -557,7 +553,15 @@
                                  <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">)</span> <span class="o">+</span>
                                  <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dataFormat</span><span class="p">))</span>
 </div>
-<div class="viewcode-block" id="Map.returnName"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map.returnName">[docs]</a>    <span class="k">def</span> <span class="nf">returnName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">telescope</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">species</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">_comment_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Converts the comment list to a string </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">comment_string</span> <span class="o">=</span> <span class="s">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">comment_string</span> <span class="o">!=</span> <span class="s">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">comment_string</span> <span class="o">=</span> <span class="s">&quot;_{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">comment_string</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">comment_string</span>
+
+<div class="viewcode-block" id="Map.returnName"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.main.Map.returnName">[docs]</a>    <span class="k">def</span> <span class="nf">returnName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">telescope</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">species</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                    <span class="n">fluxUnit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                    <span class="n">dataFormat</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
@@ -607,7 +611,7 @@
                         <span class="bp">self</span><span class="o">.</span><span class="n">resolutionToString</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
                         <span class="s">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">comments</span><span class="p">))</span>
 </div>
-<div class="viewcode-block" id="Map.flux_conversion"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.main.Map.flux_conversion">[docs]</a>    <span class="k">def</span> <span class="nf">flux_conversion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">major</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+<div class="viewcode-block" id="Map.flux_conversion"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.main.Map.flux_conversion">[docs]</a>    <span class="k">def</span> <span class="nf">flux_conversion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">major</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                         <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Calulates conversion between K.km/s and Jy/beam and vise versa.</span>
@@ -710,7 +714,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

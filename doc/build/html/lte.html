@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>LTE &mdash; astrolyze 0.1.5 documentation</title>
+  <title>LTE &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,9 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="index.html"/>
-        <link rel="next" title="Functions" href="functions.html"/>
-        <link rel="prev" title="SEDs" href="sed.html"/> 
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -63,7 +61,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -86,23 +84,10 @@
             
                 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sed.html">SEDs</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -147,20 +132,20 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-astrolyze.lte.lte">
-<span id="lte"></span><h1>LTE<a class="headerlink" href="#module-astrolyze.lte.lte" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="lte">
+<h1>LTE<a class="headerlink" href="#lte" title="Permalink to this headline">¶</a></h1>
 <p>Functions to calculate LTE column densities.</p>
 <p>TODO: Add Documentation.</p>
 <dl class="function">
-<dt id="astrolyze.lte.lte.calc_N">
-<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">calc_N</code><span class="sig-paren">(</span><em>molecule</em>, <em>excitation_temperature</em>, <em>J</em>, <em>W</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#calc_N"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.lte.lte.calc_N" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">calc_N</code><span class="sig-paren">(</span><em>molecule</em>, <em>excitation_temperature</em>, <em>J</em>, <em>W</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#calc_N"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Calculates the column density for a molecule.
 !!! LOOK into the remaining Code and merge!!!</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="astrolyze.lte.lte.calc_excitation_temperature">
-<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">calc_excitation_temperature</code><span class="sig-paren">(</span><em>Tb</em>, <em>nu</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#calc_excitation_temperature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.lte.lte.calc_excitation_temperature" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">calc_excitation_temperature</code><span class="sig-paren">(</span><em>Tb</em>, <em>nu</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#calc_excitation_temperature"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Calculation of the excitation temperature of an optically thick 12CO line
 under the assumption of LTE.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -174,9 +159,9 @@ under the assumption of LTE.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="astrolyze.lte.lte.calc_jnu">
-<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">calc_jnu</code><span class="sig-paren">(</span><em>nu</em>, <em>T</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#calc_jnu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.lte.lte.calc_jnu" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates <span class="math">J_{\nu}</span> needed for lte_column_density.</p>
+<dt>
+<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">calc_jnu</code><span class="sig-paren">(</span><em>nu</em>, <em>T</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#calc_jnu"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates <img class="math" src="_images/math/60fdc6ddbbc6788f6cad02f0a1543a04e2299fd2.png" alt="J_{\nu}"/> needed for lte_column_density.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -192,33 +177,33 @@ under the assumption of LTE.</p>
 <p class="rubric">Notes</p>
 <p>The formula (in cgs units) implemented here is:</p>
 <div class="math">
-<p><span class="math">\mathcal{J}_{\nu}(T) = \frac{h\nu}{k} \frac{1}{e^{h\nu/kT_{ex}}-1}</span></p>
+<p><img src="_images/math/9078695d4cc6bbcfe6a60b1f7c512a82d6752732.png" alt="\mathcal{J}_{\nu}(T) = \frac{h\nu}{k} \frac{1}{e^{h\nu/kT_{ex}}-1}"/></p>
 </div><p>where:</p>
 <blockquote>
 <div><ul class="simple">
 <li>k: the Boltzman constant in CGS</li>
 <li>h: the PLanck constant in CGS</li>
-<li><span class="math">\nu</span>: the frequency</li>
+<li><img class="math" src="_images/math/d67fb61cfffca2cc069e083d76cb6220b4ca14c8.png" alt="\nu"/>: the frequency</li>
 <li>T: exitation temperature</li>
 </ul>
 </div></blockquote>
 <p class="rubric">References</p>
-<p><a class="reference internal" href="#doktorarbeit">Doktorarbeit</a></p>
+<p>Mike Zielinsky</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="astrolyze.lte.lte.lte_column_density">
-<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">lte_column_density</code><span class="sig-paren">(</span><em>nu</em>, <em>Tmb</em>, <em>excitation_temperature</em>, <em>J</em>, <em>Z</em>, <em>mu</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#lte_column_density"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.lte.lte.lte_column_density" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">lte_column_density</code><span class="sig-paren">(</span><em>nu</em>, <em>Tmb</em>, <em>excitation_temperature</em>, <em>J</em>, <em>Z</em>, <em>mu</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#lte_column_density"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>This function calculates the Column densities of linear molecules</p>
 <p>Units are all to be given in cgs
 Z is the array of partition function values for the corresponding
 temperatures in T these are the log values of Z</p>
 <p class="rubric">Notes</p>
-<p>The implemented formula, taken from <a class="reference internal" href="#doktorarbeit">Doktorarbeit</a> is:</p>
+<p>The implemented formula, taken from Doktorarbeit is:</p>
 <div class="math">
-<p><span class="math">N = \frac{3h}{8 \pi^3 \mu^2} \frac{Z}{J} \frac{exp(\frac{h \nu}{k
+<p><img src="_images/math/4c9c0158a5dcfeaeea27e6607fbd913aed3c1d8f.png" alt="N = \frac{3h}{8 \pi^3 \mu^2} \frac{Z}{J} \frac{exp(\frac{h \nu}{k
 T_{ex}})}{[1 - exp(-\frac{h \nu}{k T_{ex}})]} (\mathcal{J}_{\nu}(T_{ex})
-- \mathcal{J}_{\nu}(T_{BG}))^{-1} \int{T_{mb} d \nu} ,</span></p>
+- \mathcal{J}_{\nu}(T_{BG}))^{-1} \int{T_{mb} d \nu} ,"/></p>
 </div><dl class="docutils">
 <dt>where:</dt>
 <dd><ul class="first last simple">
@@ -234,23 +219,18 @@ T_{ex}})}{[1 - exp(-\frac{h \nu}{k T_{ex}})]} (\mathcal{J}_{\nu}(T_{ex})
 </dd>
 </dl>
 <p class="rubric">References</p>
-<table class="docutils citation" frame="void" id="doktorarbeit" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label">[Doktorarbeit]</td><td>add reference</td></tr>
-</tbody>
-</table>
+<p>add reference to Zielinsky</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">Extend documentation!!!!</p>
 </div>
 </dd></dl>
 
-<span class="target" id="module-astrolyze.lte.molecule_parameter"></span><p>This script generates a dictionary storing the information of molecular
+<p>This script generates a dictionary storing the information of molecular
 transitions.</p>
 <dl class="class">
-<dt id="astrolyze.lte.molecule_parameter.Molecule">
-<em class="property">class </em><code class="descclassname">astrolyze.lte.molecule_parameter.</code><code class="descname">Molecule</code><span class="sig-paren">(</span><em>nu</em>, <em>Q</em>, <em>T</em>, <em>Eu</em>, <em>Aul</em>, <em>gu</em>, <em>mu</em>, <em>name=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/molecule_parameter.html#Molecule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.lte.molecule_parameter.Molecule" title="Permalink to this definition">¶</a></dt>
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.lte.molecule_parameter.</code><code class="descname">Molecule</code><span class="sig-paren">(</span><em>nu</em>, <em>Q</em>, <em>T</em>, <em>Eu</em>, <em>Aul</em>, <em>gu</em>, <em>mu</em>, <em>name=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/molecule_parameter.html#Molecule"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>A class holding attributes that define the characteristics of an
 individual tansition of a molecules.</p>
 <p>The <code class="xref py py-func docutils literal"><span class="pre">astrolyze.functions.astro_functions.calc_N()</span></code> routine
@@ -285,15 +265,6 @@ give.</li>
           </div>
           <footer>
   
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="functions.html" class="btn btn-neutral float-right" title="Functions" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="sed.html" class="btn btn-neutral" title="SEDs" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
-    </div>
-  
 
   <hr/>
 
@@ -321,7 +292,7 @@ give.</li>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

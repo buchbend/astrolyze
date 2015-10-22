@@ -8,6 +8,7 @@ astro_functions
 
 .. automodule:: astrolyze.functions.astro_functions
     :members:
+    :noindex:
 
 -----
 
@@ -22,6 +23,7 @@ Constant unit conversions available in this module are:
 
 .. automodule:: astrolyze.functions.units
     :members:
+    :noindex:
 
 -----
 

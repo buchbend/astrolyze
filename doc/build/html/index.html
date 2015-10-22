@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>astrolyze Documentation &mdash; astrolyze 0.1.5 documentation</title>
+  <title>astrolyze Documentation &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="#"/>
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="#"/>
         <link rel="next" title="Installation of astrolyze" href="installation.html"/> 
 
   
@@ -62,7 +62,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -85,23 +85,10 @@
             
                 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -151,32 +138,53 @@
 <p>Astrolyze is a python-package with several functions for reduction and analysis
 of (mainly) radioastronomical data. It is developed over the course of my
 Diploma and PhD thesis and beyond. I share this package here because I
-think that they may be useful to other astronomers. The package is open for
+think that it may be useful to other astronomers. The package is open for
 collaboration.</p>
-<p>Please read the <cite>Motivation - What is this package about</cite>  section if you are new to the package.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
+<p>Please read the <a class="reference internal" href="motivation.html#label-motivation"><span>Motivation - What is astrolyze all about</span></a> section first if you are new to the package.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">AstroLyze is functional but not stable. It is provided on a best-effort base
+momentarily.</p>
 </div>
-<hr class="docutils" />
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation of astrolyze</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#configuration-of-the-optional-database">Configuration of the (optional) Database</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation - What is astrolyze all about</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="motivation.html#inter-operating-fits-gildas-and-miriad">Inter-operating Fits, Gildas and Miriad</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motivation.html#changing-map-units">Changing map units</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motivation.html#working-with-stacks-of-images">Working with stacks of images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motivation.html#producing-seds">Producing SEDs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motivation.html#not-only-images">Not only images ...</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#astrolyze">astrolyze</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#modules">Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#fits">fits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#using-gildas">Using gildas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#how-is-gildas-used-by-astrolyze">How is Gildas used by astrolyze</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#using-miriad">Using miriad</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#using-the-stack-module">Using the stack module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#using-the-sed-module">Using the sed module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#using-functions">Using Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#using-lte">Using LTE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source_documentation.html">Source Documenation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="source_documentation.html#maps">Maps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source_documentation.html#spectra">Spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source_documentation.html#seds">SEDs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source_documentation.html#lte">LTE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source_documentation.html#functions">Functions</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -228,7 +236,7 @@ collaboration.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

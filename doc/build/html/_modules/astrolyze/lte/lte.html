@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>astrolyze.lte.lte &mdash; astrolyze 0.1.5 documentation</title>
+  <title>astrolyze.lte.lte &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="../../../index.html"/>
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -62,7 +62,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -85,23 +85,10 @@
             
                 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -158,7 +145,7 @@
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">interp</span><span class="p">,</span> <span class="n">asarray</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="p">,</span> <span class="n">where</span><span class="p">,</span> <span class="n">exp</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">sqrt</span><span class="p">,</span> <span class="n">arange</span>
 <span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
 
-<div class="viewcode-block" id="calc_jnu"><a class="viewcode-back" href="../../../lte.html#astrolyze.lte.lte.calc_jnu">[docs]</a><span class="k">def</span> <span class="nf">calc_jnu</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+<div class="viewcode-block" id="calc_jnu"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.lte.lte.calc_jnu">[docs]</a><span class="k">def</span> <span class="nf">calc_jnu</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Calculates :math:`J_{\nu}` needed for lte_column_density.</span>
 
@@ -189,12 +176,12 @@
 <span class="sd">    References</span>
 <span class="sd">    ----------</span>
 
-<span class="sd">    Doktorarbeit_</span>
+<span class="sd">    Mike Zielinsky</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">const</span><span class="o">.</span><span class="n">h_CGS</span> <span class="o">*</span> <span class="n">nu</span> <span class="o">/</span> <span class="n">const</span><span class="o">.</span><span class="n">k_CGS</span> <span class="o">/</span> <span class="p">(</span><span class="n">exp</span><span class="p">(</span><span class="n">const</span><span class="o">.</span><span class="n">h_CGS</span> <span class="o">*</span> <span class="n">nu</span> <span class="o">/</span>
                                                 <span class="n">const</span><span class="o">.</span><span class="n">k_CGS</span> <span class="o">/</span> <span class="n">T</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
 </div>
-<div class="viewcode-block" id="lte_column_density"><a class="viewcode-back" href="../../../lte.html#astrolyze.lte.lte.lte_column_density">[docs]</a><span class="k">def</span> <span class="nf">lte_column_density</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">Tmb</span><span class="p">,</span> <span class="n">excitation_temperature</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">mu</span><span class="p">):</span>
+<div class="viewcode-block" id="lte_column_density"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.lte.lte.lte_column_density">[docs]</a><span class="k">def</span> <span class="nf">lte_column_density</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">Tmb</span><span class="p">,</span> <span class="n">excitation_temperature</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">mu</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    This function calculates the Column densities of linear molecules</span>
 
@@ -205,7 +192,7 @@
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 
-<span class="sd">    The implemented formula, taken from Doktorarbeit_ is:</span>
+<span class="sd">    The implemented formula, taken from Doktorarbeit is:</span>
 
 <span class="sd">    .. math::</span>
 
@@ -226,9 +213,9 @@
 <span class="sd">    References</span>
 <span class="sd">    ----------</span>
 
-<span class="sd">    .. [Doktorarbeit] add reference</span>
+<span class="sd">    add reference to Zielinsky</span>
 
-<span class="sd">    .. warning:: </span>
+<span class="sd">    .. warning::</span>
 
 <span class="sd">       Extend documentation!!!!</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -244,7 +231,7 @@
     <span class="n">colDens</span> <span class="o">*=</span> <span class="n">Tmb</span> <span class="o">*</span> <span class="n">const</span><span class="o">.</span><span class="n">km_in_cm</span>  <span class="c"># Tmb given in K km/s, converted to K cm/s</span>
     <span class="k">return</span> <span class="n">colDens</span>
 </div>
-<div class="viewcode-block" id="calc_N"><a class="viewcode-back" href="../../../lte.html#astrolyze.lte.lte.calc_N">[docs]</a><span class="k">def</span> <span class="nf">calc_N</span><span class="p">(</span><span class="n">molecule</span><span class="p">,</span> <span class="n">excitation_temperature</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
+<div class="viewcode-block" id="calc_N"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.lte.lte.calc_N">[docs]</a><span class="k">def</span> <span class="nf">calc_N</span><span class="p">(</span><span class="n">molecule</span><span class="p">,</span> <span class="n">excitation_temperature</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Calculates the column density for a molecule.</span>
 <span class="sd">    !!! LOOK into the remaining Code and merge!!!</span>
@@ -265,7 +252,7 @@
     <span class="k">return</span> <span class="n">lte_column_density</span><span class="p">(</span><span class="n">molecule</span><span class="o">.</span><span class="n">nu</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">excitation_temperature</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span>
                               <span class="n">molecule</span><span class="o">.</span><span class="n">mu</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="calc_excitation_temperature"><a class="viewcode-back" href="../../../lte.html#astrolyze.lte.lte.calc_excitation_temperature">[docs]</a><span class="k">def</span> <span class="nf">calc_excitation_temperature</span><span class="p">(</span><span class="n">Tb</span><span class="p">,</span> <span class="n">nu</span><span class="p">):</span>
+<div class="viewcode-block" id="calc_excitation_temperature"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.lte.lte.calc_excitation_temperature">[docs]</a><span class="k">def</span> <span class="nf">calc_excitation_temperature</span><span class="p">(</span><span class="n">Tb</span><span class="p">,</span> <span class="n">nu</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculation of the excitation temperature of an optically thick 12CO line</span>
 <span class="sd">    under the assumption of LTE.</span>
@@ -314,7 +301,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

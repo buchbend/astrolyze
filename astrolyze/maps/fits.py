@@ -1,19 +1,21 @@
-# Copyright (C) 2009-2012, Christof Buchbender
+# Copyright (C) 2009-2015, Christof Buchbender
 # BSD License (License.txt)
+
+# standard library
 import os
 import string
 import sys
 import pyfits
 import math
 
-from astropy import wcs
-import astropy.io.fits
-
+import numpy as np
 from pysqlite2 import dbapi2 as sqlite
 from scipy.ndimage import gaussian_filter
 
-import numpy as np
+from astropy import wcs
+import astropy.io.fits
 
+# from astrolzye
 import main
 import gildas
 import miriad
@@ -65,11 +67,11 @@ class FitsMap(main.Map):
         information of the map. This function is automatically executed every
         time a Fits map is opened.
         """
-        try:
-            self.header = self.hdulist[0].header
-        except:
-            self.hdulist = astropy.io.fits.open(self.map_name)
-            self.header = self.hdulist[0].header
+        # try:
+        self.header = self.hdulist[0].header
+        # except:
+        #     self.hdulist = astropy.io.fits.open(self.map_name)
+        #     self.header = self.hdulist[0].header
 
     def update_file(self, backup=False):
         r"""
@@ -92,8 +94,6 @@ class FitsMap(main.Map):
         If all variables that define the map name () are unchanged the current
         file is overwritten else
 
-        Examples
-        --------
         """
         map_name = self.returnName()
         if backup is True:
@@ -215,58 +215,6 @@ class FitsMap(main.Map):
         self.comments += ['cut']
         self.update_file()
 
-    def _strip(self, coords, radial=None, centerCoord=None, distance=None):
-        # TODO: OLD code. Check or remove.
-        r"""
-        Extracts a linear cut trough a map between two coordinates.
-
-        Distance in kpc.
-
-        Notes
-        -----
-        ..  warning:
-
-            Old code. Test and document or remove.
-
-        """
-        while len(self.data[0]) == 1:
-            self.data = self.data[0]
-        x1, y1 = self.sky2pix(coords[0])
-        x2, y2 = self.sky2pix(coords[1])
-        if centerCoord is not None:
-            centx, centy = self.sky2pix(centerCoord)
-            print centy, centx
-        values = [[], []]
-        # in arcsec
-        self.pixSize1 = float(self.header['CDELT1']) / (1. / 60 / 60)
-        self.pixSize2 = float(self.header['CDELT2']) / (1. / 60 / 60)
-        if x1 != x2 and y1 != y2:
-            print ('This version of strip only supports linear cuts.'
-                   'Please rotate your map.')
-        if x1 == x2:
-            if y1 > y2:
-                loop = range(y2, y1)
-            if y1 < y2:
-                loop = range(y1, y2)
-            for i in loop:
-                values[0] += [self.data[i][x1]]
-                if radial == 1:
-                    values[1] += [(i - centy) * self.pixSize2 / 60]
-                else:
-                    values[1] += [i]
-        if y1 == y2:
-            if x1 > x2:
-                loop = range(x2, x1)
-            if x1 < x2:
-                loop = range(x1, x2)
-            for i in loop:
-                values[0] += [self.data[y1][i]]
-                if radial is True:
-                    values[1] += [(i - centx) * self.pixSize1 / 60]
-                else:
-                    values[1] += [i]
-        return values
-
     def read_flux(self, position):
         r"""
         Returns the value of the pixel that corresponds to the
@@ -282,7 +230,9 @@ class FitsMap(main.Map):
 
                 * ['RA','DEC'] with strings representing equatorial
                   coordinates, e.g. ['01:34:32.8', '+30:47:00.6'].
+
             or:
+
                 * [RA, DEC] where RA and DEC being the coordinates in Grad.
 
         Returns
@@ -324,7 +274,9 @@ class FitsMap(main.Map):
 
                 * ['RA','DEC'] with strings representing equatorial
                   coordinates, e.g. ['01:34:32.8', '+30:47:00.6'].
+
             or:
+
                 * [RA, DEC] where RA and DEC being the coordinates in Grad.
 
         apertureSize : float [arcsec]
@@ -487,7 +439,7 @@ class FitsMap(main.Map):
         Calculates the Pixel corresponding to a given coordinate.
 
         Parameters
-        -----------
+        ----------
         coordinate : list
             Either ['RA','DEC'], e.g. ['1:34:7.00', '+30:47:52.00'] in
             equatorial coordinates or [RA, DEC] in GRAD.
@@ -497,7 +449,7 @@ class FitsMap(main.Map):
            ``1`` is the fits standart.
 
         Returns
-        --------
+        -------
         pixel : List
             [x, y]; the pixel coordinates of the map.
         """
@@ -528,7 +480,7 @@ class FitsMap(main.Map):
         Calculates the Coordinates of a given Pixel.
 
         Parameters
-        -----------
+        ----------
         pixel : list
             Pixel of the map; [x, y].
         degrees_or_equatorial : string
@@ -537,7 +489,7 @@ class FitsMap(main.Map):
             Defaults to ``"degrees"``.
 
         Returns
-        --------
+        -------
         coordinate : list
             The coordinates corresponding to pixel. Either in Degrees or in
             Equatorial coordinates, depending on the parameter
@@ -553,7 +505,7 @@ class FitsMap(main.Map):
 
     def gauss_factor(self, beamConv, beamOrig=None, dx1=None, dy1=None):
         r"""
-        Caluclates the scaling factor to be applied after convolving
+        Calculates the scaling factor to be applied after convolving
         a map in Jy/beam with a gaussian to get fluxes in Jy/beam again.
 
         This function is a copy of the FORTRAN gaufac function from the Miriad
@@ -585,7 +537,7 @@ class FitsMap(main.Map):
         bpa :
             Position angle of the resulting gaussian.
         """
-        #include 'mirconst.h'
+        # include 'mirconst.h'
         # Define cosine and Sinus of the position Angles of the
         # Gaussians
         bmaj2, bmin2, bpa2 = beamConv
@@ -624,30 +576,28 @@ class FitsMap(main.Map):
             bpa = 0.0
         else:
             bpa = 0.5 * atan2(-1 * gamma, alpha - beta)
-        #print math.pi/ (4.0*math.log(2.0))
         amp = (math.pi / (4.0 * math.log(2.0)) * bmaj1 * bmin1 * bmaj2 * bmin2
                / math.sqrt(alpha * beta - 0.25 * gamma * gamma))
         fac = ((math.sqrt(dx1 ** 2) * math.sqrt(dy1 ** 2))) / amp
-        #print fac
+
         return fac, amp, bmaj * 60 * 60, bmin * 60 * 60, bpa
 
     def change_unit(self, final_unit, frequency=None, debug=False):
-        r"""
-        Changes the unit of a map in an automated way.
+        r"""Changes the unit of a map
 
         Parameters
         ----------
         final_unit : string
             The unit to change the map to. Possible are:
-                1. Jy/beam: ``"JyB"`` ``"JyBeam"``
-                2. Jy/pixel: ``"JyP"``, ``"JyPix"``, ``"JyPixel"``
-                3. MJy/sterad: ``"MJyPsr"``, ``"MJPSR"``, ``"MJy/sr"``
-                4. Main Beam Temperature: ``"Tmb"``, ``"T"``, ``"Kkms"``
-                5. erg/s/pixel: ``"ergs"`` ``"ERGPSECPPIX"``,
-                                ``"ERGPSECPPIXEL"``, ``"ERG-S-1-Pixel"``,
-                                ``"ERG-S-1"``
-                6. erg/s/beam: ``"ERGPSECPBEAM"``
-                7. erg/s/sterad ``"ERGPERSTER"``
+
+              1. Jy/beam: ``"JyB"`` ``"JyBeam"``
+              2. Jy/pixel: ``"JyP"``, ``"JyPix"``, ``"JyPixel"``
+              3. MJy/sterad: ``"MJyPsr"``, ``"MJPSR"``, ``"MJy/sr"``
+              4. Main Beam Temperature: ``"Tmb"``, ``"T"``, ``"Kkms"``
+              5. erg/s/pixel: ``"ergs"`` ``"ERGPSECPPIX"``, ``"ERGPSECPPIXEL"``, ``"ERG-S-1-Pixel"``, ``"ERG-S-1"``
+              6. erg/s/beam: ``"ERGPSECPBEAM"``
+              7. erg/s/sterad ``"ERGPERSTER"``
+
         frequency : float
             Can be used if self.frequency is NaN. The frequency (in GHz) is
             needed for conversions between temperature and Jansky/Erg scale.

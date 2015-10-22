@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>SEDs &mdash; astrolyze 0.1.5 documentation</title>
+  <title>SEDs &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,9 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="index.html"/>
-        <link rel="next" title="LTE" href="lte.html"/>
-        <link rel="prev" title="Spectra" href="spectra.html"/> 
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -63,7 +61,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -86,23 +84,10 @@
             
                 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="spectra.html">Spectra</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -150,8 +135,8 @@
   <div class="section" id="seds">
 <h1>SEDs<a class="headerlink" href="#seds" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
-<dt id="astrolyze.sed.sed.Sed">
-<em class="property">class </em><code class="descclassname">astrolyze.sed.sed.</code><code class="descname">Sed</code><span class="sig-paren">(</span><em>source_name</em>, <em>coordinate</em>, <em>flux_array</em>, <em>number_components=2</em>, <em>init_fit=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.sed.sed.Sed" title="Permalink to this definition">¶</a></dt>
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.sed.sed.</code><code class="descname">Sed</code><span class="sig-paren">(</span><em>source_name</em>, <em>coordinate</em>, <em>flux_array</em>, <em>number_components=2</em>, <em>init_fit=True</em>, <em>temperature_guess=None</em>, <em>mass_guess=None</em>, <em>beta_guess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>This class handles a single SED. Basically it is able to fit,
 and plot the sed.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -163,22 +148,26 @@ and plot the sed.</p>
 <li><strong>coordinate</strong> (<em>list</em>) &#8211; The coordinate of the source. [RA, DEC]</li>
 <li><strong>flux_array</strong> (<em>list</em>) &#8211; The array that is created by SedStack with the entries of wavelength,
 flux, and error.</li>
-<li><strong>init_fit</strong> (<em>logic</em>) &#8211; Steers whether the SED is fitted already during creation.</li>
+<li><strong>init_fit</strong> (<em>logic</em>) &#8211; Controls whether the SED is fitted already during creation.</li>
+<li><strong>number_components</strong> (<em>int</em>) &#8211; The number of greybody components to be fitted. Default: 2.</li>
+<li><strong>temperature_guess</strong> (<em>list</em>) &#8211; List with the intial guesses for the temperature</li>
+<li><strong>mass_guess</strong> (<em>list</em>) &#8211; List with the intial guesses for the masses</li>
+<li><strong>beta_guess</strong> (<em>list</em>) &#8211; List with the intial guesses of the beta value</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
-<dt id="astrolyze.sed.sed.Sed.create_figure">
-<code class="descname">create_figure</code><span class="sig-paren">(</span><em>save=True, plotLegend=False, color=['black'], marker=['x'], title=None, x_label=None, y_label=None, nu_or_lambda='nu', fontdict=None, textStringLoc=[1, 1], lineWidth=0.5, kappa='easy', x_range='normal'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed.create_figure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.sed.sed.Sed.create_figure" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">create_figure</code><span class="sig-paren">(</span><em>save=True, plotLegend=False, color=['black'], marker=['x'], title=None, x_label=None, y_label=None, nu_or_lambda='nu', fontdict=None, textStringLoc=[1, 1], lineWidth=0.5, kappa='easy', x_range='normal', prefix='./', **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed.create_figure"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Creates a quick preview of the loaded SED. TODO: extend
 documentation.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="astrolyze.sed.sed.Sed.grey_body_fit">
-<code class="descname">grey_body_fit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed.grey_body_fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.sed.sed.Sed.grey_body_fit" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">grey_body_fit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed.grey_body_fit"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>&#8221;
 Fitting a multi componenet grey body to the input data in flux_array.</p>
 <div class="admonition seealso">
@@ -191,8 +180,8 @@ Fitting a multi componenet grey body to the input data in flux_array.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="astrolyze.sed.sed.Sed.plot_sed">
-<code class="descname">plot_sed</code><span class="sig-paren">(</span><em>axes=&lt;matplotlib.axes._subplots.AxesSubplot object&gt;</em>, <em>nu_or_lambda='nu'</em>, <em>color='black'</em>, <em>linewidth=0.5</em>, <em>x_range='normal'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed.plot_sed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.sed.sed.Sed.plot_sed" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">plot_sed</code><span class="sig-paren">(</span><em>axes=&lt;matplotlib.axes._subplots.AxesSubplot object&gt;</em>, <em>nu_or_lambda='nu'</em>, <em>color='black'</em>, <em>linewidth=0.5</em>, <em>x_range='normal'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed.plot_sed"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Plot a multi component greybody model.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -216,28 +205,47 @@ information.</li>
 </dd></dl>
 
 <dl class="class">
-<dt id="astrolyze.sed.sed.SedStack">
-<em class="property">class </em><code class="descclassname">astrolyze.sed.sed.</code><code class="descname">SedStack</code><span class="sig-paren">(</span><em>folder</em>, <em>data_format='.fits'</em>, <em>coordinates=False</em>, <em>flux_acquisition='aperture'</em>, <em>aperture=120</em>, <em>annotation=False</em>, <em>full_map=False</em>, <em>output_folder=None</em>, <em>number_components=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.sed.sed.SedStack" title="Permalink to this definition">¶</a></dt>
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.sed.sed.</code><code class="descname">SedStack</code><span class="sig-paren">(</span><em>folder</em>, <em>data_format='.fits'</em>, <em>coordinates=False</em>, <em>flux_acquisition='pixel'</em>, <em>aperture=None</em>, <em>annotation=False</em>, <em>full_map=False</em>, <em>output_folder=None</em>, <em>number_components=2</em>, <em>mass_guess=None</em>, <em>temperature_guess=None</em>, <em>beta_guess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Reads in the SEDs from the maps stored under the input folder at given
 coordinates and creates a stack of Sed objects.</p>
-<dl class="method">
-<dt id="astrolyze.sed.sed.SedStack.get_map_seds">
-<code class="descname">get_map_seds</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack.get_map_seds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.sed.sed.SedStack.get_map_seds" title="Permalink to this definition">¶</a></dt>
-<dd><p>This functions fits the SED at every pixel of the input maps.
-Note that the maps have to be exactly the same size for this function to
-work. This can be achieved with e.g.:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="n">stack</span> <span class="o">=</span> <span class="n">Stack</span><span class="p">(</span><span class="s">&#39;some_input_folder&#39;</span><span class="p">)</span>
-<span class="n">folder</span> <span class="o">=</span> <span class="s">&#39;some_output_folder&#39;</span>
-<span class="n">template</span> <span class="o">=</span> <span class="s">&#39;Path_to_a _template_map&#39;</span>
-<span class="n">stack</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">unify_dimension</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">folder</span><span class="p">)</span>
-</pre></div>
-</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>folder</strong> (<em>string</em>) &#8211; The path to the folder where the temperature, mass, beta and chisq
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>folder</strong> (<em>str</em>) &#8211; Input Folder</li>
+<li><strong>data_format</strong> (<em>str</em>) &#8211; Filter on data format. Default <cite>.fits</cite></li>
+<li><strong>coordinates</strong> (<em>list</em>) &#8211; Coordinates where the SEDs should be extracted.</li>
+<li><strong>full_map</strong> (<em>bool</em>) &#8211; If True temperature, mass and beta maps will be created by fitting the
+SEDs at every pixel.</li>
+<li><strong>flux_acquisition</strong> (<em>str</em>) &#8211; <cite>aperture</cite> or <cite>pixel</cite> see explanation in
+<code class="xref py py-mod docutils literal"><span class="pre">astrolyze.fits.FitsMap.flux_read</span></code></li>
+<li><strong>aperture</strong> (<em>int</em>) &#8211; Aperture to use for flux extraction if flux_acquisition == <cite>aperture</cite></li>
+<li><strong>annotation</strong> (<em>bool</em>) &#8211; If true a kvis annotation file is created with the positions where the
+SEDs, have been extracted.</li>
+<li><strong>output_folder</strong> (<em>str</em>) &#8211; Where the data is stored.</li>
+<li><strong>number_components</strong> (<em>int</em>) &#8211; Number of SED components to fit.</li>
+<li><strong>mass_guess</strong> (<em>list</em>) &#8211; List with guesses for the initial dust mass. Has to have at
+least the same lenght as there are <cite>number_components</cite></li>
+<li><strong>temperature_guess</strong> (<em>list</em>) &#8211; List with guesses for the initial dust temperature. Has to have at
+least the same lenght as there are <cite>number_components</cite></li>
+<li><strong>beta_guess</strong> (<em>list</em>) &#8211; List with a guess for the beta value to be used has to be list with
+singel entry beta_guess=[2.].</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt>
+<code class="descname">get_map_seds</code><span class="sig-paren">(</span><em>output_folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack.get_map_seds"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>This functions fits the SED at every pixel of the input maps.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>output_folder</strong> (<em>string</em>) &#8211; The path to the folder where the temperature, mass, beta and chisq
 maps are created. If the folder does not exist is will be created.</td>
 </tr>
 </tbody>
@@ -245,18 +253,28 @@ maps are created. If the folder does not exist is will be created.</td>
 <p class="rubric">Notes</p>
 <p>Depending on the number of pixels in the input image this function may
 take a good while to finish.</p>
+<p class="rubric">Examples</p>
+<p>Note that the maps have to be exactly the same size for this function
+to work. This can be achieved with e.g.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">stack</span> <span class="o">=</span> <span class="n">Stack</span><span class="p">(</span><span class="s">&#39;some_input_folder&#39;</span><span class="p">)</span>
+<span class="n">output_folder</span> <span class="o">=</span> <span class="s">&#39;some_output_folder&#39;</span>
+<span class="n">template</span> <span class="o">=</span> <span class="s">&#39;Path_to_a _template_map&#39;</span>
+<span class="n">stack</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">unify_dimension</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">folder</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="method">
-<dt id="astrolyze.sed.sed.SedStack.get_seds">
-<code class="descname">get_seds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack.get_seds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.sed.sed.SedStack.get_seds" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">get_seds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack.get_seds"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Creates a stack of SEDs from the stack of maps loaded from the
 input folder if particular coordinates are given.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="astrolyze.sed.sed.SedStack.load_coordinates">
-<code class="descname">load_coordinates</code><span class="sig-paren">(</span><em>input_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack.load_coordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.sed.sed.SedStack.load_coordinates" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">load_coordinates</code><span class="sig-paren">(</span><em>input_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack.load_coordinates"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Loads the coordinated where the SEDs should be evaluated
 from either a file or a list. Both are not possible.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -294,15 +312,6 @@ Equatorial:
           </div>
           <footer>
   
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="lte.html" class="btn btn-neutral float-right" title="LTE" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="spectra.html" class="btn btn-neutral" title="Spectra" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
-    </div>
-  
 
   <hr/>
 
@@ -330,7 +339,7 @@ Equatorial:
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

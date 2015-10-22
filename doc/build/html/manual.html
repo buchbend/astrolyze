@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Motivation &mdash; astrolyze 0.1.5 documentation</title>
+  <title>Manual &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,9 +30,9 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="index.html"/>
-        <link rel="next" title="Maps" href="maps.html"/>
-        <link rel="prev" title="Installation of astrolyze" href="installation.html"/> 
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="index.html"/>
+        <link rel="next" title="Cookbook" href="cookbook.html"/>
+        <link rel="prev" title="Motivation - What is astrolyze all about" href="motivation.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -86,63 +86,65 @@
             
                 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Motivation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#inter-operating-fits-gildas-and-miriad">Inter-operating Fits, Gildas and Miriad</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#changing-map-units">Changing map units</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#working-with-stacks-of-images">Working with stacks of images</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#producing-seds">Producing SEDs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#not-only-images">Not only images ...</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Manual</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#astrolyze">astrolyze</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#naming-convention">Naming Convention</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#main">main</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#from-naming-convention">From naming convention</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#calculated-values">Calculated Values</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#known-format-endings-of-the-different-file-types">Known Format endings of the different file types</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#variables-loaded-from-database">Variables loaded from Database</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#from-line-database">From Line Database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#from-galaxy-database">From Galaxy Database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#from-calibration-database">From Calibration Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#modules">Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#maps">maps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#main">main</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#variables-created-by-main">Variables created by Main</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#from-naming-convention">From naming convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#calculated-values">Calculated Values</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#known-format-endings-of-the-different-file-types">Known Format endings of the different file types</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#variables-loaded-from-database">Variables loaded from Database</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#from-line-database">From Line Database</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#from-galaxy-database">From Galaxy Database</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#from-calibration-database">From Calibration Database</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="#fits">fits</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#variables-loaded-with-pyfits">Variables loaded with pyfits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id1">Calculated values</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#known-header-keywords">Known header keywords</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#known-names-of-units">Known names of units</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#changing-formats">Changing Formats</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#making-use-of-pyfits">Making use of Pyfits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#change-map-units">Change Map Units</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fits">fits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#variables-created-by-fitsmap">Variables created by FitsMap</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#variables-loaded-with-pyfits">Variables loaded with pyfits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">Calculated values</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#known-header-keywords">Known header keywords</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="#using-gildas">Using gildas</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#variables">Variables</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#gildas-specific">Gildas Specific</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#how-is-gildas-used-by-astrolyze">How is Gildas used by astrolyze</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#known-names-of-units">Known names of units</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#working-with-fits-maps">Working with Fits Maps</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#changing-formats">Changing Formats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#making-use-of-pyfits">Making use of Pyfits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#change-map-units">Change Map Units</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#wrapping-gildas-tasks">Wrapping Gildas Tasks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#direc-use-of-pygildas">Direc use of pyGildas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-gildas">Using gildas</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#variables">Variables</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#gildas-specific">Gildas Specific</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#using-the-sed-module">Using the sed module</a></li>
 </ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="functions.html">Functions</a></li>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#how-is-gildas-used-by-astrolyze">How is Gildas used by astrolyze</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#wrapping-gildas-tasks">Wrapping Gildas Tasks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#direc-use-of-pygildas">Direc use of pyGildas</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#using-miriad">Using miriad</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-the-stack-module">Using the stack module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-the-sed-module">Using the sed module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-functions">Using Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-lte">Using LTE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -173,7 +175,7 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Motivation</li>
+    <li>Manual</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -187,155 +189,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="motivation">
-<h1>Motivation<a class="headerlink" href="#motivation" title="Permalink to this headline">¶</a></h1>
-<p>First, before delving into the details of the astrolyze package, here a few
-examples are given of what astrolyze is all about. The following is a short
-teaser of some of the features of astrolyze; a thorough introduction with more
-features and possibilities are given in the <span class="xref std std-ref">label-naming-convention</span>.</p>
-<div class="section" id="inter-operating-fits-gildas-and-miriad">
-<h2>Inter-operating Fits, Gildas and Miriad<a class="headerlink" href="#inter-operating-fits-gildas-and-miriad" title="Permalink to this headline">¶</a></h2>
-<p>A central concept of <cite>astrolyze</cite> is to enable to use different astronomically map formats and
-different programs from within python seamlessly. Say, for example, that you
-have a Fits image called <code class="docutils literal"><span class="pre">M33_30m_12CO10_Tmb_12.fits</span></code> and that you want to
-smooth it in miriad to 40 arcsec resolution, re-project it with Gildas to a new
-central coordinate and finally convert it back to fits-format:</p>
-<p>This is how you would do it with astrolyze:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="n">map_</span> <span class="o">=</span> <span class="n">FitsMap</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_12.fits&#39;</span><span class="p">)</span>
-<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toMiriad</span><span class="p">()</span>
-<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">smooth</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span>
-<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toGildas</span><span class="p">()</span>
-<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">reproject</span><span class="p">(</span><span class="n">coordinate</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;01:34:50.890&#39;</span><span class="p">,</span> <span class="s">&#39;+31:08:28.03&#39;</span><span class="p">])</span>
-<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
-</pre></div>
-</div>
-<p>Please note the special format of the map name. The format follows a certain
-<code class="docutils literal"><span class="pre">naming</span> <span class="pre">convention</span></code> that <strong>has</strong> to be used with astrolyze. The reason for the
-naming conventions and it&#8217;s internal logic is explained below.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">As a side note I use an underscore for the <code class="docutils literal"><span class="pre">map_</span></code> variable, because
-otherwise the python function <code class="docutils literal"><span class="pre">map</span></code> is overwritten which may lead to
-problems.</p>
-</div>
-</div>
-<div class="section" id="changing-map-units">
-<h2>Changing map units<a class="headerlink" href="#changing-map-units" title="Permalink to this headline">¶</a></h2>
-<p>With astrolyze the units of a map can be quickly transformed between common
-units used in (Radio-) Astronomy (as far as the conversion was implemented
-already). Take for example again the <code class="docutils literal"><span class="pre">M33_30m_12CO10_Tmb_12.fits</span></code> map.
-Following the naming convention this map is in main beam temperature
-(Tmb). Changing its units to <code class="docutils literal"><span class="pre">JyB</span></code> is as easy as:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="n">map_</span> <span class="o">=</span> <span class="n">FitsMap</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_12.fits&#39;</span><span class="p">)</span>
-<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">change_unit</span><span class="p">(</span><span class="s">&#39;JyB&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Another side note: It&#8217;s only that easy when astrolyze is set-up with the
-database so that astrolyze knows about the frequency/wavelenght of the line in
-the map.</p>
-<div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">Please double check the results of the unit conversion.</p>
-</div>
-</div>
-<div class="section" id="working-with-stacks-of-images">
-<h2>Working with stacks of images<a class="headerlink" href="#working-with-stacks-of-images" title="Permalink to this headline">¶</a></h2>
-<p>The previous examples demonstrated how single maps can be used in astrolyze.
-It is further possible to work on a stack of images and perform tasks on all of
-them.</p>
-<p>To create a stack, all files that are going to be in the stack have to be
-located in one folder (with possible sub-folders NOTE: The functionality with
-sub-folders is not thoroughly tested, yet.)
-A stack is initialized as follows:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="n">example_stack</span> <span class="o">=</span> <span class="n">Stack</span><span class="p">(</span><span class="s">&#39;path_to_folder&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The maps can be a mix of GILDAS, Fits and MIRIAD maps. The Instance of the
-Stack object (here: <code class="docutils literal"><span class="pre">example_stack</span></code>) contains a variable called stack which
-is a list with Instances of the corresponding maps Objects (GildasMap, FitsMap
-and MiriadMap).</p>
-<p>The stack module provides several tools to <code class="docutils literal"><span class="pre">unify</span></code> the stack for further
-analysis. The maps can be all re-gridded and re-projected to the same central
-coordinates, pixel-sizes and dimensions as a given template image via:</p>
-<div class="highlight-python"><div class="highlight"><pre>example_stack.unify_dimensions(template=&#39;path_to_template_file&#39;,
-                               folder=&#39;path_to_output_folder&#39;) .
-</pre></div>
-</div>
-<p>Also the maps can be all smoothed to the same resolution, by default this is
-the largest resolution found in the stack but can also be given manually:</p>
-<div class="highlight-python"><div class="highlight"><pre>example_stack.unify_resolutions(folder=&#39;path_to_output_folder&#39;) .
-</pre></div>
-</div>
-<p>Astrolyze includes unit conversions that can be used to change all maps to the
-same resolutions as long as the input and output units are programmed. For
-the stack:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">example_stack</span><span class="o">.</span><span class="n">unify_units</span><span class="p">(</span><span class="n">folder</span><span class="o">=</span><span class="s">&#39;path_to_output_folder&#39;</span><span class="p">)</span> <span class="p">,</span>
-</pre></div>
-</div>
-<p>can be used.</p>
-</div>
-<div class="section" id="producing-seds">
-<h2>Producing SEDs<a class="headerlink" href="#producing-seds" title="Permalink to this headline">¶</a></h2>
-<p>Build on-top of the stack module astrolyze also contains an <code class="docutils literal"><span class="pre">sed</span></code> module
-which allows to analyze and plot dust-seds. The SEDs can be read out for an
-arbitrary number of positions or for the entire maps. In the latter case
-temperature and mass maps will be created.</p>
-<p>When all maps have the same resolution and dimension (i.e. pixel size and
-number) producing temperature maps can be done as follows:</p>
-<div class="highlight-python"><div class="highlight"><pre>from astrolyze import *
-sed = SedStack(folder=&#39;path_to_input_folder&#39;, full_map=True,
-       output_folder=&#39;path_to_output_folder&#39;) .
-</pre></div>
-</div>
-<p>To generate SEDs at given coordinates it is easiest to provide a separate file
-(e.g. <code class="docutils literal"><span class="pre">coordinates.txt</span></code>) with the names and coordinates of the positions to be
-extracted as follows:</p>
-<div class="highlight-python"><div class="highlight"><pre>source_1    1:34:7.00     +30:47:52.00
-source_2    1:33:55.80    +30:43:2.00
-source_3    1:33:52.40    +30:39:18.00
-  .              .             .
-  .              .             .
-  .              .             .
-</pre></div>
-</div>
-<p>Then a stack of seds can be created:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="n">seds</span> <span class="o">=</span> <span class="n">SedStack</span><span class="p">(</span><span class="n">folder</span><span class="o">=</span><span class="s">&#39;path_to_input_folder&#39;</span><span class="p">,</span> <span class="n">flux_acquisition</span><span class="o">=</span><span class="s">&#39;pixel&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>By default the SED is also directly fitted. One can produce a quick preview
-plot of the SEDs via:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">seds</span><span class="o">.</span><span class="n">sed_stack</span><span class="p">:</span>
-    <span class="n">i</span><span class="o">.</span><span class="n">create_figure</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="not-only-images">
-<h2>Not only images ...<a class="headerlink" href="#not-only-images" title="Permalink to this headline">¶</a></h2>
-<p>Last but not least astrolyze is also able to work with 30m class spectra from
-within python based on the same principles used to work with images/maps. The
-implementation makes extensive use of <a href="#id2"><span class="problematic" id="id3">pyGildas_</span></a>.  For example if you have a
-file with the spectra of a cube, e.g. <code class="docutils literal"><span class="pre">M33_30m_12CO10_Tmb_21_cube.30m</span></code> you
-can extract the spectra that corresponds closest to a given coordinate as
-follows:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="n">spectra</span> <span class="o">=</span> <span class="n">ClassSpectra</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_21_cube.30m&#39;</span><span class="p">)</span>
-<span class="n">coordinate</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;1:34:7.00&#39;</span><span class="p">,</span> <span class="s">&#39;+30:47:52.00&#39;</span><span class="p">]</span>
-<span class="n">spectrum</span> <span class="o">=</span> <span class="n">spectra</span><span class="o">.</span><span class="n">get_spectra_from_cube</span><span class="p">(</span><span class="n">coordinate</span><span class="p">)</span>
-<span class="c"># To show the spectrum in the Class window</span>
-<span class="n">spectrum</span><span class="o">.</span><span class="n">quick_view</span><span class="p">()</span>
-</pre></div>
-</div>
-<hr class="docutils" />
-</div>
-</div>
-<div class="section" id="manual">
-<h1>Manual<a class="headerlink" href="#manual" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="manual">
+<span id="id1"></span><h1>Manual<a class="headerlink" href="#manual" title="Permalink to this headline">¶</a></h1>
 <p>This manual explains how astrolyze can be used to ease reduction,
 analysis and modification of (radio-)astronomical data and images.</p>
+<div class="section" id="astrolyze">
+<h2>astrolyze<a class="headerlink" href="#astrolyze" title="Permalink to this headline">¶</a></h2>
 <p>I started to develop astrolyze to be able to inter-operate the Programs PyFits,
 MIRIAD and GILDAS. One reason was that the Gildas task are very cumbersome to
 script and once scripted, the scripts are not very flexible. Also there are
@@ -346,6 +205,8 @@ changes to the most important parameters of the maps (or spectral-files), which
 are stored directly in the file-names. This principle is based on a
 <cite>naming-convention</cite>.  An additional databases can be setup so that more informations can
 be loaded depending on the file-name-keywords.</p>
+<div class="section" id="naming-convention">
+<span id="id2"></span><h3>Naming Convention<a class="headerlink" href="#naming-convention" title="Permalink to this headline">¶</a></h3>
 <p>A Name that follows the &#8216;Naming Convention&#8217; is for example:
 <code class="docutils literal"><span class="pre">M33_30m-HERA_CO21_Ta*_12_cube_regrid.fits</span></code></p>
 <p>All items <strong>MUST</strong> be separated by an underscore (_) and <strong>HAVE</strong> to include at
@@ -414,8 +275,9 @@ into the header of a fits file is changed and up-dates the header subsequently
 makes the life of your fellow astronomers easier when they have to work with
 your data since they readily know their most important basic properties.</p>
 </div>
+</div>
 <div class="section" id="modules">
-<h1>Modules<a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h1>
+<h2>Modules<a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h2>
 <p>astrolyze is divided in different modules and classes which can inter-operate
 with each other and which are:</p>
 <ul class="simple">
@@ -431,10 +293,9 @@ functionality.</p>
 manual-page. All functions are documented and can be found HERE TODO.  The next
 sections attempts to show the basis principles, structure and work-flow of
 astrolyze.</p>
-</div>
 <hr class="docutils" />
 <div class="section" id="maps">
-<h1>maps<a class="headerlink" href="#maps" title="Permalink to this headline">¶</a></h1>
+<h3>maps<a class="headerlink" href="#maps" title="Permalink to this headline">¶</a></h3>
 <p>The <code class="docutils literal"><span class="pre">maps</span></code> module is the heart of the astrolyze package. It provides the
 framework to work with astronomical images (and spectra). It is able to modify
 and to track the most important properties of the maps such that they are always
@@ -455,13 +316,15 @@ and <a class="reference internal" href="#miriad">MIRIAD</a>.</p>
 </div>
 <hr class="docutils" />
 <div class="section" id="main">
-<h1>main<a class="headerlink" href="#main" title="Permalink to this headline">¶</a></h1>
+<h3>main<a class="headerlink" href="#main" title="Permalink to this headline">¶</a></h3>
 <p>This module contains the class: <code class="xref py py-func docutils literal"><span class="pre">Main</span></code>, which
 is the parent class for all actions not depending on the actual data-type. In
-principle it is the implementation of the <span class="xref std std-ref">label-naming-convention</span> and is
+principle it is the implementation of the <a class="reference internal" href="#naming-convention"><span>Naming Convention</span></a> and is
 not directly used to open a map. All other classes in maps inherit from the
 <code class="xref py py-func docutils literal"><span class="pre">Main</span></code> class, such that it is used any time
 the other modules of maps are used. Also the <a class="reference internal" href="#label-sed-module"><span>Using the sed module</span></a> uses Main.</p>
+<div class="section" id="variables-created-by-main">
+<h4>Variables created by Main<a class="headerlink" href="#variables-created-by-main" title="Permalink to this headline">¶</a></h4>
 <p>When opening a map with <code class="xref py py-func docutils literal"><span class="pre">Main</span></code> variables are
 created that contain information about the maps and can be used to work with
 the data. The variables are class attributes. They can be accessed by attaching
@@ -471,8 +334,9 @@ them to the object with a dot between object and attribute:</p>
 </div>
 <p>In astrolyze the maps that are opened are objects. The information for the
 variables come from different places:</p>
+</div>
 <div class="section" id="from-naming-convention">
-<h2>From naming convention<a class="headerlink" href="#from-naming-convention" title="Permalink to this headline">¶</a></h2>
+<h4>From naming convention<a class="headerlink" href="#from-naming-convention" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">map_name</span>
 <span class="n">prefix</span>
 <span class="n">source</span>
@@ -484,8 +348,9 @@ variables come from different places:</p>
 <span class="n">dataFormat</span>
 </pre></div>
 </div>
+</div>
 <div class="section" id="calculated-values">
-<h3>Calculated Values<a class="headerlink" href="#calculated-values" title="Permalink to this headline">¶</a></h3>
+<h4>Calculated Values<a class="headerlink" href="#calculated-values" title="Permalink to this headline">¶</a></h4>
 <p>Assuming a Gaussian beam size the following variables are calculates from the
 <code class="docutils literal"><span class="pre">resolution</span></code> keyword.</p>
 <div class="highlight-python"><div class="highlight"><pre>beamSizeM2       Beam-Size in m^2
@@ -494,7 +359,7 @@ beamSizeSterad   Beam-Size in sterad
 </div>
 </div>
 <div class="section" id="known-format-endings-of-the-different-file-types">
-<h3>Known Format endings of the different file types<a class="headerlink" href="#known-format-endings-of-the-different-file-types" title="Permalink to this headline">¶</a></h3>
+<h4>Known Format endings of the different file types<a class="headerlink" href="#known-format-endings-of-the-different-file-types" title="Permalink to this headline">¶</a></h4>
 <p>These variables contain a list that contain all strings that are recognized by
 the system as a valid file name ending (TODO: find the correct name for file
 ending).</p>
@@ -510,14 +375,14 @@ ending).</p>
 package when installing.</p>
 </div>
 </div>
-</div>
 <div class="section" id="variables-loaded-from-database">
-<h2>Variables loaded from Database<a class="headerlink" href="#variables-loaded-from-database" title="Permalink to this headline">¶</a></h2>
+<h4>Variables loaded from Database<a class="headerlink" href="#variables-loaded-from-database" title="Permalink to this headline">¶</a></h4>
 <p>As explained in TODO. Astrolyze uses a database to store additional
 informations  about maps. The database is set-up during installation as
 explained in <a class="reference internal" href="installation.html"><em>Installation of astrolyze</em></a>.</p>
+</div>
 <div class="section" id="from-line-database">
-<h3>From Line Database<a class="headerlink" href="#from-line-database" title="Permalink to this headline">¶</a></h3>
+<h4>From Line Database<a class="headerlink" href="#from-line-database" title="Permalink to this headline">¶</a></h4>
 <p>Using the <code class="docutils literal"><span class="pre">species</span></code> keyword:</p>
 <div class="highlight-python"><div class="highlight"><pre>frequency  : [GHz]
 wavelength : [TODO]
@@ -525,7 +390,7 @@ wavelength : [TODO]
 </div>
 </div>
 <div class="section" id="from-galaxy-database">
-<h3>From Galaxy Database<a class="headerlink" href="#from-galaxy-database" title="Permalink to this headline">¶</a></h3>
+<h4>From Galaxy Database<a class="headerlink" href="#from-galaxy-database" title="Permalink to this headline">¶</a></h4>
 <p>Using the <code class="docutils literal"><span class="pre">source</span></code> keyword.:</p>
 <div class="highlight-python"><div class="highlight"><pre>centralPosition : [RA, DEC]
 distance : [kpc]
@@ -538,21 +403,21 @@ type :  The Hubble type of the galaxy.
 </div>
 </div>
 <div class="section" id="from-calibration-database">
-<h3>From Calibration Database<a class="headerlink" href="#from-calibration-database" title="Permalink to this headline">¶</a></h3>
+<h4>From Calibration Database<a class="headerlink" href="#from-calibration-database" title="Permalink to this headline">¶</a></h4>
 <p>Using the <code class="docutils literal"><span class="pre">species</span></code> and <code class="docutils literal"><span class="pre">telescope</span></code> keywords.:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">calibrationError</span>
 </pre></div>
 </div>
 <hr class="docutils" />
 <p>The in-depth documentation of the internal functions can be found here
-<a class="reference internal" href="maps.html#main-label"><span>Main</span></a>.</p>
+<a class="reference internal" href="source_documentation.html#main-label"><span>Main</span></a>.</p>
 </div>
 </div>
 </div>
 <hr class="docutils" />
 <div class="section" id="fits">
-<h1>fits<a class="headerlink" href="#fits" title="Permalink to this headline">¶</a></h1>
-<p>The fits module contains the class <a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap" title="astrolyze.maps.fits.FitsMap"><code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code></a>. This class inherits all functions from
+<h2>fits<a class="headerlink" href="#fits" title="Permalink to this headline">¶</a></h2>
+<p>The fits module contains the class <code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code>. This class inherits all functions from
 <code class="xref py py-func docutils literal"><span class="pre">Main</span></code> but adds functionality and methods
 needed to work with fits data. This class makes use of the <a class="reference internal" href="#python-pyfits">python-pyfits</a>
 package. Please check the pyfits web-page (follow the previous link) for the
@@ -562,11 +427,13 @@ pyfits documentation.</p>
 <span class="nb">map</span> <span class="o">=</span> <span class="n">FitsMap</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_12.fits&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
+<div class="section" id="variables-created-by-fitsmap">
+<span id="label-fits-variables"></span><h3>Variables created by FitsMap<a class="headerlink" href="#variables-created-by-fitsmap" title="Permalink to this headline">¶</a></h3>
 <p>Opening a Fits map creates, besides the variables discussed in
-<a class="reference internal" href="maps.html#main-label"><span>Main</span></a> the following additional variables specific to the
-<a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap" title="astrolyze.maps.fits.FitsMap"><code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code></a>:</p>
+<a class="reference internal" href="source_documentation.html#main-label"><span>Main</span></a> the following additional variables specific to the
+<code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code>:</p>
 <div class="section" id="variables-loaded-with-pyfits">
-<h2>Variables loaded with pyfits<a class="headerlink" href="#variables-loaded-with-pyfits" title="Permalink to this headline">¶</a></h2>
+<h4>Variables loaded with pyfits<a class="headerlink" href="#variables-loaded-with-pyfits" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-python"><div class="highlight"><pre>header : a dictionary with the fits-header cards
 data : numpy.ndarray containing the data
 hdulist : Some fits-files have more than one plane. HDUlist contains all
@@ -574,8 +441,8 @@ hdulist : Some fits-files have more than one plane. HDUlist contains all
 </pre></div>
 </div>
 </div>
-<div class="section" id="id1">
-<h2>Calculated values<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id3">
+<h4>Calculated values<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
 <p>Because the fits-header is read via <a class="reference internal" href="#python-pyfits">python-pyfits</a> the pixel dimensions are
 known and thus the pixel-sizes can be caluclated:</p>
 <div class="highlight-python"><div class="highlight"><pre>pixelSizeM2 : [m^2]
@@ -584,15 +451,16 @@ pixelSizeSterad [sterad] .
 </div>
 </div>
 <div class="section" id="known-header-keywords">
-<h2>Known header keywords<a class="headerlink" href="#known-header-keywords" title="Permalink to this headline">¶</a></h2>
+<h4>Known header keywords<a class="headerlink" href="#known-header-keywords" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-python"><div class="highlight"><pre>headerKeywords : A dictionary containing different fits-header keywords that
          are used for the same quantity.
 </pre></div>
 </div>
 </div>
+</div>
 <div class="section" id="known-names-of-units">
-<h2>Known names of units<a class="headerlink" href="#known-names-of-units" title="Permalink to this headline">¶</a></h2>
-<p>The <a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap" title="astrolyze.maps.fits.FitsMap"><code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code></a> class contains the
+<h3>Known names of units<a class="headerlink" href="#known-names-of-units" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="xref py py-func docutils literal"><span class="pre">FitsMap</span></code> class contains the
 method <code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code> which is able to
 check the conversion that is needed to change to the desired unit. However for
 this another <code class="docutils literal"><span class="pre">Unit</span> <span class="pre">Naming</span> <span class="pre">Convention</span></code> is needed. The following variables
@@ -613,8 +481,10 @@ known_units .
 customize unit-names easily.</p>
 </div>
 </div>
+<div class="section" id="working-with-fits-maps">
+<span id="label-change-format"></span><h3>Working with Fits Maps<a class="headerlink" href="#working-with-fits-maps" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="changing-formats">
-<span id="label-change-formats"></span><h2>Changing Formats<a class="headerlink" href="#changing-formats" title="Permalink to this headline">¶</a></h2>
+<span id="label-change-formats"></span><h4>Changing Formats<a class="headerlink" href="#changing-formats" title="Permalink to this headline">¶</a></h4>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">Changing formats works the same way in all <code class="docutils literal"><span class="pre">maps</span></code> modules.</p>
@@ -652,8 +522,8 @@ new format one can use:</p>
 </div>
 </div>
 <div class="section" id="making-use-of-pyfits">
-<h2>Making use of Pyfits<a class="headerlink" href="#making-use-of-pyfits" title="Permalink to this headline">¶</a></h2>
-<p>As listed in <span class="xref std std-ref">label-fits-variables</span> a <code class="docutils literal"><span class="pre">data</span></code> and a <code class="docutils literal"><span class="pre">header</span></code>
+<h4>Making use of Pyfits<a class="headerlink" href="#making-use-of-pyfits" title="Permalink to this headline">¶</a></h4>
+<p>As listed in <a class="reference internal" href="#label-fits-variables"><span>Variables created by FitsMap</span></a> a <code class="docutils literal"><span class="pre">data</span></code> and a <code class="docutils literal"><span class="pre">header</span></code>
 variable is created. These are a numpy.ndarray of the image data and a
 dictionary containing the header keywords with their arguments. Thus changing
 the properties of the fits map and the header variables is straight-forward.</p>
@@ -694,11 +564,11 @@ done with:</p>
 <p>This creates a file called M33_30m_12CO10_JyB_12.fits</p>
 </div>
 <div class="section" id="change-map-units">
-<h2>Change Map Units<a class="headerlink" href="#change-map-units" title="Permalink to this headline">¶</a></h2>
+<h4>Change Map Units<a class="headerlink" href="#change-map-units" title="Permalink to this headline">¶</a></h4>
 <p>Since it is easy to modify all pixel via <a class="reference internal" href="#python-pyfits">python-pyfits</a> the function
-<a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap.change_unit" title="astrolyze.maps.fits.FitsMap.change_unit"><code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code></a> that converts
+<code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code> that converts
 units into another is implemented in the <code class="docutils literal"><span class="pre">FitsMap</span></code>-class. See the
-documentation of <a class="reference internal" href="maps.html#astrolyze.maps.fits.FitsMap.change_unit" title="astrolyze.maps.fits.FitsMap.change_unit"><code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code></a>
+documentation of <code class="xref py py-func docutils literal"><span class="pre">change_unit</span></code>
 for the conversions that are implemented.</p>
 <p>Using the information from the &#8220;Naming Convention&#8221; and the additional
 information from the database, the code has all information to calculate the
@@ -717,9 +587,10 @@ follows:</p>
 </div>
 </div>
 </div>
+</div>
 <hr class="docutils" />
 <div class="section" id="using-gildas">
-<h1>Using gildas<a class="headerlink" href="#using-gildas" title="Permalink to this headline">¶</a></h1>
+<h2>Using gildas<a class="headerlink" href="#using-gildas" title="Permalink to this headline">¶</a></h2>
 <p>When Opening a Gildas map with:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="nb">map</span> <span class="o">=</span> <span class="n">GildasMap</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_12.gdf&#39;</span><span class="p">)</span>  <span class="p">,</span>
@@ -728,9 +599,9 @@ follows:</p>
 <p>astrolyze uses pyGildas to read some of the header variables and stores them as
 python variables. The following values are read.</p>
 <div class="section" id="variables">
-<h2>Variables<a class="headerlink" href="#variables" title="Permalink to this headline">¶</a></h2>
+<h3>Variables<a class="headerlink" href="#variables" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="gildas-specific">
-<h3>Gildas Specific<a class="headerlink" href="#gildas-specific" title="Permalink to this headline">¶</a></h3>
+<h4>Gildas Specific<a class="headerlink" href="#gildas-specific" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-python"><div class="highlight"><pre>dimensions
 naxis_1 : number of pixels in x-axis.
 naxis_2 : number of pixels in y-axis.
@@ -758,9 +629,12 @@ central_coordinate_equatorial : TODO
 <p class="last">If needed more variables can be loaded when opening a Gildas map without
 problems , so far only those that were needed are implemented.</p>
 </div>
+</div>
+</div>
+</div>
 <hr class="docutils" />
 <div class="section" id="how-is-gildas-used-by-astrolyze">
-<h4>How is Gildas used by astrolyze<a class="headerlink" href="#how-is-gildas-used-by-astrolyze" title="Permalink to this headline">¶</a></h4>
+<h2>How is Gildas used by astrolyze<a class="headerlink" href="#how-is-gildas-used-by-astrolyze" title="Permalink to this headline">¶</a></h2>
 <p>Gildas is used in two different ways in Atrolyze:</p>
 <div class="highlight-python"><div class="highlight"><pre>1. A Gildas script, with a final exit at the end is created and executed via
    the os python package, sending commands to the bash.
@@ -774,18 +648,15 @@ deleted after execution. The standard script looks as follows:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="nb">exit</span>
 </pre></div>
 </div>
-</div>
-</div>
-</div>
 <div class="section" id="wrapping-gildas-tasks">
-<h2>Wrapping Gildas Tasks<a class="headerlink" href="#wrapping-gildas-tasks" title="Permalink to this headline">¶</a></h2>
+<h3>Wrapping Gildas Tasks<a class="headerlink" href="#wrapping-gildas-tasks" title="Permalink to this headline">¶</a></h3>
 </div>
 <div class="section" id="direc-use-of-pygildas">
-<h2>Direc use of pyGildas<a class="headerlink" href="#direc-use-of-pygildas" title="Permalink to this headline">¶</a></h2>
+<h3>Direc use of pyGildas<a class="headerlink" href="#direc-use-of-pygildas" title="Permalink to this headline">¶</a></h3>
 </div>
 </div>
 <div class="section" id="using-miriad">
-<h1>Using miriad<a class="headerlink" href="#using-miriad" title="Permalink to this headline">¶</a></h1>
+<h2>Using miriad<a class="headerlink" href="#using-miriad" title="Permalink to this headline">¶</a></h2>
 <p>A miriad map is opened with:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="nb">map</span> <span class="o">=</span> <span class="n">GildasMap</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_12.gdf&#39;</span><span class="p">)</span>  <span class="p">,</span>
@@ -793,7 +664,7 @@ deleted after execution. The standard script looks as follows:</p>
 </div>
 <p>In this mode only the variables created by <code class="xref py py-class docutils literal"><span class="pre">main</span></code> are created.</p>
 <p>Only the <code class="docutils literal"><span class="pre">&quot;smooth&quot;</span></code> function from miriad is implemented in astrolyze see
-<a class="reference internal" href="maps.html#astrolyze.maps.miriad.MiriadMap.smooth" title="astrolyze.maps.miriad.MiriadMap.smooth"><code class="xref py py-func docutils literal"><span class="pre">smooth()</span></code></a>.  When all header
+<code class="xref py py-func docutils literal"><span class="pre">smooth()</span></code>.  When all header
 variables are set correctly this function is aware of the map units and beam
 sizes and can calculate the correct scaling that has to be applied after
 convolution. The way astrolyze is set up the smooth function expects the map
@@ -806,8 +677,8 @@ wrapper is programmed such that it is aware of different input variables.</p>
 </div>
 <hr class="docutils" />
 <div class="section" id="using-the-stack-module">
-<h1>Using the stack module<a class="headerlink" href="#using-the-stack-module" title="Permalink to this headline">¶</a></h1>
-<p>The <a class="reference internal" href="maps.html#astrolyze.maps.stack.Stack" title="astrolyze.maps.stack.Stack"><code class="xref py py-func docutils literal"><span class="pre">Stack</span></code></a> class builds on top of the
+<h2>Using the stack module<a class="headerlink" href="#using-the-stack-module" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="xref py py-func docutils literal"><span class="pre">Stack</span></code> class builds on top of the
 classes:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">Main</span>
 <span class="n">FitsMap</span>
@@ -825,13 +696,22 @@ maps to be on the same resolution and/or the same pixel grid.</p>
 </ul>
 </div>
 <div class="section" id="using-the-sed-module">
-<span id="label-sed-module"></span><h1>Using the sed module<a class="headerlink" href="#using-the-sed-module" title="Permalink to this headline">¶</a></h1>
+<span id="label-sed-module"></span><h2>Using the sed module<a class="headerlink" href="#using-the-sed-module" title="Permalink to this headline">¶</a></h2>
 <p>The module SED makes extensive use of the stack functionality of the maps
 module...</p>
+</div>
+<div class="section" id="using-functions">
+<h2>Using Functions<a class="headerlink" href="#using-functions" title="Permalink to this headline">¶</a></h2>
 <p>The module <code class="docutils literal"><span class="pre">functions</span></code> contains all functions that are not directly related
 to manipulation of maps or spectra and counter intuitive also all constants used
 in astrolyze as long as they are not available by the standard python
 installation (this may not be true however.).</p>
+</div>
+<div class="section" id="using-lte">
+<h2>Using LTE<a class="headerlink" href="#using-lte" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
 <table class="docutils citation" frame="void" id="gildas" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
@@ -851,6 +731,7 @@ installation (this may not be true however.).</p>
 </tbody>
 </table>
 </div>
+</div>
 
 
            </div>
@@ -859,10 +740,10 @@ installation (this may not be true however.).</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="maps.html" class="btn btn-neutral float-right" title="Maps" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="cookbook.html" class="btn btn-neutral float-right" title="Cookbook" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="installation.html" class="btn btn-neutral" title="Installation of astrolyze" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="motivation.html" class="btn btn-neutral" title="Motivation - What is astrolyze all about" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -893,7 +774,7 @@ installation (this may not be true however.).</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

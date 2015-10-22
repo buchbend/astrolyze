@@ -16,15 +16,15 @@ to install the package.
 
 When installed with the --user flag the package will be installed in::
 
-    /home/USERNAME/.local/lib/python2.7/site-packages/astrolyze
+  /home/USERNAME/.local/lib/python2.7/site-packages/astrolyze
 
 The configuration files for `astrolyze` are installed in::
 
-    /home/USERNAME/.astrolyze/
+  /home/USERNAME/.astrolyze/
 
 Further a script to configure the database for additional information is installed in::
 
-    /home/USERNAME/.local/bin/
+  /home/USERNAME/.local/bin/
 
 
 
@@ -68,7 +68,7 @@ Also Miriad just has to be installed and working. At the moment only the smooth
 function of miriad is used in astrolyze but it is worth installing it since it
 it a common task.
 
-A package for Ubuntu 14 can be found here:
+A package for Ubuntu 14.04 (works for 15.04 as well) can be found here:
 
 ftp://ftp.astro.umd.edu/progs/carma/miriad_2014.7/miriad_linux64_u14_gfortran.tar.gz
 

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Installation of astrolyze &mdash; astrolyze 0.1.5 documentation</title>
+  <title>Installation of astrolyze &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,8 +30,8 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="index.html"/>
-        <link rel="next" title="Motivation" href="manual.html"/>
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="index.html"/>
+        <link rel="next" title="Motivation - What is astrolyze all about" href="motivation.html"/>
         <link rel="prev" title="astrolyze Documentation" href="index.html"/> 
 
   
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -86,33 +86,20 @@
             
                 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="">Installation of astrolyze</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#dependencies">Dependencies</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#python">Python</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#gildas">Gildas</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miriad">Miriad</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-of-the-optional-database">Configuration of the (optional) Database</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -160,50 +147,6 @@
   <div class="section" id="installation-of-astrolyze">
 <h1>Installation of astrolyze<a class="headerlink" href="#installation-of-astrolyze" title="Permalink to this headline">¶</a></h1>
 <p>astrolyze is only tested on Linux/Ubuntu so far.</p>
-<div class="section" id="dependencies">
-<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="python">
-<h3>Python<a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h3>
-<p>astrolyze depends on the following python packages</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">numpy</span>
-<span class="n">pyfits</span>
-<span class="n">matplotlib</span>
-<span class="n">scipy</span>
-<span class="n">pywcs</span>
-<span class="n">pysqlite2</span>
-<span class="n">generaltools</span>
-</pre></div>
-</div>
-<p>In Ubuntu (and thus most probable also Debian) these dependencies can be
-installed via:</p>
-<div class="highlight-python"><div class="highlight"><pre>sudo apt-get install python-matplotlib python-pywcs python-scipy python-numpy
-python-pysqlite2 python-pyfits
-</pre></div>
-</div>
-<p><cite>generaltools</cite> can be installed via pypi:</p>
-<div class="highlight-python"><div class="highlight"><pre>sudo pip install generaltools
-</pre></div>
-</div>
-<div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">Astrolyze does not work in python3 yet. Since the Gildas Python extension is not yet available for python 3!!</p>
-</div>
-</div>
-<div class="section" id="gildas">
-<h3>Gildas<a class="headerlink" href="#gildas" title="Permalink to this headline">¶</a></h3>
-<p>To be able to use GILDAS from within astrolyze it is enough to have a working
-GILDAS installation compiled with the python support. The actual GILDAS version
-and installation instructions can be found here:</p>
-<p><a class="reference external" href="http://www.iram.fr/IRAMFR/GILDAS/">http://www.iram.fr/IRAMFR/GILDAS/</a></p>
-</div>
-<div class="section" id="miriad">
-<h3>Miriad<a class="headerlink" href="#miriad" title="Permalink to this headline">¶</a></h3>
-<p>Also Miriad just has to be installed and working. At the moment only the smooth
-function of miriad is used in astrolyze but it is worth installing it since it
-it a common task. Miriad and instructions for installation can be found here:</p>
-<p><a class="reference external" href="ftp://ftp.atnf.csiro.au/pub/software/miriad/INSTALL.html">ftp://ftp.atnf.csiro.au/pub/software/miriad/INSTALL.html</a></p>
-</div>
-</div>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
 <p>Astrolyze is available via pypi, use:</p>
@@ -222,6 +165,51 @@ it a common task. Miriad and instructions for installation can be found here:</p
 <p>Further a script to configure the database for additional information is installed in:</p>
 <div class="highlight-python"><div class="highlight"><pre>/home/USERNAME/.local/bin/
 </pre></div>
+</div>
+</div>
+<div class="section" id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="python">
+<h3>Python<a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h3>
+<p>astrolyze depends on the following python packages:</p>
+<blockquote>
+<div><div class="highlight-python"><div class="highlight"><pre><span class="n">astropy</span>
+<span class="n">numpy</span>
+<span class="n">scipy</span>
+<span class="n">matplotlib</span>
+<span class="n">pysqlite</span>
+<span class="n">docutils</span>
+<span class="n">generaltools</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>After installation of astrolyze via pip a list of these packages &#8220;requirements.txt&#8221; is copied to</p>
+<p><cite>/home/USER/.astrolyze/</cite></p>
+<p>The dependencies can be installed via pip:</p>
+<div class="highlight-python"><div class="highlight"><pre>pip install -r ~/.astrolyze/requirements.txt
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Astrolyze does not work in python3 yet. Since the Gildas Python extension is not yet available for python 3!!</p>
+</div>
+</div>
+<div class="section" id="gildas">
+<h3>Gildas<a class="headerlink" href="#gildas" title="Permalink to this headline">¶</a></h3>
+<p>To be able to use GILDAS from within astrolyze it is enough to have a working
+GILDAS installation compiled with the python support. The actual GILDAS version
+and installation instructions can be found here:</p>
+<p><a class="reference external" href="http://www.iram.fr/IRAMFR/GILDAS/">http://www.iram.fr/IRAMFR/GILDAS/</a></p>
+</div>
+<div class="section" id="miriad">
+<h3>Miriad<a class="headerlink" href="#miriad" title="Permalink to this headline">¶</a></h3>
+<p>Also Miriad just has to be installed and working. At the moment only the smooth
+function of miriad is used in astrolyze but it is worth installing it since it
+it a common task.</p>
+<p>A package for Ubuntu 14.04 (works for 15.04 as well) can be found here:</p>
+<p><a class="reference external" href="ftp://ftp.astro.umd.edu/progs/carma/miriad_2014.7/miriad_linux64_u14_gfortran.tar.gz">ftp://ftp.astro.umd.edu/progs/carma/miriad_2014.7/miriad_linux64_u14_gfortran.tar.gz</a></p>
+<p>and instructions for the installation of the package here:</p>
+<p><a class="reference external" href="http://vilhelmp.blogspot.de/2011/10/installing-sma-miriad-in-latest-ubuntu.html">http://vilhelmp.blogspot.de/2011/10/installing-sma-miriad-in-latest-ubuntu.html</a></p>
 </div>
 </div>
 <div class="section" id="configuration-of-the-optional-database">
@@ -296,7 +284,7 @@ comparing.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="manual.html" class="btn btn-neutral float-right" title="Motivation" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="motivation.html" class="btn btn-neutral float-right" title="Motivation - What is astrolyze all about" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="index.html" class="btn btn-neutral" title="astrolyze Documentation" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -330,7 +318,7 @@ comparing.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

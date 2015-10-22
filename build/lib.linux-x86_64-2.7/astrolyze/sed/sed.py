@@ -24,22 +24,64 @@ class SedStack(stack.Stack):
     r"""
     Reads in the SEDs from the maps stored under the input folder at given
     coordinates and creates a stack of Sed objects.
+
+    Parameters
+    ----------
+
+    folder : str
+        Input Folder
+    data_format : str
+        Filter on data format. Default `.fits`
+    coordinates : list
+        Coordinates where the SEDs should be extracted.
+    full_map : bool
+        If True temperature, mass and beta maps will be created by fitting the
+        SEDs at every pixel.
+    flux_acquisition : str
+        `aperture` or `pixel` see explanation in
+        :py:mod:`astrolyze.fits.FitsMap.flux_read`
+    aperture : int
+        Aperture to use for flux extraction if flux_acquisition == `aperture`
+    annotation : bool
+        If true a kvis annotation file is created with the positions where the
+        SEDs, have been extracted.
+    output_folder : str
+        Where the data is stored.
+    number_components : int
+        Number of SED components to fit.
+    mass_guess : list
+        List with guesses for the initial dust mass. Has to have at
+        least the same lenght as there are `number_components`
+    temperature_guess : list
+        List with guesses for the initial dust temperature. Has to have at
+        least the same lenght as there are `number_components`
+    beta_guess : list
+        List with a guess for the beta value to be used has to be list with
+        singel entry beta_guess=[2.].
+
     """
     def __init__(self, folder, data_format='.fits', coordinates=False,
-                 flux_acquisition='aperture', aperture=120, annotation=False,
-                 full_map=False, output_folder=None, number_components=2):
+                 flux_acquisition='pixel', aperture=None, annotation=False,
+                 full_map=False, output_folder=None, number_components=2,
+                 mass_guess=None, temperature_guess=None, beta_guess=None):
         # Read in the stack from the input folder.
         stack.Stack.__init__(self, folder=folder, data_format=data_format)
         # Pass the input parameters to the variables
         self.flux_acquisition = flux_acquisition
         self.aperture = aperture
         self.number_components = number_components
+        self.mass_guess = mass_guess
+        self.temperature_guess = temperature_guess
+        self.beta_guess = beta_guess
         if self.flux_acquisition == 'pixel':
             if max(self.resolutions) != min(self.resolutions):
-                print 'Maps do not have the same resolutions'
+                self.log.error('Maps do not have the same resolutions')
                 sys.exit()
         self.annotation = annotation
         # check if the coordinates are given as
+        if coordinates and full_map:
+            self.log.error("coordinates and full_map are exclusive")
+            raise AttributeError
         if not coordinates and full_map and output_folder:
             self.get_map_seds(output_folder)
         if coordinates and not full_map:
@@ -49,10 +91,14 @@ class SedStack(stack.Stack):
                 self.coordinates = coordinates
             self.get_seds()
 
-    def __repr__(self):
+    def __str__(self):
         string = "SedStack({})\nContains:\n".format(self.folder)
         for map_ in self.stack:
             string += "{}\n".format(map_)
+        return string
+
+    def __repr__(self):
+        string = "SedStack({})".format(self.folder)
         return string
 
     def __len__(self):
@@ -137,7 +183,10 @@ class SedStack(stack.Stack):
                 names += self.source_names[x]
             flux_array = np.asarray(flux_array)
             self.sed_stack += [Sed(self.source_names[x], coordinate,
-                                   flux_array, self.number_components)]
+                                   flux_array, self.number_components,
+                                   mass_guess=self.mass_guess,
+                                   temperature_guess=self.temperature_guess,
+                                   beta_guess=self.beta_guess)]
 
     def get_map_seds(self, output_folder):
         r""" This functions fits the SED at every pixel of the input maps.
@@ -204,8 +253,10 @@ class SedStack(stack.Stack):
                 flux_array = np.asarray(flux_array)
                 coordinate = [i, j]
                 sed = Sed(source_name, coordinate, flux_array,
-                          self.number_components,
-                          init_fit=True)
+                          self.number_components, init_fit=True,
+                          temperature_guess=self.temperature_guess,
+                          mass_guess=self.mass_guess,
+                          beta_guess=self.beta_guess)
                 for x, temp in enumerate(sed.fit_temperatures):
                     self.temperature_maps[x][i][j] = temp
                 for x, mass in enumerate(sed.fit_masses):
@@ -280,10 +331,19 @@ class Sed(object):
         The array that is created by SedStack with the entries of wavelength,
         flux, and error.
     init_fit : logic
-        Steers whether the SED is fitted already during creation.
+        Controls whether the SED is fitted already during creation.
+    number_components : int
+        The number of greybody components to be fitted. Default: 2.
+    temperature_guess : list
+        List with the intial guesses for the temperature
+    mass_guess : list
+        List with the intial guesses for the masses
+    beta_guess : list
+        List with the intial guesses of the beta value
     """
     def __init__(self, source_name, coordinate, flux_array,
-                 number_components=2, init_fit=True):
+                 number_components=2, init_fit=True, temperature_guess=None,
+                 mass_guess=None, beta_guess=None):
         self.log = log_tools.init_logger(
             directory="/home/{}/.astrolyze/".format(USER),
             name="astrolyze"
@@ -291,6 +351,9 @@ class Sed(object):
         self.source_name = source_name
         self.coordinate = coordinate
         self.number_components = number_components
+        self.temperature_guess = temperature_guess
+        self.mass_guess = mass_guess
+        self.beta_guess = beta_guess
         self.flux_array = flux_array
         self.fit_temperatures = None
         self.fit_masses = None
@@ -301,30 +364,37 @@ class Sed(object):
             self.grey_body_fit()
             self.log.debug(self.info())
 
+    def __repr__(self):
+        return "Sed(source_name={}, coordinate={}, )"
+
+    def __str__(self):
+        return self.info()
+
     def info(self):
-        print 'Source Name: ' + str(self.source_name)
-        print 'Coordinate: ' + str(self.coordinate)
-        print 'flux_array: ' + str(self.flux_array)
+        string =  'Source Name: {}\n'.format(self.source_name)
+        string += 'Coordinate: {}\n'.format(self.coordinate)
+        string += 'flux_array: {}\n'.format(self.flux_array)
         if self.fit_done:
-            print 'Temperature Fit: ' + str(self.fit_temperatures)
-            print 'Mass Fit: ' + str(self.fit_masses)
-            print 'Beta Fit: ' + str(self.fit_beta)
-            print 'Chisq: ' + str(self.fit_chisq)
+            string += 'Temperature Fit: {}\n'.format(self.fit_temperatures)
+            string += 'Mass Fit: {}\n'.format(self.fit_masses)
+            string += 'Beta Fit: {}\n'.format(self.fit_beta)
+            string += 'Chisq: {}\n'.format(self.fit_chisq)
         if not self.fit_done:
-            print 'SED not fitted yet'
+            sting = 'SED not fitted yet'
+        return string
 
     def set_defaults(self):
         # Set a default guess for the input parameter
         # needed to run a greybody Fit.
-        init_guess_temperature = [20, 50, 100, 150, 200]
-        init_guess_masses = [1e5, 1e2, 1e1 ,1e-1, 1e-2]
-        init_beta_guess = [2.]
+        init_guess_temperature = self.temperature_guess or [20, 50, 100, 150, 200]
+        init_guess_masses = self.mass_guess or [1e5, 1e2, 1e1 ,1e-1, 1e-2]
+        init_beta_guess = self.beta_guess or [2.]
         self.temperature_guess = []
         self.mass_guess = []
         for x in range(self.number_components):
             self.temperature_guess += [init_guess_temperature[x]]
             self.mass_guess += [init_guess_masses[x]]
-        self.beta_guess = [2.]
+        self.beta_guess = init_beta_guess
         self.p1 = [self.temperature_guess, self.mass_guess, self.beta_guess]
         self.p2 = None
         # Setting up default input choices for the
@@ -336,6 +406,25 @@ class Sed(object):
         self.rawChiSq = None
         self.residuals = False
         self.nu_or_lambda = 'nu'
+
+    def set_initial_guess(self, temperature_guess, mass_guess, beta_guess):
+        init_guess_temperature = temperature_guess
+        init_guess_masses = mass_guess
+        init_beta_guess = beta_guess
+        self.temperature_guess = []
+        self.mass_guess = []
+        if len(init_guess_temperature) < self.number_components:
+            self.log.error("Not enough temperature guesses entered.")
+            raise SystemExit
+        if len(init_guess_masses) < self.number_components:
+            self.log.error("Not enough mass guesses entered.")
+            raise SystemExit
+        for x in range(self.number_components):
+            self.temperature_guess += [init_guess_temperature[x]]
+            self.mass_guess += [init_guess_masses[x]]
+        self.beta_guess = beta_guess
+        self.p1 = [self.temperature_guess, self.mass_guess, self.beta_guess]
+        self.p2 = None
 
     def grey_body_fit(self):
         r""""

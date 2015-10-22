@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Spectra &mdash; astrolyze 0.1.5 documentation</title>
+  <title>Spectra &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,9 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="index.html"/>
-        <link rel="next" title="SEDs" href="sed.html"/>
-        <link rel="prev" title="Maps" href="maps.html"/> 
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -63,7 +61,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -86,26 +84,10 @@
             
                 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="maps.html">Maps</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Spectra</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#class">Class</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -152,11 +134,9 @@
             
   <div class="section" id="spectra">
 <h1>Spectra<a class="headerlink" href="#spectra" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="class">
-<h2>Class<a class="headerlink" href="#class" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="astrolyze.spectra.class_.ClassSpectra">
-<em class="property">class </em><code class="descclassname">astrolyze.spectra.class_.</code><code class="descname">ClassSpectra</code><span class="sig-paren">(</span><em>map_name</em>, <em>nameConvention=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.spectra.class_.ClassSpectra" title="Permalink to this definition">¶</a></dt>
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.spectra.class_.</code><code class="descname">ClassSpectra</code><span class="sig-paren">(</span><em>map_name</em>, <em>nameConvention=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Provides some usefull automated functions to work on Class
 Spectra in an convenient way.</p>
 <p class="rubric">Examples</p>
@@ -171,8 +151,8 @@ as follows</p>
 </pre></div>
 </div>
 <dl class="method">
-<dt id="astrolyze.spectra.class_.ClassSpectra.get_average_spectrum">
-<code class="descname">get_average_spectrum</code><span class="sig-paren">(</span><em>prefix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.get_average_spectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.spectra.class_.ClassSpectra.get_average_spectrum" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">get_average_spectrum</code><span class="sig-paren">(</span><em>prefix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.get_average_spectrum"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Averages all spectra in a cube.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -188,16 +168,16 @@ consistent.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="astrolyze.spectra.class_.ClassSpectra.get_region_from_cube">
-<code class="descname">get_region_from_cube</code><span class="sig-paren">(</span><em>coordinate</em>, <em>angle=0</em>, <em>prefix=None</em>, <em>accuracy=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.get_region_from_cube"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.spectra.class_.ClassSpectra.get_region_from_cube" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">get_region_from_cube</code><span class="sig-paren">(</span><em>coordinate</em>, <em>angle=0</em>, <em>prefix=None</em>, <em>accuracy=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.get_region_from_cube"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>The same as :py:func:<code class="docutils literal"><span class="pre">get_spectra_from_cube</span></code> but returns all spectra
 found inside a circular region arounf coordinate and in a radius of
 accuracy arcsec. (&#8220;set match &#8220;&#8216;accuracy&#8217;)</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="astrolyze.spectra.class_.ClassSpectra.get_spectra_from_cube">
-<code class="descname">get_spectra_from_cube</code><span class="sig-paren">(</span><em>coordinate</em>, <em>angle=0</em>, <em>prefix=None</em>, <em>accuracy=2</em>, <em>region=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.get_spectra_from_cube"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.spectra.class_.ClassSpectra.get_spectra_from_cube" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">get_spectra_from_cube</code><span class="sig-paren">(</span><em>coordinate</em>, <em>angle=0</em>, <em>prefix=None</em>, <em>accuracy=2</em>, <em>region=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.get_spectra_from_cube"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Extracts one spectra at the position of coordinates from a
 spectral cube.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -228,42 +208,32 @@ range with the given coordinate.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="astrolyze.spectra.class_.ClassSpectra.quick_view">
-<code class="descname">quick_view</code><span class="sig-paren">(</span><em>number=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.quick_view"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.spectra.class_.ClassSpectra.quick_view" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">quick_view</code><span class="sig-paren">(</span><em>number=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.quick_view"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Helper Functions that displays the first spectrum of the loaded
 file.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="astrolyze.spectra.class_.ClassSpectra.save_figure">
-<code class="descname">save_figure</code><span class="sig-paren">(</span><em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.save_figure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.spectra.class_.ClassSpectra.save_figure" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">save_figure</code><span class="sig-paren">(</span><em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.save_figure"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Helper function that saves the current plot.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="astrolyze.spectra.class_.ClassSpectra.set_defaults">
-<code class="descname">set_defaults</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.set_defaults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#astrolyze.spectra.class_.ClassSpectra.set_defaults" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">set_defaults</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.set_defaults"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Reset all selection criteria.</p>
 </dd></dl>
 
 </dd></dl>
 
 </div>
-</div>
 
 
            </div>
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="sed.html" class="btn btn-neutral float-right" title="SEDs" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="maps.html" class="btn btn-neutral" title="Maps" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
-    </div>
   
 
   <hr/>
@@ -292,7 +262,7 @@ file.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

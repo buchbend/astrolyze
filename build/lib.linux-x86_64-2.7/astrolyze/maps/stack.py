@@ -1,5 +1,7 @@
 # Copyright (C) 2012, Christof Buchbender
 # BSD License (License.txt)
+
+# standart library
 import math
 import os
 import string
@@ -7,25 +9,51 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
+# from generaltools
+from generaltools import log_tools
+
+# from astrolyze
 import main
 import fits
 import gildas
 import miriad
-
-from generaltools import log_tools
 
 import astrolyze.functions.constants as const
 
 USER = os.getenv("USER")
 
 class Stack(object):
-    r""" Allows to treat a folder of images as a whole and to perform the same
-    transformations on all of the maps. It is also the basis for the SED
-    package. The images in the input folder can have arbitrary formats, units,
-    resolutions and other specifications.
-    The Stack class can help to unify the different parameters of the maps to
-    help comparing them.
-    """
+    r""" Class to work with several maps at once.
+
+    Allows to treat all images inside a folder simultaneously. This allows to
+    to perform the same transformations on all maps.
+
+    The images in the input folder can have arbitrary formats, units,
+    resolutions and other properties. The Stack class can help to unify the
+    different parameters of the maps to help comparing them.
+
+
+    Parameters
+    ----------
+
+    folder : str
+        The folder containing the images that are to be treated as a stack
+    data_format : str
+        If not None filter images by format.
+
+    Examples
+    --------
+
+    The stack class can be used like builtin objects that are iterable e.g.:
+
+        >>> st = Stack("folder_name")
+        >>> list_map_names = [i.map_name for i in st]
+
+
+    .. note::
+
+      `Stack` is also the basis for the :py:mod:`astrolyze.sed.Sed` package.
+       """
     def __init__(self, folder, data_format=None):
         r"""
         Initialization of the stack. Reading in the maps and creating a list
@@ -59,7 +87,7 @@ class Stack(object):
         )
 
     def __repr__(self):
-        string = "Stack({})\nContains:\n".format(self.folder)
+        string = "Stack(\"{}\")\nContains:\n".format(self.folder)
         for map_ in self.stack:
             string += "{}\n".format(map_)
         return string

@@ -291,7 +291,7 @@ def grey_body_fit(data, start_parameter, nu_or_lambda='nu', fit_beta=False,
         given dataset.
     chisq/rawChiSq :
         chisq is reduced chisq with degrees of freedom:
-            dof= #dataPoints-#freeFitParameters-1
+        dof= #dataPoints-#freeFitParameters-1
 
     Other Parameters
     ----------------
@@ -1366,10 +1366,12 @@ def frequency_to_wavelength(frequency):
 
     Parameters
     ----------
+
     frequency : float [GHZ]
 
     Returns
-   -------
+    -------
+
     wavelength : float [micron]
     """
     # Conversion from GHz to Hz

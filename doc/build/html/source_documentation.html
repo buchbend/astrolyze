@@ -1,0 +1,3065 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Source Documenation &mdash; astrolyze 0.2.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="index.html"/>
+        <link rel="prev" title="Cookbook" href="cookbook.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> astrolyze
+          
+
+          
+            
+            <img src="_static/logo1.jpg" class="logo" />
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation of astrolyze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cookbook.html">Cookbook</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Source Documenation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#maps">Maps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#main">Main</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fitsmap">FitsMap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gildasmap">GildasMap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#miriadmap">MiriadMap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stack">Stack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tools">Tools</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#spectra">Spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#seds">SEDs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#lte">LTE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#functions">Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#astro-functions">astro_functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#units">units</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#constants">constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">astrolyze</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Source Documenation</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/source_documentation.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="source-documenation">
+<h1>Source Documenation<a class="headerlink" href="#source-documenation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="maps">
+<h2>Maps<a class="headerlink" href="#maps" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="main">
+<span id="main-label"></span><h3>Main<a class="headerlink" href="#main" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.maps.main.</code><code class="descname">Map</code><span class="sig-paren">(</span><em>map_name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/main.html#Map"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p><code class="docutils literal"><span class="pre">Map</span></code> is the parent Class for the <code class="docutils literal"><span class="pre">maps</span></code>-package. It contains all
+functions that are common to all supported map-formats, i.e. Fits,
+GILDAS and Miriad. This class is only supposed to be called through
+the FitsMap, GildasMap, and MiriadMap classes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>map_name</strong> (<em>string</em>) &#8211; The name and path of the file that is to be initialized to the maps
+package.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt>
+<code class="descname">change_map_name</code><span class="sig-paren">(</span><em>source=None</em>, <em>telescope=None</em>, <em>species=None</em>, <em>fluxUnit=None</em>, <em>resolution=None</em>, <em>comments=None</em>, <em>dataFormat=False</em>, <em>prefix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/main.html#Map.change_map_name"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>This function can be used to change the names of the maps and make a
+copy of the file to the new name and/or location.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">flux_conversion</code><span class="sig-paren">(</span><em>x=None</em>, <em>major=None</em>, <em>minor=None</em>, <em>nu_or_lambda='nu'</em>, <em>direction=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/main.html#Map.flux_conversion"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calulates conversion between K.km/s and Jy/beam and vise versa.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>x</strong> (<em>float [GHz]</em>) &#8211; Wavelength/frequency. Defaults to the frequency of the loaded map,
+i.e. self.frequency</li>
+<li><strong>major</strong> (<em>float</em>) &#8211; Major Axis Beam (arcsec). Default None, i.e. using self.resolution.</li>
+<li><strong>minor</strong> (<em>float</em>) &#8211; Minor Axis Beam(arcsec). Default None, i.e. using self.resolution.</li>
+<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Choose type of x: frequency = <code class="docutils literal"><span class="pre">'nu'</span></code> or wavelength =
+<code class="docutils literal"><span class="pre">'lambda'</span></code>.</li>
+<li><strong>direction</strong> (<em>string</em>) &#8211; choose conversion direction <code class="docutils literal"><span class="pre">'kelvin_to_jansky'</span></code>
+means Kelvin to Jansky; <code class="docutils literal"><span class="pre">'jansky_to_kelvin'</span></code> Jansky to Kelvin.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>If self.frequency and self.resolution are correctly set, this functions
+does not need any input. Otherwise this has to be given explicitly.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">get_beam_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/main.html#Map.get_beam_size"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates the beam-size in steradians and in m^2. Fot the latter
+the distance to the source has to be given.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><em>Initialization if the variables</em></li>
+<li><em>self.beamSizeSterad and self.beamSizeM2</em></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The formula used is:</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">resolutionToString</code><span class="sig-paren">(</span><em>resolution=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/main.html#Map.resolutionToString"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Converts the resolution list to a string to be printed and
+included in the file names.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">returnName</code><span class="sig-paren">(</span><em>source=None</em>, <em>telescope=None</em>, <em>species=None</em>, <em>fluxUnit=None</em>, <em>resolution=None</em>, <em>comments=None</em>, <em>dataFormat=False</em>, <em>prefix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/main.html#Map.returnName"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Returns the Name corresponding to the Name convention. Single keywords
+can be changed.</p>
+<p>This function is useful to generate a writeout name for a changed file
+without overwriting the current <code class="docutils literal"><span class="pre">self.map_name</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>possible parameters from the &quot;Naming Convention&quot; plus the new</strong> (<em>All</em>) &#8211; </li>
+<li><strong>prefix.</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="fitsmap">
+<h3>FitsMap<a class="headerlink" href="#fitsmap" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.maps.fits.</code><code class="descname">FitsMap</code><span class="sig-paren">(</span><em>map_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/fits.html#FitsMap"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Fits Map manipulation making extensive use of the
+pyfits package.</p>
+<dl class="method">
+<dt>
+<code class="descname">change_unit</code><span class="sig-paren">(</span><em>final_unit</em>, <em>frequency=None</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/fits.html#FitsMap.change_unit"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Changes the unit of a map</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>final_unit</strong> (<em>string</em>) &#8211; <p>The unit to change the map to. Possible are:</p>
+<ol class="arabic">
+<li>Jy/beam: <code class="docutils literal"><span class="pre">&quot;JyB&quot;</span></code> <code class="docutils literal"><span class="pre">&quot;JyBeam&quot;</span></code></li>
+<li>Jy/pixel: <code class="docutils literal"><span class="pre">&quot;JyP&quot;</span></code>, <code class="docutils literal"><span class="pre">&quot;JyPix&quot;</span></code>, <code class="docutils literal"><span class="pre">&quot;JyPixel&quot;</span></code></li>
+<li>MJy/sterad: <code class="docutils literal"><span class="pre">&quot;MJyPsr&quot;</span></code>, <code class="docutils literal"><span class="pre">&quot;MJPSR&quot;</span></code>, <code class="docutils literal"><span class="pre">&quot;MJy/sr&quot;</span></code></li>
+<li>Main Beam Temperature: <code class="docutils literal"><span class="pre">&quot;Tmb&quot;</span></code>, <code class="docutils literal"><span class="pre">&quot;T&quot;</span></code>, <code class="docutils literal"><span class="pre">&quot;Kkms&quot;</span></code></li>
+<li>erg/s/pixel: <code class="docutils literal"><span class="pre">&quot;ergs&quot;</span></code> <code class="docutils literal"><span class="pre">&quot;ERGPSECPPIX&quot;</span></code>, <code class="docutils literal"><span class="pre">&quot;ERGPSECPPIXEL&quot;</span></code>, <code class="docutils literal"><span class="pre">&quot;ERG-S-1-Pixel&quot;</span></code>, <code class="docutils literal"><span class="pre">&quot;ERG-S-1&quot;</span></code></li>
+<li>erg/s/beam: <code class="docutils literal"><span class="pre">&quot;ERGPSECPBEAM&quot;</span></code></li>
+<li>erg/s/sterad <code class="docutils literal"><span class="pre">&quot;ERGPERSTER&quot;</span></code></li>
+</ol>
+</li>
+<li><strong>frequency</strong> (<em>float</em>) &#8211; Can be used if self.frequency is NaN. The frequency (in GHz) is
+needed for conversions between temperature and Jansky/Erg scale.
+Other conversions don&#8217;t need it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">This function is still in development and not all
+conversions may work properly.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">gauss_factor</code><span class="sig-paren">(</span><em>beamConv</em>, <em>beamOrig=None</em>, <em>dx1=None</em>, <em>dy1=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/fits.html#FitsMap.gauss_factor"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates the scaling factor to be applied after convolving
+a map in Jy/beam with a gaussian to get fluxes in Jy/beam again.</p>
+<p>This function is a copy of the FORTRAN gaufac function from the Miriad
+package, which determine the Gaussian parameters resulting from
+convolving two gaussians. This function yields the same result as
+the MIRIAD gaufac function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>beamConv</strong> (<em>list</em>) &#8211; A list of the [major axis, minor axis, position_angle]
+of the gaussion used for convolution.</li>
+<li><strong>beamOrig</strong> &#8211; Same format as beamConv but giving the parameters of the original
+beam of the map. As Default the self.resolution list is used.</li>
+<li><strong>dy1</strong> (<em>dx1,</em>) &#8211; Being the pixel size in both dimensions of the map.
+By default the <code class="docutils literal"><span class="pre">CDELT1</span></code> and <code class="docutils literal"><span class="pre">CDELT2</span></code> keywords from the
+fits header are used.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><em>fac</em> &#8211;
+Factor for the output Units.</li>
+<li><em>amp</em> &#8211;
+Amplitude of resultant gaussian.</li>
+<li><em>bmaj, bmin</em> &#8211;
+Major and minor axes of resultant gaussian.</li>
+<li><em>bpa</em> &#8211;
+Position angle of the resulting gaussian.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">get_pixel_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/fits.html#FitsMap.get_pixel_size"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates the Area of a pixel in m^2 and steradians if distance
+is given. If not only  steradians are calculated.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">pix2sky</code><span class="sig-paren">(</span><em>pixel</em>, <em>degrees_or_equatorial='degrees'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/fits.html#FitsMap.pix2sky"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates the Coordinates of a given Pixel.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pixel</strong> (<em>list</em>) &#8211; Pixel of the map; [x, y].</li>
+<li><strong>degrees_or_equatorial</strong> (<em>string</em>) &#8211; Either <code class="docutils literal"><span class="pre">&quot;degrees&quot;</span></code> or <code class="docutils literal"><span class="pre">&quot;equatorial&quot;</span></code>. Choosing the
+Format of the coordintates to be returnes.
+Defaults to <code class="docutils literal"><span class="pre">&quot;degrees&quot;</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>coordinate</strong> &#8211;
+The coordinates corresponding to pixel. Either in Degrees or in
+Equatorial coordinates, depending on the parameter
+<em>degrees_or_equatorial</em>.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">read_aperture</code><span class="sig-paren">(</span><em>position</em>, <em>apertureSize=0</em>, <em>backgroundSize=0</em>, <em>output=False</em>, <em>annotation=False</em>, <em>newAnnotation=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/fits.html#FitsMap.read_aperture"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Extract the sum and mean flux inside an aperture of a given size
+and at a given position..</p>
+<p>This function can be used to read the flux in the area of a circular
+aperture, as well as to correct for the background flux.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>position</strong> (<em>list</em>) &#8211; <p>The position in RA,DEC where the aperture is to be applied.
+The Format has to be either:</p>
+<blockquote>
+<div><ul>
+<li>[&#8216;RA&#8217;,&#8217;DEC&#8217;] with strings representing equatorial
+coordinates, e.g. [&#8216;01:34:32.8&#8217;, &#8216;+30:47:00.6&#8217;].</li>
+</ul>
+</div></blockquote>
+<p>or:</p>
+<blockquote>
+<div><ul>
+<li>[RA, DEC] where RA and DEC being the coordinates in Grad.</li>
+</ul>
+</div></blockquote>
+</li>
+<li><strong>apertureSize</strong> (<em>float [arcsec]</em>) &#8211; The diameter of the aperture to be applied.</li>
+<li><strong>backgroundSize</strong> (<em>float [arcsec]</em>) &#8211; The Size of the Anulli in which the background is to be
+estimated. The number to be given here correspond to the diameter
+of the circle in [arcsec ] descibing the outer border of the
+annuli, measured from the position given in position. Thus, the
+background is measurd in the ring described by apertureSize and
+backgroundSize. Default is 0 and thus <strong>no background substaction</strong>
+is applied.</li>
+<li><strong>output</strong> (<em>True or False</em>) &#8211; If True the function reports the calculated values during
+execution.</li>
+<li><strong>annotion</strong> (<em>logical</em>) &#8211; If True a kvis annotation file <code class="docutils literal"><span class="pre">&quot;apertures.ann&quot;</span></code> containing the
+aperture used to integrate the flux is created. Default is False,
+i.e. not to create the aperture.</li>
+<li><strong>newAnnotation</strong> (<em>logical</em>) &#8211; If True <code class="docutils literal"><span class="pre">&quot;apertures.ann&quot;</span></code> is overwritten. If False an old
+<code class="docutils literal"><span class="pre">&quot;apertures.ann&quot;</span></code> is used to append the new apertures. If it not
+exists a new one is created. The latter is the default.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>List</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">[Sum, Mean, Number of pixels]</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The pixel sizes have to be quadratic for the algorithm to work. It
+measures a circle by counting the pixels from the central pixel
+corresponding to the given coordinate.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">read_flux</code><span class="sig-paren">(</span><em>position</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/fits.html#FitsMap.read_flux"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Returns the value of the pixel that corresponds to the
+given positions of RA, DEC (J2000) in units of equatorial
+coordinates or degrees.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>position</strong> (<em>list</em>) &#8211; <p>The position in RA,DEC where the aperture is to be applied.
+The Format has to be either:</p>
+<blockquote>
+<div><ul class="simple">
+<li>[&#8216;RA&#8217;,&#8217;DEC&#8217;] with strings representing equatorial
+coordinates, e.g. [&#8216;01:34:32.8&#8217;, &#8216;+30:47:00.6&#8217;].</li>
+</ul>
+</div></blockquote>
+<p>or:</p>
+<blockquote>
+<div><ul class="simple">
+<li>[RA, DEC] where RA and DEC being the coordinates in Grad.</li>
+</ul>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>flux</strong> &#8211;
+The flux at the given position.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">float</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><code class="xref py py-meth docutils literal"><span class="pre">sky2pix()</span></code>, <code class="xref py py-meth docutils literal"><span class="pre">astFunc.equatorial_to_degrees()</span></code>, <code class="xref py py-meth docutils literal"><span class="pre">wcs.wcs_sky2pix()</span></code></p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">sky2pix</code><span class="sig-paren">(</span><em>coordinate</em>, <em>origin=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/fits.html#FitsMap.sky2pix"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates the Pixel corresponding to a given coordinate.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>coordinate</strong> (<em>list</em>) &#8211; Either [&#8216;RA&#8217;,&#8217;DEC&#8217;], e.g. [&#8216;1:34:7.00&#8217;, &#8216;+30:47:52.00&#8217;] in
+equatorial coordinates or [RA, DEC] in GRAD.</li>
+<li><strong>origin</strong> (<em>int</em>) &#8211; <code class="docutils literal"><span class="pre">0</span></code> or <code class="docutils literal"><span class="pre">1</span></code>; this steers how the first pixel is counted
+<code class="docutils literal"><span class="pre">0</span></code> is for usage with python as it starts to count from zero.
+<code class="docutils literal"><span class="pre">1</span></code> is the fits standart.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>pixel</strong> &#8211;
+[x, y]; the pixel coordinates of the map.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">List</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">toGildas</code><span class="sig-paren">(</span><em>prefix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/fits.html#FitsMap.toGildas"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Changes the current map to the Gildas Format.</p>
+<p>The function takes changes to the map_name variables
+made outside of functions into account via
+<code class="xref py py-func docutils literal"><span class="pre">astrolyze.maps.main.Map.returnName()</span></code> into account.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>prefix</strong> (<em>string or None</em>) &#8211; Path to location where the new gildas file will be stored.
+The default is None which defaults to the current self.prefix.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>To continue working with the gildas map use:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">toGildas</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>To only store the current map in the gildas format and go on
+working with the fits file use:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span><span class="o">.</span><span class="n">toGildas</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Here map is an Instance of the FitsMap class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">toMiriad</code><span class="sig-paren">(</span><em>prefix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/fits.html#FitsMap.toMiriad"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Changes the current map to the Miriad Format.</p>
+<p>The function takes changes to the map_name variables made outside of
+functions into account via <code class="xref py py-func docutils literal"><span class="pre">maps.main.Map.returnName()</span></code> into
+account.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>prefix</strong> (<em>string or None</em>) &#8211; Path to location where the new gildas file will be stored.
+The default is None which defaults to the current self.prefix.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>This function works like
+<code class="xref py py-func docutils literal"><span class="pre">maps.mapClassFits.FitsMap.toGildas()</span></code> and the same
+Examples apply.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">update_file</code><span class="sig-paren">(</span><em>backup=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/fits.html#FitsMap.update_file"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Writing changes to the self.data and/or self.header to the current
+file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>backup</strong> (<em>True or False</em>) &#8211; If True a copy of the original file is created having the extension
+<code class="docutils literal"><span class="pre">&quot;_old&quot;</span></code> after the file endind, i.e. some_name.fits -&gt; some_name.
+fits_old.</li>
+<li><strong>Returns</strong> &#8211; </li>
+<li><strong>--------</strong> &#8211; </li>
+<li><strong>FitsMap</strong> (<em>Instance</em>) &#8211; </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>If all variables that define the map name () are unchanged the current
+file is overwritten else</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="gildasmap">
+<h3>GildasMap<a class="headerlink" href="#gildasmap" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.maps.gildas.</code><code class="descname">GildasMap</code><span class="sig-paren">(</span><em>map_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Wrapping GILDAS functions to use them inline with Python.</p>
+<dl class="method">
+<dt>
+<code class="descname">custom_go_spectrum</code><span class="sig-paren">(</span><em>coordinate=False</em>, <em>size=False</em>, <em>angle=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.custom_go_spectrum"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>This function uses the <code class="docutils literal"><span class="pre">go</span> <span class="pre">spectrum</span></code> command from GREG to plot
+the spectra in a region given by <code class="docutils literal"><span class="pre">size</span></code> around the cooridinate given
+by <code class="docutils literal"><span class="pre">coordinate</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>coordinate</strong> (<em>list</em>) &#8211; A list with the coordinates in floats in units of Degrees, or in
+string for equatorial coordinates. Default to <code class="docutils literal"><span class="pre">False</span></code> which means
+that the center of the map, determined from the map header, is
+used.</li>
+<li><strong>size</strong> (<em>list</em>) &#8211; The region around the <code class="docutils literal"><span class="pre">coordinate</span></code> from which spectra are plotted
+in arcsec, e.g. size = [50, 50] means a region of 50x50 arcsec
+around the given cooridnate. Defaults to None, which translates to
+size = [0, 0] which in turn is interpreted as  the full map size
+by GREG.</li>
+<li><strong>angle</strong> (<em>float [degrees]</em>) &#8211; Needed if the map is rotated to get the correct offsets. Defaults
+to 0.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">goRot</code><span class="sig-paren">(</span><em>angle</em>, <em>prefix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.goRot"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Wrapper for the GREG go rot command, which rotates maps around their
+central coordinate stored in the header.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>angle</strong> (<em>float [deg]</em>) &#8211; Rotation angle.</li>
+<li><strong>prefix</strong> (<em>string</em>) &#8211; The path where the output is to be stored if different
+from the current prefix of the map.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>GildasMap Object</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Instance for the reprojected map.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span><span class="o">.</span><span class="n">goRot</span><span class="p">(</span><span class="mi">45</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To change the central coordinate first use
+<code class="xref py py-func docutils literal"><span class="pre">maps.gildas.GildasMap.reproject()</span></code> e.g.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">reproject</span><span class="p">(</span><span class="n">coord</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;new_RA_string&#39;</span><span class="p">,</span><span class="s">&#39;new_DEC_string&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span><span class="o">.</span><span class="n">goRot</span><span class="p">(</span><span class="mi">45</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">lmv</code><span class="sig-paren">(</span><em>fileout=None</em>, <em>prefix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.lmv"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Wrapper for the lmv command of GILDAS/CLASS.
+Extracts spectra from a spectral cube.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>fileout</strong> (<em>string</em>) &#8211; The name of the class file to write the spectra to. Defaults to
+the map_name with .30m ending.</li>
+<li><strong>prefix</strong> (<em>string</em>) &#8211; The path were the class file will be stores. Defaults to
+the current path.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">mask</code><span class="sig-paren">(</span><em>polygon</em>, <em>prefix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.mask"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Wrapper for the GREG task mask:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>polygon</strong> (<em>string</em>) &#8211; path to a GILDAS polygon file with ending <code class="docutils literal"><span class="pre">&quot;.pol&quot;</span></code></li>
+<li><strong>prefix</strong> (<em>string</em>) &#8211; The path where the output is to be stored if different
+from the current prefix of the map.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>mapObject</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">The masked map object.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="s">&#39;poly/sourceA.pol&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">moments</code><span class="sig-paren">(</span><em>velo_range=[0, 0], threshold=0, smooth='YES', prefix=None, comment=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.moments"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Wraps the GILDAS/GREG task moments.</p>
+<p>Creates the first three moments of the map.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>velo_range</strong> (<em>list</em>) &#8211; Velocity range for the integration.</li>
+<li><strong>threshold</strong> (<em>float</em>) &#8211; Value under which pixels are blanked.</li>
+<li><strong>smooth</strong> (<em>string</em>) &#8211; One of Either <code class="docutils literal"><span class="pre">&quot;NO&quot;</span></code> or <code class="docutils literal"><span class="pre">&quot;YES&quot;</span></code>. Controls
+if the map is smoothed in velocity before applying the cut
+threshold. Getting rid of noise peaks over the threshold.
+Defaults to <code class="docutils literal"><span class="pre">'YES'</span></code></li>
+<li><strong>prefix</strong> (<em>string</em>) &#8211; The path where the output is to be stored if different
+from the current prefix of the map.</li>
+<li><strong>comment</strong> (<em>string</em>) &#8211; Optional comments to be added to the new map name.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>mean</strong> &#8211;
+The zeroth moment, i.e. the integrated intensity, is returned as a
+GildasMap object.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">MapObject</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">quick_preview</code><span class="sig-paren">(</span><em>save=False</em>, <em>filename=None</em>, <em>window=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.quick_preview"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Plotting the map and optionally save the figure.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>save</strong> (<em>True or False</em>) &#8211; Choose wether or nor to save the figure.</li>
+<li><strong>filename</strong> (<em>string</em>) &#8211; The filename to for the saved plot. If None defaults to
+<code class="docutils literal"><span class="pre">'quick_preview.eps'</span></code>.</li>
+<li><strong>window</strong> (<em>True or False</em>) &#8211; Choose whether the image display is opened or not.
+Default True.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">reproject</code><span class="sig-paren">(</span><em>template=None</em>, <em>coord=None</em>, <em>prefix=None</em>, <em>keep_pixsize=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.reproject"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Wraps the GREG task reproject. Either use template <em>or</em> coord.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>template</strong> (<em>string</em>) &#8211; Full path to a map in GDF Format whose central
+coordinate and pixel size will serve as a template.</li>
+<li><strong>coord</strong> (<em>list</em>) &#8211; List of coordinate strings in RA DEC (J2000) that
+will become the new centre of the map.</li>
+<li><strong>prefix</strong> (<em>string</em>) &#8211; The path where the output is to be stored if different
+from the current prefix of the map. If None the current
+self.prefix of the GildasMap instance is used.</li>
+<li><strong>keep_pixsize</strong> (<em>bool</em>) &#8211; If False reproject guesses the new pixel sizes after reprojection
+these are normally smaller than the original ones.
+If True the old pixel sizes are enforced.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>GildasMap Object</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">Instance for the reprojected map.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal"><span class="pre">SystemExit</span></code> &#8211;
+If both <strong>template</strong> and <strong>coord</strong> are not <code class="docutils literal"><span class="pre">None</span></code>.</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211;
+If keep_pixsize is not a boolean.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span><span class="o">.</span><span class="n">reproject</span><span class="p">(</span><span class="n">coord</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;1:34:32.8&#39;</span><span class="p">,</span> <span class="s">&#39;30:47:00.6&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span><span class="o">.</span><span class="n">reproject</span><span class="p">(</span><span class="n">template</span> <span class="o">=</span> <span class="s">&#39;M33_SPIRE_250_JyB_18.1.gdf&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">References</p>
+<p>For more information on the Gildas task see:
+.. [1] www.iram.fr/GILDAS/</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">save_figure</code><span class="sig-paren">(</span><em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.save_figure"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Helper function that saves the current plot.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">set_defaults</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.set_defaults"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Reset all selection criteria.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">slice</code><span class="sig-paren">(</span><em>coordinate1</em>, <em>coordinate2</em>, <em>prefix=None</em>, <em>comment=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.slice"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Wrapper for the GREG task slice. Producing Position velocity cuts
+trough a map between coordinate1 and coordinate2.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>coordinate1</strong> (<em>string</em>) &#8211; The coordinate where the cut trough the map starts.</li>
+<li><strong>coordinate2</strong> (<em>string</em>) &#8211; The coordinate where the cut trough the map ends.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">A GildasMap object containing the slice.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>This only works with cubes.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">smooth</code><span class="sig-paren">(</span><em>new_resolution</em>, <em>old_resolution=None</em>, <em>prefix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.smooth"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Wrapper for the GILDAS/GREG task gauss_smooth.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>new_resolution</strong> (<em>float or list</em>) &#8211; <p>The resulting resolution after the smoothing.
+It can be:</p>
+<ol class="arabic">
+<li>a float: i.e. the final major and minor beamsize.
+The position angle will default to 0.</li>
+<li>a list with two floats: [major_axis, minor_axis]. The
+position angle defaults to 0.</li>
+<li>a list with three floats: [major_axis, minor_axis,
+position_angle].</li>
+</ol>
+</li>
+<li><strong>old_resolution</strong> (<em>float or list</em>) &#8211; Same format as new_resolution. Defaults to self.resolution of the
+map instance.</li>
+<li><strong>prefix</strong> (<em>string</em>) &#8211; The path where the output is to be stored if different
+from the current prefix of the map.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">The gauss_smooth Task from GILDAS only gives correct output units
+when the map is on a temperature or &#8220;per pixel&#8221; scale.  <strong>Maps in
+Jy/Beam won&#8217;t be in Jy/Beam after smoothing.</strong></p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">spectrum</code><span class="sig-paren">(</span><em>coordinate</em>, <em>fileout=None</em>, <em>prefix=None</em>, <em>create_spectrum=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.spectrum"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Wrapper to the GILDAS/GREG spectrum command.</p>
+<p>Extracting a spectrum from a cube at a given positions. By default it
+also creates a 30m file readable by class from the table.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>coordinate</strong> (<em>list</em>) &#8211; A list with the coordinates in floats in units of Degrees,
+or in string for equatorial coordinate.</li>
+<li><strong>fileout</strong> (<em>string</em>) &#8211; The name of the table where the spectrum will be stored.
+Default is the same name as the map with <code class="docutils literal"><span class="pre">&quot;.tab&quot;</span></code> as ending.</li>
+<li><strong>prefix</strong> &#8211; The path to the folder where the newly created file will be
+stored.  Defaults to the prefix currently stored in self.prefix.</li>
+<li><strong>create_spectrum</strong> (<em>True or False</em>) &#8211; Turn the creation of a 30m with the spectrum of <code class="docutils literal"><span class="pre">False</span></code> or on
+<code class="docutils literal"><span class="pre">True</span></code>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astrolyze.maps</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span>  <span class="n">GildasMap</span><span class="p">(</span><span class="s">&#39;M33_PdBI_12co10_Tmb_22.0_2kms.gdf&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coordinate</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;1:34:7.00&#39;</span><span class="p">,</span> <span class="s">&#39;+30:47:52.00&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span><span class="o">.</span><span class="n">spectrum</span><span class="p">(</span><span class="n">coordinate</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Creates M33_PdBI_12co10_Tmb_22.0_2kms.tab in the present folder.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">toFits</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.toFits"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Converts the actual map to a Fits map.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">FitsMap Object.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>With:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="n">gildasMap</span><span class="p">(</span><span class="s">&#39;M33_MIPS_24mum_JyB_5.gdf&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>it is possible to continue working with the fits map, using the
+<code class="xref py py-class docutils literal"><span class="pre">maps.fits.FitsMap</span></code> class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">toMiriad</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/gildas.html#GildasMap.toMiriad"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Converts the actual map to a Miriad map.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">MiriadMap Object.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>With:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="n">gildasMap</span><span class="p">(</span><span class="s">&#39;M33_MIPS_24mum_JyB_5.gdf&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">toMiriad</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>it is possible to continue working with the Miriad map, using
+<code class="xref py py-class docutils literal"><span class="pre">maps.miriad.MiriadMap</span></code> class.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="miriadmap">
+<h3>MiriadMap<a class="headerlink" href="#miriadmap" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.maps.miriad.</code><code class="descname">MiriadMap</code><span class="sig-paren">(</span><em>map_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/miriad.html#MiriadMap"><span class="viewcode-link">[source]</span></a></dt>
+<dd><dl class="method">
+<dt>
+<code class="descname">smooth</code><span class="sig-paren">(</span><em>new_resolution</em>, <em>old_resolution=None</em>, <em>scale=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/miriad.html#MiriadMap.smooth"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Smoothes a miriad map to the new resolution.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>new_resolution</strong> (<em>float or list</em>) &#8211; <p>The resolution in of the smoothed image.
+Can be a:</p>
+<ul>
+<li>float: Output beam has same major and minor axis [arcsec] and
+the position angle (PA) [degrees] is 0.</li>
+<li>A list with two entries:
+The major and minor axis. PA is 0.
+E.g. [major_axis, minor_axis ]</li>
+<li>A list with three entries:
+[major_axis, minor_axis, PA]</li>
+</ul>
+</li>
+<li><strong>old_resolution</strong> (<em>float</em>) &#8211; If None the self.resolution information is taken into account.
+Otherwise, it is assumed that old_resolution is the actual
+resolution of the map.</li>
+<li><strong>scale</strong> (<em>string</em>) &#8211; If unset (scale=&#8217;&#8216;), the miriad function will attempt to make the
+units of the smoothed image be Jy/beam for Gaussian convolution. If
+<code class="docutils literal"><span class="pre">0.0</span></code>, then the convolution integral is scaled (multipled) by the
+inverse of the volume of the convolving function. Otherwise, the
+integral is scaled by &#8220;scale&#8221;</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>MiriadMap</strong> &#8211;
+The smoothed image.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">object</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The function used to calculate the fwhm (Omega) of the convolving
+Gaussian for both major and minor axis is:</p>
+<div class="math">
+<p><img src="_images/math/bc51f22cb9ed6f7c40c3787303bedfec887b1272.png" alt="\Omega_{\rm convolve} = \sqrt{\Omega_{\rm new}^2 -
+                        \Omega_{\rm old}^2}"/></p>
+</div></dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">toFits</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/miriad.html#MiriadMap.toFits"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Converts the actual map to a Fits map.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">FitsMap Object.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>With:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="n">miriadMap</span><span class="p">(</span><span class="s">&#39;M33_MIPS_24mum_JyB_5&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>it is possible to continue working with the Fits map, using
+<code class="xref py py-class docutils literal"><span class="pre">maps.fits.FitsMap</span></code> class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">toGildas</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/miriad.html#MiriadMap.toGildas"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Converts the actual map to a Gildas map.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">GildasMap Object.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>With:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="n">miriadMap</span><span class="p">(</span><span class="s">&#39;M33_MIPS_24mum_JyB_5&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">toGildas</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>it is possible to continue working with the Fits map, using
+<code class="xref py py-class docutils literal"><span class="pre">maps.gildas.GildasMap</span></code> class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">toMiriad</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/miriad.html#MiriadMap.toMiriad"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Copies the actual map changing the name such that it takes changes in
+keywords into account.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">MiriadMap Object.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>With:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="n">miriadMap</span><span class="p">(</span><span class="s">&#39;M33_MIPS_24mum_JyB_5&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">toMiriad</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>it is possible to continue working with the Miriad map, using
+<code class="xref py py-class docutils literal"><span class="pre">maps.gildas.MiriadMap</span></code> class.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="stack">
+<h3>Stack<a class="headerlink" href="#stack" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.maps.stack.</code><code class="descname">Stack</code><span class="sig-paren">(</span><em>folder</em>, <em>data_format=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/stack.html#Stack"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Class to work with several maps at once.</p>
+<p>Allows to treat all images inside a folder simultaneously. This allows to
+to perform the same transformations on all maps.</p>
+<p>The images in the input folder can have arbitrary formats, units,
+resolutions and other properties. The Stack class can help to unify the
+different parameters of the maps to help comparing them.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>folder</strong> (<em>str</em>) &#8211; The folder containing the images that are to be treated as a stack</li>
+<li><strong>data_format</strong> (<em>str</em>) &#8211; If not None filter images by format.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>The stack class can be used like builtin objects that are iterable e.g.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">st</span> <span class="o">=</span> <span class="n">Stack</span><span class="p">(</span><span class="s">&quot;folder_name&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">list_map_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">map_name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">st</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><cite>Stack</cite> is also the basis for the <code class="xref py py-mod docutils literal"><span class="pre">astrolyze.sed.Sed</span></code> package.</p>
+</div>
+<dl class="method">
+<dt>
+<code class="descname">copy_structure</code><span class="sig-paren">(</span><em>old_prefix</em>, <em>new_prefix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/stack.html#Stack.copy_structure"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Copies a folder structure from old_prefix to new_prefix. To assure all
+folders exists before working with or copying data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>list</strong> (<em>list</em>) &#8211; A list containing the relative or absolute paths to files.</li>
+<li><strong>old_prefix</strong> (<em>string</em>) &#8211; The old path to the folder structure that has to be copied. Has to
+actually appear in all the strings in list.</li>
+<li><strong>new_prefix</strong> (<em>string</em>) &#8211; The path to where the folder structure is to be copied.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>This is useful if one is working on many files stored in several
+sub-folders retrieved using <code class="xref py py-func docutils literal"><span class="pre">get_list()</span></code>.</p>
+<p class="rubric">Examples</p>
+<p>Say the folder structure is like this</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ls</span> <span class="o">../</span><span class="n">modified</span><span class="o">/</span>
+<span class="go">co10/</span>
+<span class="go">co21/</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ls</span> <span class="o">../</span><span class="n">modfied</span><span class="o">/</span><span class="n">co10</span><span class="o">/</span>
+<span class="go">map1/</span>
+<span class="go">map2/</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ls</span> <span class="o">../</span><span class="n">modified</span><span class="o">/</span><span class="n">co21</span><span class="o">/</span>
+<span class="go">map1/</span>
+<span class="go">map2/</span>
+</pre></div>
+</div>
+<p>This can be copied to say ../even_more_modified by doing as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astrolyze.maptools</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span> <span class="o">=</span> <span class="n">maptools</span><span class="o">.</span><span class="n">get_list</span><span class="p">(</span><span class="o">../</span><span class="n">modified</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">maptools</span><span class="o">.</span><span class="n">copy_structure</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">old_prefix</span><span class="o">=</span><span class="s">&#39;../modified&#39;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                        <span class="n">new_prefix</span><span class="o">=</span><span class="s">&#39;../even_more_modified&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">get_list</code><span class="sig-paren">(</span><em>data_format=None</em>, <em>depth=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/stack.html#Stack.get_list"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Loading a list of files in all sub-folders.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>folder</strong> (<em>string</em>) &#8211; The path to the folder that has to be parsed.</li>
+<li><strong>data_format</strong> (<em>string</em>) &#8211; Search for specific files containing the string, e.g.
+&#8216;.fits&#8217;</li>
+<li><strong>depth</strong> (<em>integer</em>) &#8211; The steps into the sub-folder system. Defaults to maximum depth.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>final_list</strong> (<em>array</em>) &#8211;
+Array with the string to the files in the folder and sub folders.</li>
+<li><em>folder_list</em> &#8211;
+Array with the strings to the folders. Only if depth is set.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">get_map_format</code><span class="sig-paren">(</span><em>map_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/stack.html#Stack.get_map_format"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>This function creates returns the correct <code class="docutils literal"><span class="pre">GildasMap</span></code>,
+<code class="docutils literal"><span class="pre">FitsMap</span></code> or <code class="docutils literal"><span class="pre">MiriadMap</span></code> object without that the data format of the
+map has to be given.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>map_name</strong> (<em>string</em>) &#8211; Path and name of the input map.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li>Either a <code class="docutils literal"><span class="pre">GildasMap</span></code>, <code class="docutils literal"><span class="pre">FitsMap</span></code> or <a href="#id1"><span class="problematic" id="id2">``</span></a>MiriadMap` Either a</li>
+<li><code class="docutils literal"><span class="pre">Map</span></code> class object depending on the data format of the input map.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">pixel_pixel_compare</code><span class="sig-paren">(</span><em>folder=None</em>, <em>plot=False</em>, <em>tol=1000000.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/stack.html#Stack.pixel_pixel_compare"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Producing a pixel-to-pixel comparison for all combinations
+possible between the maps of the stack.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>folder</strong> (<em>string</em>) &#8211; Path to the folder where the text files with the pixel
+to pixel comparisons are stored</li>
+<li><strong>plot</strong> (<em>[True | False]</em>) &#8211; Decides whether to produce pixel-to-pixel plots directly.</li>
+<li><strong>tol</strong> (<em>float</em>) &#8211; <p>The tolerance for the maximum difference between the
+values of the pixel of two compared maps. Default to 1e6.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">returns:</th><td class="field-body"><ul class="first last">
+<li><em>Created text files in the specified folders that contain two columns</em></li>
+<li><em>with the pixel-to-pixel comparisons. These can be used</em></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">unify_dimensions</code><span class="sig-paren">(</span><em>template=None</em>, <em>folder=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/stack.html#Stack.unify_dimensions"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Reproject all maps to the same central coordinates and map
+dimensions.  All properties of one template map are copied to all the
+other maps using the <code class="docutils literal"><span class="pre">&quot;reproject&quot;</span></code> task of GILDAS.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>template</strong> (<em>string</em>) &#8211; Path to the map that will serve as a template, it may be one of
+the input maps of the stack.</li>
+<li><strong>folder</strong> (<em>string</em>) &#8211; Path to the folder where the output maps are stored.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">unify_formats</code><span class="sig-paren">(</span><em>target_format='fits'</em>, <em>folder=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/stack.html#Stack.unify_formats"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Converts all maps to the <code class="docutils literal"><span class="pre">target_format</span></code> which has to be one
+that is known to astrolyze. Please see TODO for a list of kwon formats.
+Default is fits.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>target_format</strong> (<em>string</em>) &#8211; The format to which all maps are converted.</li>
+<li><strong>folder</strong> (<em>string</em>) &#8211; Path to the folder where the new maps are stored.
+If <code class="docutils literal"><span class="pre">None</span></code> the current folder will be used.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">unify_projections</code><span class="sig-paren">(</span><em>coordinate=None</em>, <em>angle=None</em>, <em>folder=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/stack.html#Stack.unify_projections"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Changing the central coordinate and the rotation angle.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">unify_resolutions</code><span class="sig-paren">(</span><em>folder=None</em>, <em>resolution=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/stack.html#Stack.unify_resolutions"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Smoothing all maps to the same resolution; either the maximum
+resolution found in the stack or a given resolution.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>resolution</strong> (<em>float or list</em>) &#8211; <p>This may be either:</p>
+<ol class="arabic">
+<li>A list with three entries, i.e.
+[[minor_fwhm], [major_fwhm], [position_angle]]</li>
+<li>A list with two entries, position_angle defaults to 0, i.e.
+[[minor_fwhm], [major_fwhm]]</li>
+<li>A float. Same minor, major fwhm pa=0</li>
+</ol>
+</li>
+<li><strong>folder</strong> (<em>string</em>) &#8211; The path tot the folder in which the files are to be stored.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The position angle of the output images is fixed to <code class="docutils literal"><span class="pre">Zero</span></code> and can
+currently not be modified.</p>
+<p>Depending on the map units different scaling normalizations have to be
+used after smoothing such that the output units are correct. This
+function tries to deduce the scaling by itself based on the unit that
+is given in the map name. Be sure that this is correct otherwise the
+flux values may be wrong in the output images.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">unify_units</code><span class="sig-paren">(</span><em>unit='JyB'</em>, <em>folder=None</em>, <em>debug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/stack.html#Stack.unify_units"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Change all maps in the stack to the same unit.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>unit</strong> (<em>string</em>) &#8211; See <code class="xref py py-func docutils literal"><span class="pre">astrolyze.maps.fits.FitsMap.change_units()</span></code>
+for details.</li>
+<li><strong>folder</strong> (<em>string</em>) &#8211; The target folder. By default the maps
+are put into their current folder.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="tools">
+<h3>Tools<a class="headerlink" href="#tools" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.maps.tools.</code><code class="descname">copy_structure</code><span class="sig-paren">(</span><em>list</em>, <em>old_prefix</em>, <em>new_prefix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/tools.html#copy_structure"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Copies a folder structure from old_prefix to new_prefix. To assure all
+folders exists before working with or copying data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>list</strong> (<em>list</em>) &#8211; A list containing the relative or absolute paths to files.</li>
+<li><strong>old_prefix</strong> (<em>string</em>) &#8211; The old path to the folder structure that has to be copied. Has to
+actually appear in all the strings in list.</li>
+<li><strong>new_prefix</strong> (<em>string</em>) &#8211; The path to where the folder structure is to be copied.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>This is usefull if one is working on many files stored in several
+sub-folders retrieved using <code class="xref py py-func docutils literal"><span class="pre">get_list()</span></code>.</p>
+<p class="rubric">Examples</p>
+<p>Say the folder structure is like this</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ls</span> <span class="o">../</span><span class="n">modified</span><span class="o">/</span>
+<span class="go">co10/</span>
+<span class="go">co21/</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ls</span> <span class="o">../</span><span class="n">modfied</span><span class="o">/</span><span class="n">co10</span><span class="o">/</span>
+<span class="go">map1/</span>
+<span class="go">map2/</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ls</span> <span class="o">../</span><span class="n">modified</span><span class="o">/</span><span class="n">co21</span><span class="o">/</span>
+<span class="go">map1/</span>
+<span class="go">map2/</span>
+</pre></div>
+</div>
+<p>This can be copied to say ../even_more_modified by doing as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astrolyze.maptools</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span> <span class="o">=</span> <span class="n">maptools</span><span class="o">.</span><span class="n">get_list</span><span class="p">(</span><span class="o">../</span><span class="n">modified</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">maptools</span><span class="o">.</span><span class="n">copy_structure</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">old_prefix</span><span class="o">=</span><span class="s">&#39;../modified&#39;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                        <span class="n">new_prefix</span><span class="o">=</span><span class="s">&#39;../even_more_modified&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.maps.tools.</code><code class="descname">get_list</code><span class="sig-paren">(</span><em>folder</em>, <em>data_format=None</em>, <em>depth=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/tools.html#get_list"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Loading a list of files in all subfolders.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>folder</strong> (<em>string</em>) &#8211; The path to the folder that has to be parsed.</li>
+<li><strong>data_format</strong> (<em>string</em>) &#8211; Search for specific files containing the string, e.g.
+&#8216;.fits&#8217;</li>
+<li><strong>depth</strong> (<em>integer</em>) &#8211; The steps into the subfolder system. Defaults to maximum depth.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>final_list</strong> (<em>array</em>) &#8211;
+Array with the string to the files in the folder and sub folders.</li>
+<li><em>folder_list</em> &#8211;
+Array with the strings to the folders. Only if depth is set.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.maps.tools.</code><code class="descname">unifyMaps</code><span class="sig-paren">(</span><em>list</em>, <em>tinMap</em>, <em>folder='reg'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/tools.html#unifyMaps"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>changes the dimensions and pixel sizes off all maps to that of a template
+map.</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.maps.tools.</code><code class="descname">unifyResolution</code><span class="sig-paren">(</span><em>liste</em>, <em>resolution=False</em>, <em>folder='smooth'</em>, <em>scaling=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/tools.html#unifyResolution"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Approved.</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.maps.tools.</code><code class="descname">unifyUnits</code><span class="sig-paren">(</span><em>list</em>, <em>folder='units'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/maps/tools.html#unifyUnits"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>NOT READY YET!</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="spectra">
+<h2>Spectra<a class="headerlink" href="#spectra" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.spectra.class_.</code><code class="descname">ClassSpectra</code><span class="sig-paren">(</span><em>map_name</em>, <em>nameConvention=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Provides some usefull automated functions to work on Class
+Spectra in an convenient way.</p>
+<p class="rubric">Examples</p>
+<p>Extracting a spectra at a given position from a spectral cube can be done
+as follows</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astrolyze.spectra</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cube</span> <span class="o">=</span> <span class="n">ClassSpectra</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coordinate</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;1:34:7.00&#39;</span><span class="p">,</span> <span class="s">&#39;+30:47:52.00&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cube</span><span class="o">.</span><span class="n">get_spectra_from_cube</span><span class="p">(</span><span class="n">coordinate</span><span class="p">)</span>
+<span class="go">Generates a 30m file with comment extract in the actual cube.prefix path.</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt>
+<code class="descname">get_average_spectrum</code><span class="sig-paren">(</span><em>prefix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.get_average_spectrum"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Averages all spectra in a cube.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>prefix</strong> (<em>string</em>) &#8211; The new path where the averaged spectrum will be stored.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>So far no selection is made so the files of the input file have to be
+consistent.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">get_region_from_cube</code><span class="sig-paren">(</span><em>coordinate</em>, <em>angle=0</em>, <em>prefix=None</em>, <em>accuracy=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.get_region_from_cube"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>The same as :py:func:<code class="docutils literal"><span class="pre">get_spectra_from_cube</span></code> but returns all spectra
+found inside a circular region arounf coordinate and in a radius of
+accuracy arcsec. (&#8220;set match &#8220;&#8216;accuracy&#8217;)</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">get_spectra_from_cube</code><span class="sig-paren">(</span><em>coordinate</em>, <em>angle=0</em>, <em>prefix=None</em>, <em>accuracy=2</em>, <em>region=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.get_spectra_from_cube"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Extracts one spectra at the position of coordinates from a
+spectral cube.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>coordinate</strong> (<em>list</em>) &#8211; Equatorial coordinates, e.g. [&#8216;1:34:7.00&#8217;, &#8216;+30:47:52.00&#8217;]</li>
+<li><strong>angle</strong> (<em>float</em>) &#8211; If the cube was rotated before the angle has to be specified
+to calculate the correct offset.</li>
+<li><strong>prefix</strong> (<em>string</em>) &#8211; The new path where the averaged spectrum will be stored.</li>
+<li><strong>accuracy</strong> (<em>float</em>) &#8211; The tolerance in arcsec to find a spectra corresponding to the
+given coordinate.</li>
+<li><strong>region</strong> (<em>True or False</em>) &#8211; Returns either all spectra found <code class="docutils literal"><span class="pre">True</span></code> or only the first
+<code class="docutils literal"><span class="pre">False</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">With the first spectrum in the list of spectra within the accuracy
+range with the given coordinate.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">30m file</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">quick_view</code><span class="sig-paren">(</span><em>number=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.quick_view"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Helper Functions that displays the first spectrum of the loaded
+file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">save_figure</code><span class="sig-paren">(</span><em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.save_figure"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Helper function that saves the current plot.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">set_defaults</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/spectra/class_.html#ClassSpectra.set_defaults"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Reset all selection criteria.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="seds">
+<h2>SEDs<a class="headerlink" href="#seds" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.sed.sed.</code><code class="descname">Sed</code><span class="sig-paren">(</span><em>source_name</em>, <em>coordinate</em>, <em>flux_array</em>, <em>number_components=2</em>, <em>init_fit=True</em>, <em>temperature_guess=None</em>, <em>mass_guess=None</em>, <em>beta_guess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>This class handles a single SED. Basically it is able to fit,
+and plot the sed.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>source_name</strong> (<em>string</em>) &#8211; The name of the source to which the SED corresponds to.</li>
+<li><strong>coordinate</strong> (<em>list</em>) &#8211; The coordinate of the source. [RA, DEC]</li>
+<li><strong>flux_array</strong> (<em>list</em>) &#8211; The array that is created by SedStack with the entries of wavelength,
+flux, and error.</li>
+<li><strong>init_fit</strong> (<em>logic</em>) &#8211; Controls whether the SED is fitted already during creation.</li>
+<li><strong>number_components</strong> (<em>int</em>) &#8211; The number of greybody components to be fitted. Default: 2.</li>
+<li><strong>temperature_guess</strong> (<em>list</em>) &#8211; List with the intial guesses for the temperature</li>
+<li><strong>mass_guess</strong> (<em>list</em>) &#8211; List with the intial guesses for the masses</li>
+<li><strong>beta_guess</strong> (<em>list</em>) &#8211; List with the intial guesses of the beta value</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt>
+<code class="descname">create_figure</code><span class="sig-paren">(</span><em>save=True, plotLegend=False, color=['black'], marker=['x'], title=None, x_label=None, y_label=None, nu_or_lambda='nu', fontdict=None, textStringLoc=[1, 1], lineWidth=0.5, kappa='easy', x_range='normal', prefix='./', **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed.create_figure"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Creates a quick preview of the loaded SED. TODO: extend
+documentation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">grey_body_fit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed.grey_body_fit"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>&#8221;
+Fitting a multi componenet grey body to the input data in flux_array.</p>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<dl class="last docutils">
+<dt><code class="xref py py-meth docutils literal"><span class="pre">()</span></code></dt>
+<dd>py:func:<cite>astrolyze.functions.astro_functions.grey_body_fit</cite></dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">plot_sed</code><span class="sig-paren">(</span><em>axes=&lt;matplotlib.axes._subplots.AxesSubplot object&gt;</em>, <em>nu_or_lambda='nu'</em>, <em>color='black'</em>, <em>linewidth=0.5</em>, <em>x_range='normal'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#Sed.plot_sed"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Plot a multi component greybody model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>nu_or_lambda</strong> &#8211; plot against frequency <code class="docutils literal"><span class="pre">'nu'</span></code> or wavelenght <code class="docutils literal"><span class="pre">'lambda'</span></code></li>
+<li><strong>kappa</strong> &#8211; The kappa to use. <code class="docutils literal"><span class="pre">'easy'</span></code> or <code class="docutils literal"><span class="pre">'Kruegel'</span></code>. Please refer
+to <code class="xref py py-func docutils literal"><span class="pre">functions.astroFunctions.greyBody()</span></code> for more
+information.</li>
+<li><strong>xRange</strong> (<em>PLEASE ADD DESCRIPTION</em>) &#8211; </li>
+<li><strong>linewidth</strong> (<em>float</em>) &#8211; The linewidth of the plotted lines. Default to 0.5.</li>
+<li><strong>color</strong> (<em>matplotlib conform color</em>) &#8211; the color of the plotted lines. Default to <code class="docutils literal"><span class="pre">'black'</span></code>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.sed.sed.</code><code class="descname">SedStack</code><span class="sig-paren">(</span><em>folder</em>, <em>data_format='.fits'</em>, <em>coordinates=False</em>, <em>flux_acquisition='pixel'</em>, <em>aperture=None</em>, <em>annotation=False</em>, <em>full_map=False</em>, <em>output_folder=None</em>, <em>number_components=2</em>, <em>mass_guess=None</em>, <em>temperature_guess=None</em>, <em>beta_guess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Reads in the SEDs from the maps stored under the input folder at given
+coordinates and creates a stack of Sed objects.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>folder</strong> (<em>str</em>) &#8211; Input Folder</li>
+<li><strong>data_format</strong> (<em>str</em>) &#8211; Filter on data format. Default <cite>.fits</cite></li>
+<li><strong>coordinates</strong> (<em>list</em>) &#8211; Coordinates where the SEDs should be extracted.</li>
+<li><strong>full_map</strong> (<em>bool</em>) &#8211; If True temperature, mass and beta maps will be created by fitting the
+SEDs at every pixel.</li>
+<li><strong>flux_acquisition</strong> (<em>str</em>) &#8211; <cite>aperture</cite> or <cite>pixel</cite> see explanation in
+<code class="xref py py-mod docutils literal"><span class="pre">astrolyze.fits.FitsMap.flux_read</span></code></li>
+<li><strong>aperture</strong> (<em>int</em>) &#8211; Aperture to use for flux extraction if flux_acquisition == <cite>aperture</cite></li>
+<li><strong>annotation</strong> (<em>bool</em>) &#8211; If true a kvis annotation file is created with the positions where the
+SEDs, have been extracted.</li>
+<li><strong>output_folder</strong> (<em>str</em>) &#8211; Where the data is stored.</li>
+<li><strong>number_components</strong> (<em>int</em>) &#8211; Number of SED components to fit.</li>
+<li><strong>mass_guess</strong> (<em>list</em>) &#8211; List with guesses for the initial dust mass. Has to have at
+least the same lenght as there are <cite>number_components</cite></li>
+<li><strong>temperature_guess</strong> (<em>list</em>) &#8211; List with guesses for the initial dust temperature. Has to have at
+least the same lenght as there are <cite>number_components</cite></li>
+<li><strong>beta_guess</strong> (<em>list</em>) &#8211; List with a guess for the beta value to be used has to be list with
+singel entry beta_guess=[2.].</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt>
+<code class="descname">get_map_seds</code><span class="sig-paren">(</span><em>output_folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack.get_map_seds"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>This functions fits the SED at every pixel of the input maps.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>output_folder</strong> (<em>string</em>) &#8211; The path to the folder where the temperature, mass, beta and chisq
+maps are created. If the folder does not exist is will be created.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Depending on the number of pixels in the input image this function may
+take a good while to finish.</p>
+<p class="rubric">Examples</p>
+<p>Note that the maps have to be exactly the same size for this function
+to work. This can be achieved with e.g.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">stack</span> <span class="o">=</span> <span class="n">Stack</span><span class="p">(</span><span class="s">&#39;some_input_folder&#39;</span><span class="p">)</span>
+<span class="n">output_folder</span> <span class="o">=</span> <span class="s">&#39;some_output_folder&#39;</span>
+<span class="n">template</span> <span class="o">=</span> <span class="s">&#39;Path_to_a _template_map&#39;</span>
+<span class="n">stack</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">unify_dimension</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">folder</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">get_seds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack.get_seds"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Creates a stack of SEDs from the stack of maps loaded from the
+input folder if particular coordinates are given.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">load_coordinates</code><span class="sig-paren">(</span><em>input_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/sed/sed.html#SedStack.load_coordinates"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Loads the coordinated where the SEDs should be evaluated
+from either a file or a list. Both are not possible.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filein</strong> (<em>string</em>) &#8211; <p>Path to file that cotains the coordinates format has to be:</p>
+<p>source_name RA DEC</p>
+<p>RA, DEC has to be for epoch J2000 in Equatorial coordinates,
+see below for examples of the syntax.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><strong>self.coordinates</strong> (<em>list</em>)</li>
+<li><strong>self.source_names</strong> (<em>list</em>) &#8211;
+Format::
+[[source_name_1, RA_1, DEC_1] , ... , [source_name_N, RA_N, DEC_N]]</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>The format of the coordinates given in the file must be in
+Equatorial:
+&gt;&gt;&gt; equatorial_coordinates = [&#8216;02:23:21&#8217;, &#8216;-02:23:21&#8217;]</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="lte">
+<h2>LTE<a class="headerlink" href="#lte" title="Permalink to this headline">¶</a></h2>
+<p>Functions to calculate LTE column densities.</p>
+<p>TODO: Add Documentation.</p>
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">calc_N</code><span class="sig-paren">(</span><em>molecule</em>, <em>excitation_temperature</em>, <em>J</em>, <em>W</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#calc_N"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates the column density for a molecule.
+!!! LOOK into the remaining Code and merge!!!</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">calc_excitation_temperature</code><span class="sig-paren">(</span><em>Tb</em>, <em>nu</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#calc_excitation_temperature"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculation of the excitation temperature of an optically thick 12CO line
+under the assumption of LTE.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>Tb</strong> &#8211; </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">calc_jnu</code><span class="sig-paren">(</span><em>nu</em>, <em>T</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#calc_jnu"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates <img class="math" src="_images/math/60fdc6ddbbc6788f6cad02f0a1543a04e2299fd2.png" alt="J_{\nu}"/> needed for lte_column_density.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>nu</strong> (<em>float</em>) &#8211; Frequency</li>
+<li><strong>T</strong> (<em>float</em>) &#8211; Temperature</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The formula (in cgs units) implemented here is:</p>
+<div class="math">
+<p><img src="_images/math/9078695d4cc6bbcfe6a60b1f7c512a82d6752732.png" alt="\mathcal{J}_{\nu}(T) = \frac{h\nu}{k} \frac{1}{e^{h\nu/kT_{ex}}-1}"/></p>
+</div><p>where:</p>
+<blockquote>
+<div><ul class="simple">
+<li>k: the Boltzman constant in CGS</li>
+<li>h: the PLanck constant in CGS</li>
+<li><img class="math" src="_images/math/d67fb61cfffca2cc069e083d76cb6220b4ca14c8.png" alt="\nu"/>: the frequency</li>
+<li>T: exitation temperature</li>
+</ul>
+</div></blockquote>
+<p class="rubric">References</p>
+<p>Mike Zielinsky</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.lte.lte.</code><code class="descname">lte_column_density</code><span class="sig-paren">(</span><em>nu</em>, <em>Tmb</em>, <em>excitation_temperature</em>, <em>J</em>, <em>Z</em>, <em>mu</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/lte.html#lte_column_density"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>This function calculates the Column densities of linear molecules</p>
+<p>Units are all to be given in cgs
+Z is the array of partition function values for the corresponding
+temperatures in T these are the log values of Z</p>
+<p class="rubric">Notes</p>
+<p>The implemented formula, taken from Doktorarbeit is:</p>
+<div class="math">
+<p><img src="_images/math/4c9c0158a5dcfeaeea27e6607fbd913aed3c1d8f.png" alt="N = \frac{3h}{8 \pi^3 \mu^2} \frac{Z}{J} \frac{exp(\frac{h \nu}{k
+T_{ex}})}{[1 - exp(-\frac{h \nu}{k T_{ex}})]} (\mathcal{J}_{\nu}(T_{ex})
+- \mathcal{J}_{\nu}(T_{BG}))^{-1} \int{T_{mb} d \nu} ,"/></p>
+</div><dl class="docutils">
+<dt>where:</dt>
+<dd><ul class="first last simple">
+<li>k: the Boltzman constant in CGS</li>
+<li>h: the PLanck constant in CGS</li>
+<li>W: integrated Intensity in Kelvin cm/s</li>
+<li>Aul: the Einstein coeffiecient of the transition</li>
+<li>gu: the statistical Weight of the upper level</li>
+<li>Eu: the Energy of the upper level</li>
+<li>exitation_temperature</li>
+<li>Z: the partition Function</li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">References</p>
+<p>add reference to Zielinsky</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Extend documentation!!!!</p>
+</div>
+</dd></dl>
+
+<p>This script generates a dictionary storing the information of molecular
+transitions.</p>
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">astrolyze.lte.molecule_parameter.</code><code class="descname">Molecule</code><span class="sig-paren">(</span><em>nu</em>, <em>Q</em>, <em>T</em>, <em>Eu</em>, <em>Aul</em>, <em>gu</em>, <em>mu</em>, <em>name=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/lte/molecule_parameter.html#Molecule"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>A class holding attributes that define the characteristics of an
+individual tansition of a molecules.</p>
+<p>The <code class="xref py py-func docutils literal"><span class="pre">astrolyze.functions.astro_functions.calc_N()</span></code> routine
+depends on this class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>nu</strong> (<em>float</em>) &#8211; </li>
+<li><strong>Q</strong> (<em>list</em>) &#8211; The partition function of the molecule evaluated at discreet
+temperatures. Given in T.</li>
+<li><strong>T</strong> (<em>list</em>) &#8211; The temperatures at which the partition functions was evaluated. The
+value of Q used finally is interpolated to the excitation_temperature
+give.</li>
+<li><strong>Eu</strong> (<em>float</em>) &#8211; Energy of the upper state of the transition.</li>
+<li><strong>Aul</strong> (<em>float</em>) &#8211; The Einstein coefficient. For the transition of upper-to-lower state.</li>
+<li><strong>gu</strong> (<em>float</em>) &#8211; ADD DESCRIPTION.</li>
+<li><strong>mu</strong> (<em>float</em>) &#8211; ADD DESCRIPTION.</li>
+<li><strong>name</strong> (<em>string</em>) &#8211; The name of the molecule.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="astro-functions">
+<h3>astro_functions<a class="headerlink" href="#astro-functions" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">LTIR</code><span class="sig-paren">(</span><em>p2</em>, <em>kappa='Kruegel'</em>, <em>xmin=3.0</em>, <em>xmax=1100.0</em>, <em>beamConv=True</em>, <em>distance=847000.0</em>, <em>unit='JyB'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#LTIR"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Integration of a multi-component greybody model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>p2</strong> (<em>list</em>) &#8211; The parameters defining the multi-component greybody model. Same format
+as p in
+<code class="xref py py-func docutils literal"><span class="pre">astrolyze.functions.astroFunctions.multi_component_grey_body()</span></code></li>
+<li><strong>kappa</strong> (<em>string</em>) &#8211; The dust extinction coefficient used to describe the greybodies. See:
+py:func:<cite>grey_body</cite></li>
+<li><strong>xmax</strong> (<em>xmin,</em>) &#8211; The integration range in units of micron. Defaults to 3 &#8211; 110 micron.
+The definition of LTIR from [DA]</li>
+<li><strong>beamConv</strong> (<em>True or False</em>) &#8211; For units in Lsun the code is not well written. Hardcoded conversion
+between an 28&#8221; and 40&#8221; beam. !! CHANGE !!</li>
+<li><strong>unit</strong> (<em>string</em>) &#8211; If <code class="docutils literal"><span class="pre">'Lsun'</span></code> the returned integrated flux is in units of solar
+luminosities (erg s^-1). For this a distance is needed. If <code class="docutils literal"><span class="pre">'JyB'</span></code>
+the units are Jy/beam; distance is not used.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Needs some work to be generally usable. For units in Jy/beam the code seems
+to be safe.</p>
+<p class="rubric">References</p>
+<table class="docutils citation" frame="void" id="da" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[DA]</td><td>Dale et al. 2001; ApJ; 549:215-227</td></tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">analytic_linear_fit</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>x_error</em>, <em>y_error</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#analytic_linear_fit"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>This function resembles the analytical solution following chaper 8 from
+[TA].</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>x</strong> (<em>float or list</em>) &#8211; x measurements. Data.</li>
+<li><strong>y</strong> (<em>float or list</em>) &#8211; y measurements. Data.</li>
+<li><strong>y_error</strong> (<em>float or list</em>) &#8211; The y measurment errors.</li>
+<li><strong>x_error</strong> (<em>float or list</em>) &#8211; The x measurment errors. If unset only errors in y are taken into
+account.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Without errors the following holds:</p>
+<div class="math">
+<p><img src="_images/math/d32f7b619580c6a244d5d94010ae639bab0c10a3.png" alt="y = A + B x
+
+A = \frac{\Sigma(x^2) \cdot \Sigma(y) - \Sigma(x) \cdot
+\Sigma(x \cdot y)}{\Delta}
+
+B = N \frac{\Sigma(x \cdot y) - \Sigma (x) \cdot \Sigma(y)}{\Delta}
+
+\Delta = N \cdot \Sigma(x^2) - (\Sigma(x))^2"/></p>
+</div><div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">This has to be checked.</p>
+</div>
+<p class="rubric">References</p>
+<table class="docutils citation" frame="void" id="ta" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[TA]</td><td>&#8220;An introduction to the study of uncertainties in physical
+measurement&#8221; by John R. Taylor.</td></tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">anti_line</code><span class="sig-paren">(</span><em>p</em>, <em>y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#anti_line"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Inverse of a line returning the x value corresponding to a y value, i.e.
+<cite>x = y/m - b</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>p</strong> (<em>list</em>) &#8211; Contains the slope and the y-axis intersection of the line [m, b].</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>y</strong></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">value of x corresponding to y.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">black_body</code><span class="sig-paren">(</span><em>x</em>, <em>T</em>, <em>nu_or_lambda='nu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#black_body"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculation of the flux density of a black body at a temperature T and a
+wavelenght/frequency x.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>float or numpy array</em>) &#8211; wavelength [GHz] or frequency [micron];  specify type in nu_or_lambda</li>
+<li><strong>T</strong> (<em>float [Kelvin]</em>) &#8211; Temperature of the black_body</li>
+<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Specify whether x is a frequency <img class="math" src="_images/math/d67fb61cfffca2cc069e083d76cb6220b4ca14c8.png" alt="\nu"/> <code class="docutils literal"><span class="pre">'nu'</span></code> or a wavelenght
+<img class="math" src="_images/math/1ab0134b6e0837594649c75a2ed83cfd85a2d03d.png" alt="\lambda"/> <code class="docutils literal"><span class="pre">'lambda'</span></code>; default is <code class="docutils literal"><span class="pre">'nu'</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>Flux density in Jansky</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float [Jy]</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>This functions resembles the following formulas for input in frequency:</p>
+<div class="math">
+<p><img src="_images/math/f38b051e80ac7b6600ca00deec4755e970e5c0f2.png" alt="B_{\nu} = \frac{2 h \nu^3}{c^2} (e^{\frac{h \nu}{k T}} - 1)^{-1}"/></p>
+</div><p>and for input in wavelenght:</p>
+<div class="math">
+<p><img src="_images/math/9afbc734caf9838d1052bf4758fe77a2b4b31e18.png" alt="B_{\lambda} = \frac{2 h c^2}{\lambda^5} (e^{\frac{h \lambda}{k T}} -
+1)^{-1}"/></p>
+</div><p>Both formulas are scaled by 1e26, thus returning the flux in Jansky.</p>
+<p class="rubric">Examples</p>
+<p>The function works with linear numpy arrays. Thus the black_body can be
+evaluated at many points at the same time. Using matplotlib it can
+also be plotted:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">astrolyze.functions.astro_functions</span> <span class="kn">as</span> <span class="nn">astFunc</span>
+
+<span class="n">frequency_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">1e4</span><span class="p">,</span> <span class="mf">1e7</span><span class="p">,</span> <span class="mf">1e4</span><span class="p">)</span>
+<span class="n">temperature_1</span> <span class="o">=</span> <span class="mi">6000</span>
+<span class="n">temperature_2</span> <span class="o">=</span> <span class="mi">12000</span>  <span class="c"># Kelvin</span>
+<span class="n">blackbody_1</span> <span class="o">=</span> <span class="n">astFunc</span><span class="o">.</span><span class="n">black_body</span><span class="p">(</span><span class="n">frequency_range</span><span class="p">,</span> <span class="n">temperature_1</span><span class="p">)</span>
+<span class="n">blackbody_2</span> <span class="o">=</span> <span class="n">astFunc</span><span class="o">.</span><span class="n">black_body</span><span class="p">(</span><span class="n">frequency_range</span><span class="p">,</span> <span class="n">temperature_2</span><span class="p">)</span>
+<span class="n">figure</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="n">axis</span> <span class="o">=</span> <span class="n">figure</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+<span class="n">pl</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">frequency_range</span><span class="p">,</span> <span class="n">blackbody_1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">&#39;T = 6000 K&#39;</span><span class="p">)</span>
+<span class="n">pl</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">frequency_range</span><span class="p">,</span> <span class="n">blackbody_2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">&#39;T = 12000 K&#39;</span><span class="p">)</span>
+<span class="n">pl</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s">&#39;black_body.eps&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href=".//source_documentation-1.py">Source code</a>, <a class="reference external" href=".//source_documentation-1.png">png</a>, <a class="reference external" href=".//source_documentation-1.hires.png">hires.png</a>, <a class="reference external" href=".//source_documentation-1.pdf">pdf</a>)</p>
+<div class="figure">
+<img alt="_images/source_documentation-1.png" src="_images/source_documentation-1.png" />
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">calc_offset</code><span class="sig-paren">(</span><em>central_coordinate</em>, <em>offset_coordinate</em>, <em>angle=0</em>, <em>output_unit='farcsec'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#calc_offset"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates the offset between two coordinates.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>central_coordinate</strong> (<em>list</em>) &#8211; The reference coordinate in degrees or equatorial.</li>
+<li><strong>offset_coordinate</strong> (<em>list</em>) &#8211; The second coordinate, the offset will be with rescpect to
+central_coordinate.</li>
+<li><strong>angle</strong> (<em>float</em>) &#8211; The angle in degrees, allowing rotated systems.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>rotated_offset</strong> &#8211;
+The offsets, rotated only if angle given.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>This functions includes a correction of the RA offset with declination:</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">degrees_to_equatorial</code><span class="sig-paren">(</span><em>degrees</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#degrees_to_equatorial"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Converts RA, DEC coordinates in degrees to equatorial notation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>degrees</strong> (<em>list</em>) &#8211; The coordinates in degrees in the format of: [23.4825, 30.717222]</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>equatorial</strong> &#8211;
+The coordinates in equatorial notation, e.g.
+corresponding [&#8216;1:33:55.80&#8217;, &#8216;+30:43:2.00&#8217;].</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">equatorial_to_degrees</code><span class="sig-paren">(</span><em>equatorial</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#equatorial_to_degrees"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Converts RA, DEC coordinates in equatorial notation to degrees.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>equatorial</strong> (<em>list</em>) &#8211; The coordinates in degress in equatorial notation, e.g.
+[&#8216;1:33:55.80&#8217;, &#8216;+30:43:2.00&#8217;]</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>degrees</strong> &#8211;
+The coordinates in degreees, e.g. [23.4825, 30.717222].</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal"><span class="pre">SystemExit</span></code> &#8211;
+If <code class="docutils literal"><span class="pre">equatorial</span></code> is not a list of strings in the above format.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">freq_to_vel_resolution</code><span class="sig-paren">(</span><em>center_frequency</em>, <em>frequency_resolution</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#freq_to_vel_resolution"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Function to convert a frequency resolution to a velocity resolution
+for a given center frequency.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>center_frequency</strong> (<em>float</em>) &#8211; Center frequency in GHz.</li>
+<li><strong>frequency_resolution</strong> (<em>float</em>) &#8211; The frequency resolution in MHz.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">velocity_resolution in km/s.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Uses the formula TODO v_LSR = c((nu0-nuObs)/nu0)</p>
+<p>Approved!</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">frequency_to_wavelength</code><span class="sig-paren">(</span><em>frequency</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#frequency_to_wavelength"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Converting frequency to wavelength.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>frequency</strong> (<em>float [GHZ]</em>) &#8211; </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>wavelength</strong></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">float [micron]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">gauss1D</code><span class="sig-paren">(</span><em>x</em>, <em>fwhm</em>, <em>offset=0</em>, <em>amplitude=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#gauss1D"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calulcates 1D Gaussian.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>float or numpy.ndarray</em>) &#8211; the x-axis value/values where the Gaussian is to be caluclated.</li>
+<li><strong>fwhm</strong> (<em>float</em>) &#8211; The width of the Gaussian.</li>
+<li><strong>offset</strong> &#8211; The offset in x direction from 0. Default is 0.</li>
+<li><strong>amplitude</strong> &#8211; The height of the Gaussian. Default is 1.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>gauss</strong> &#8211;
+The y value for the specified Gaussian distribution evaluated at x.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float or np.ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The function used to describe the Gaussian is:</p>
+<div class="math">
+<p><img src="_images/math/c6e47f9e11114d47a3245a6595cf82db584ee4eb.png" alt="f = \frac{1}{fwhm * sqrt(2 * \pi)} * e^{-1/2 (\frac{x-x0}{fwhm})^2}"/></p>
+</div></dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">gauss2D</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>major</em>, <em>minor</em>, <em>pa=0</em>, <em>xOffset=0</em>, <em>yOffset=0</em>, <em>amplitude=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#gauss2D"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates a 2D Gaussian at position x y.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>float or numpy.ndarray</em>) &#8211; the x-axis value/values where the Gaussian is to be caluclated.</li>
+<li><strong>y</strong> (<em>float or numpy.ndarray</em>) &#8211; the y-axis value/values where the Gaussian is to be calculated.</li>
+<li><strong>minor</strong> (<em>major,</em>) &#8211; The fwhm of the Gaussian in x and y direction.</li>
+<li><strong>pa</strong> (<em>float</em>) &#8211; The position angle of the Gaussian in degrees. Default is 0.</li>
+<li><strong>yOffset</strong> (<em>xOffset,</em>) &#8211; The offset in x and y direction from 0. Default is 0.</li>
+<li><strong>amplitude</strong> &#8211; The height of the Gaussian. Default is 1.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>gauss</strong> &#8211;
+The y value for the specified Gaussian distribution evaluated at x.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float or np.ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The function used to describe the Gaussian is :</p>
+<div class="math">
+<p><img src="_images/math/058f3456add756337bf6d0245fe904db9d54b747.png" alt="f = (amplitude * exp (-1 (a*(x-xOffset)^2 + 2*b*(x-xOffset)*(y-yOffset)
+    + c*(y-yOffset)^2)))"/></p>
+</div><p>where:</p>
+<div class="math">
+<p><img src="_images/math/eb00c6c0dd61235578a0499516c37875bd935114.png" alt="a = cos(pa)**2/(2*major**2) + sin(pa)**2/(2*minor**2) \\
+b = (-1*sin(2*pa)/(4*major**2))+(sin(2*pa)/(4*minor**2)) \\
+c = sin(pa)**2/(2*major**2) + cos(pa)**2/(2*minor**2) \\"/></p>
+</div></dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">generate_monte_carlo_data_line</code><span class="sig-paren">(</span><em>data</em>, <em>errors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#generate_monte_carlo_data_line"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>This function makes a Monte Carlo Simulation of a data Set of measurements
+it uses the random.gauss() function to generate a data point
+from a gauss distribution, that has a mean equal to the measurement
+and its standard deviation corresonding to the error of the measurement.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> (<em>list</em>) &#8211; A list of original measurements.</li>
+<li><strong>errors</strong> (<em>list</em>) &#8211; A list of the corresponding errors.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>newData</strong> &#8211;
+The monte carlo simulated measurement.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">array in same format as data.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><code class="xref py py-func docutils literal"><span class="pre">random.gauss()</span></code></p>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">generate_monte_carlo_data_sed</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#generate_monte_carlo_data_sed"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>MonteCarlo Simulation of a set of flux measurements, assuming that the
+measurement data follows a gauss distribution.</p>
+<p>This function makes use of the <code class="xref py py-func docutils literal"><span class="pre">random.gauss()</span></code> function to generate a
+data point from a gauss distribution, that has a mean equal to the Flux
+measurement and a standard deviation correponding to the error of the
+measurement.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<em>array</em>) &#8211; <dl class="docutils">
+<dt>Same format as in grey_body_fit function:</dt>
+<dd>data= [[x1, x2, x3, ...][y1, y2, y3, ...][z1, z2, z3, ...]]</dd>
+</dl>
+<p>with x = wavelenght/frequency, y = flux, z = error on flux.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>newData</strong> &#8211;
+The Monte-Carlo simulated measurement.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">array in same format as data.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><code class="xref py py-func docutils literal"><span class="pre">random.gauss()</span></code></p>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">grey_body</code><span class="sig-paren">(</span><em>p</em>, <em>x</em>, <em>nu_or_lambda='nu'</em>, <em>kappa='Kruegel'</em>, <em>distance=840000.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#grey_body"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculation of the flux density in Jansky of a grey_body under
+assumption of optically thin emission. Please see Notes below for an
+detailed description assumptions and equations used.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p</strong> (<em>list</em>) &#8211; List of the parameters defining a grey_body, being Temperature [K],
+column density or mass (dependent on the kappa used) and the grey_body
+slope index beta, respectively (refer to notes for more information):
+p = [T, N, beta]</li>
+<li><strong>x</strong> (<em>float or numpy array</em>) &#8211; Wavelength [GHz] or frequency [micron];
+specify type in nu_or_lambda</li>
+<li><strong>kappa</strong> (<em>string</em>) &#8211; <dl class="docutils">
+<dt>Chooses the dust extinction coefficient to use:</dt>
+<dd><ul class="first last">
+<li><code class="docutils literal"><span class="pre">&quot;easy&quot;</span></code> -&gt; kappa = nu^beta; tau = N * kappa</li>
+<li><code class="docutils literal"><span class="pre">&quot;Kruegel&quot;</span></code> -&gt; kappa = 0.04*(nu/250Ghz)^beta;
+tau = M/D^2 * kappa</li>
+</ul>
+</dd>
+</dl>
+<p>Please refer to Notes below, for further explanation.</p>
+</li>
+<li><strong>distance</strong> (<em>float</em>) &#8211; The distance to the source that is to be modeled if kappa
+<code class="docutils literal"><span class="pre">&quot;Kruegel&quot;</span></code> is used.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Other Parameters:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first last"><strong>nu_or_lambda</strong> (<em>string</em>) &#8211;
+Specify whether x is a frequency <img class="math" src="_images/math/d67fb61cfffca2cc069e083d76cb6220b4ca14c8.png" alt="\nu"/> <code class="docutils literal"><span class="pre">'nu'</span></code> or a wavelength
+<img class="math" src="_images/math/1ab0134b6e0837594649c75a2ed83cfd85a2d03d.png" alt="\lambda"/> <code class="docutils literal"><span class="pre">'lambda'</span></code>; default is <code class="docutils literal"><span class="pre">'nu'</span></code>. if lambda the input
+converted to a frequency in [GHz].</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The general equation for a grey_body is:</p>
+<div class="math">
+<p><img src="_images/math/eed4eea8144460501b911ea50c722ad2380bef22.png" alt="S(x, \tau) = (black_body(x, T)) * [1 - e^\tau] \Omega"/></p>
+</div><p>describing the flux coming from an solid angle
+<img class="math" src="_images/math/b39932b8cbb311eeee9815738f6be3757737b2ff.png" alt="\Omega"/> while <img class="math" src="_images/math/d9e99c35d3632bb156b7aca0e93cd78a148a10e8.png" alt="\tau"/> is:</p>
+<div class="math">
+<p><img src="_images/math/d6d4db6632f43d0d5140ce79d2766cca8a7aa260.png" alt="\tau_{\nu} = \frac{ \kappa_d(\nu) * M_{dust}}{D^2 \Omega} ."/></p>
+</div><p>Here we assume optically thin emission and a source filling factor of
+unity. This simplifies the equation of the grey_body to:</p>
+<div class="math">
+<p><img src="_images/math/cbb312102a772c0a45481b86b2f2c3dcb70b3a46.png" alt="S(x, \tau) = \tau * (black_body(x, T))"/></p>
+</div><p>This script supports two versions of the dust extinction coefficient.::
+A simple version without a lot of physics put into, kappa = <code class="docutils literal"><span class="pre">'easy'</span></code>
+which defaults to the following grey_body equation:</p>
+<div class="math">
+<p><img src="_images/math/e1976f4b7c03d5de68c552164a44444bc3a0ae60.png" alt="S(x, \tau) = N * x^{\beta} * black_body(x,T) ,"/></p>
+</div><p>with N being a column density scaling factor.</p>
+<p>The second version, kappa = <code class="docutils literal"><span class="pre">'Kruegel'</span></code> uses the dust extinction
+coefficient reported in [KS] which renders the used equation to:</p>
+<div class="math">
+<p><img src="_images/math/bb510bdcc41cabab5a8ae0c2d8a15ac0300acf7b.png" alt="\kappa = 0.04 * (\frac{x\,[GHz]}{250\,GHz})^{\beta}
+
+S_{\nu} = M[kg] / D^2[m^2] * \kappa * black_body(x,T) ."/></p>
+</div><p class="rubric">Examples</p>
+<p>The same examples as for <code class="xref py py-func docutils literal"><span class="pre">black_body()</span></code> apply.</p>
+<p class="rubric">References</p>
+<table class="docutils citation" frame="void" id="ks" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[KS]</td><td>Kruegel, E. &amp; Siebenmorgen, R. 1994, A&amp;A, 288, 929</td></tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">grey_body_fit</code><span class="sig-paren">(</span><em>data</em>, <em>start_parameter</em>, <em>nu_or_lambda='nu'</em>, <em>fit_beta=False</em>, <em>fix_temperature=False</em>, <em>rawChiSq=None</em>, <em>kappa='Kruegel'</em>, <em>residuals=False</em>, <em>iterations=1000000000.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#grey_body_fit"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>This function fits a multi component grey body model to an observed SED for
+the optical thin case.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> (<em>array</em>) &#8211; The obseved data. Array of shape(3, x) first row has to be the X values
+(Frequency in [GHz]) of the measurements, second row the Y values
+(Flux [Jy]), and the third row  the Z values the errors on the
+fluxes i.e.:
+data = array([[X1, X2, X3, ...], [Y1, Y2, Y3,...], [Z1, Z2,
+Z3, ...]])</li>
+<li><strong>start_parameter</strong> (<em>array</em>) &#8211; Array of a first guess of the parameters of the grey_body components.
+The number of components is arbitrary.
+start_parameter = [[T1, T2, T3,...], [N1, N2, N3, ...], beta]</li>
+<li><strong>fit_beta</strong> (<em>True or False</em>) &#8211; If True Beta is allowed to vary. Default is False.</li>
+<li><strong>fix_temperature</strong> (<em>True or False</em>) &#8211; If True the Temperature is fixed allowed to vary.</li>
+<li><strong>rawChiSq</strong> &#8211; if None the function gives the reduced chisq Value. If True the
+function gives chisq without dividing it by the dof</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
+<li><strong>p2</strong> (<em>list</em>) &#8211;
+The final grey_body parameters that reduce the least squares for the
+given dataset.</li>
+<li><em>chisq/rawChiSq</em> &#8211;
+chisq is reduced chisq with degrees of freedom:
+dof= #dataPoints-#freeFitParameters-1</li>
+</ul>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Other Parameters:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first last"><strong>nu_or_lambda</strong> (<em>string</em>) &#8211;
+Specify whether x is a frequency <img class="math" src="_images/math/d67fb61cfffca2cc069e083d76cb6220b4ca14c8.png" alt="\nu"/> <code class="docutils literal"><span class="pre">'nu'</span></code> or
+a wavelenght <img class="math" src="_images/math/1ab0134b6e0837594649c75a2ed83cfd85a2d03d.png" alt="\lambda"/> <code class="docutils literal"><span class="pre">'lambda'</span></code>; default is <code class="docutils literal"><span class="pre">'nu'</span></code>.::
+<strong>Don&#8217;t</strong> use <code class="docutils literal"><span class="pre">'lambda'</span></code> as this part of the
+<code class="xref py py-func docutils literal"><span class="pre">grey_body()</span></code> is not up-to-date.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<dl class="docutils">
+<dt><code class="xref py py-func docutils literal"><span class="pre">scipy.optimize.leastsq()</span></code></dt>
+<dd>This function is used to perform the least squares</dd>
+</dl>
+<p class="last"><code class="xref py py-func docutils literal"><span class="pre">fit.()</span></code>, <code class="xref py py-func docutils literal"><span class="pre">multi_component_grey_body()</span></code>, <code class="xref py py-func docutils literal"><span class="pre">grey_body()</span></code>, <code class="xref py py-func docutils literal"><span class="pre">black_body()</span></code>, <code class="xref py py-func docutils literal"><span class="pre">be()</span></code></p>
+</div>
+<p class="rubric">Notes</p>
+<p>A one component fit has four free parameters if beta is allowed to vary or
+three if beta is fixed (one more than parameters to fit). Each additional
+component adds two more free paramters to fit.
+Assure that:
+number of data points &gt; number of free parameters.</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">grey_body_monte_carlo</code><span class="sig-paren">(</span><em>p</em>, <em>data</em>, <em>iterations</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#grey_body_monte_carlo"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Function to evaluate the errors in the parameters fitted with the
+grey_body_fit function.</p>
+<p>It uses Monte Carlo Simulated data (from
+<code class="xref py py-func docutils literal"><span class="pre">generate_monte_carlo_data_sed()</span></code>) and performs a fit to this new data
+giving back the results of the fit parameters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p</strong> (<em>list</em>) &#8211; The parameters defining the multi component grey_body model to be
+fitted. Same format as p in <code class="xref py py-func docutils literal"><span class="pre">multi_component_grey_body()</span></code></li>
+<li><strong>data</strong> (<em>array</em>) &#8211; The actual measured data of the SED, same format as for
+<code class="xref py py-func docutils literal"><span class="pre">grey_body_fitFunction()</span></code></li>
+<li><strong>iterations</strong> (<em>int</em>) &#8211; Number of times new data is generated and fitted.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><em>string</em> &#8211;
+Containing the mean, standard deviation of the fit parameters, ready
+to print out.</li>
+<li><strong>betaTlist</strong> (<em>List of all fit results. Name misleading since it may not</em>) &#8211;
+include the beta.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">line</code><span class="sig-paren">(</span><em>p</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#line"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Line <cite>y = m*x + b</cite> equation. Returns y value at point x.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>p</strong> (<em>list</em>) &#8211; Contains the slope and the y-axis intersection of the line [m, b].</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>y</strong></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">value of y corresponding to x.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">line_fit</code><span class="sig-paren">(</span><em>p</em>, <em>x</em>, <em>y</em>, <em>y_error</em>, <em>x_error=False</em>, <em>iterations=10000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#line_fit"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Linear Fit to data, taking either errors in y or both in x and y into
+account.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>p</strong> (<em>list</em>) &#8211; Containg slope (m) and y-axis intersection (b) p=[m, b]. Same as in
+<code class="xref py py-func docutils literal"><span class="pre">line()</span></code> and <code class="xref py py-func docutils literal"><span class="pre">antiline()</span></code>.</li>
+<li><strong>x</strong> (<em>float or list</em>) &#8211; x measurements. Data.</li>
+<li><strong>y</strong> (<em>float or list</em>) &#8211; y measurements. Data.</li>
+<li><strong>y_error</strong> (<em>float or list</em>) &#8211; The y measurment errors.</li>
+<li><strong>x_error</strong> (<em>float or list</em>) &#8211; The x measurment errors. If unset only errors in y are taken into
+account.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">line_monte_carlo</code><span class="sig-paren">(</span><em>p</em>, <em>x</em>, <em>y</em>, <em>x_error</em>, <em>y_error</em>, <em>iterations</em>, <em>fitIterations=1000000000.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#line_monte_carlo"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Gererate an estimate of the errors of the fitted parameters determined by
+the <code class="xref py py-func docutils literal"><span class="pre">line_fit()</span></code> function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p</strong> (<em>list</em>) &#8211; Containg slope (m) and y-axis intersection (b) p=[m, b]. Same as in
+<code class="xref py py-func docutils literal"><span class="pre">line()</span></code> and <code class="xref py py-func docutils literal"><span class="pre">antiline()</span></code>.</li>
+<li><strong>x</strong> (<em>float or list</em>) &#8211; x measurements. Data.</li>
+<li><strong>y</strong> (<em>float or list</em>) &#8211; y measurements. Data.</li>
+<li><strong>y_error</strong> (<em>float or list</em>) &#8211; The y measurment errors.</li>
+<li><strong>x_error</strong> (<em>float or list</em>) &#8211; The x measurment errors. If unset only errors in y are taken into
+account.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>string</strong> (<em>A string containing the results.</em>)</li>
+<li><strong>BList</strong> (<em>A list containing the fittet y-Axis intersections.</em>)</li>
+<li><strong>MList</strong> (<em>A list containing the fitted slopes.</em>)</li>
+<li><strong>chisqList</strong> (<em>A list with the chisq values.</em>)</li>
+<li><strong>resultArray</strong> (<em>Array with the mean and the standard deviations of</em>) &#8211;
+slopes and y-axis intersections, i.e. [mean(M), std(M), mean(B),
+std(B)]</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><code class="xref py py-func docutils literal"><span class="pre">grey_body_fit()</span></code>, <code class="xref py py-func docutils literal"><span class="pre">generate_monte_carlo_data_line()</span></code></p>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">linear_error_function</code><span class="sig-paren">(</span><em>p</em>, <em>x</em>, <em>y</em>, <em>y_error</em>, <em>x_error</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#linear_error_function"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Error function, i.e. residual from the measured value, which has to be
+minimised in the least square fit taking X and Y Error into account.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>p</strong> (<em>list</em>) &#8211; Same as in <code class="xref py py-func docutils literal"><span class="pre">line()</span></code> and <code class="xref py py-func docutils literal"><span class="pre">anti_line()</span></code>.</li>
+<li><strong>x</strong> (<em>float or list</em>) &#8211; x measurements. Data.</li>
+<li><strong>y</strong> (<em>float or list</em>) &#8211; y measurements. Data.</li>
+<li><strong>x_error</strong> (<em>float or list</em>) &#8211; The x measurment errors.</li>
+<li><strong>y_error</strong> (<em>float or list</em>) &#8211; The y measurment errors.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">multi_component_grey_body</code><span class="sig-paren">(</span><em>pMulti</em>, <em>x</em>, <em>nu_or_lambda='nu'</em>, <em>kappa='Kruegel'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#multi_component_grey_body"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Combines multiple grey_body functions and returns the flux density in
+Jansky for the input frequency/wavelenght.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pMulti</strong> (<em>nested lists</em>) &#8211; Similar to p from
+<code class="xref py py-func docutils literal"><span class="pre">grey_body()</span></code> but the three entries are
+lists, i.e.::
+pMulti = [[T1, T2, T3, ...Tn], [N1, N2, N3,...Nn], [beta]]</li>
+<li><strong>x</strong> (<em>float or numpy array</em>) &#8211; frequency [micron] (or wavelenght <strong>Not maintained</strong>, specify type in
+nu_or_lambda)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>sum(snu)</strong> (<em>float</em>) &#8211;
+All dust components summed.</li>
+<li><em>snu</em> &#8211;
+A list with the fluxes of the individual components.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><code class="xref py py-func docutils literal"><span class="pre">black_body()</span></code>, <code class="xref py py-func docutils literal"><span class="pre">grey_body()</span></code></p>
+</div>
+<p class="rubric">Notes</p>
+<p>Only one common beta for all components can be used. May be expanded to
+mutliple betas if needed.</p>
+<p class="rubric">Examples</p>
+<p>Same as for black_body, but all returned grey_bodies may be plotted.</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">redshifted_frequency</code><span class="sig-paren">(</span><em>rest_frequency</em>, <em>v_lsr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#redshifted_frequency"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates the sky frequency corresponding to a rest frequency for a
+source with a velocity v_lsr.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>rest_frequency</strong> (<em>float</em>) &#8211; The frequency of the line at rest in Ghz (More often state the obvious
+:)).</li>
+<li><strong>v_lsr</strong> (<em>float</em>) &#8211; The velocity of the source in km/s.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>redshifted_frequency</strong> &#8211;
+The sky frequency in GHz.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The formula used is:</p>
+<div class="math">
+<p><img src="_images/math/7d0d28b3e2be02ce6c962dcdd56e809b70725019.png" alt="\nu_{sky} = \nu_{rest} * \frac{-1 v_{lsr}}{c + 1}"/></p>
+</div><p>Approved!</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">rotation_2d</code><span class="sig-paren">(</span><em>coordinate</em>, <em>angle</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#rotation_2d"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Implementation of the rotation matrix in two dimensions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>coordinates</strong> (<em>list of floats</em>) &#8211; Coordinates in the unrotated system [x, y].</li>
+<li><strong>angle</strong> (<em>float</em>) &#8211; The rotation angle</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>[x_rotated, y_rotated]</strong> &#8211;
+Coordinates in the rotated system.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list of floats</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">v_lsr</code><span class="sig-paren">(</span><em>center_frequency</em>, <em>observation_frequency</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#v_lsr"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Calculates the velocity that corresponds to a certain frequency shift
+between two frequencies.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>center_frequency</strong> (<em>float</em>) &#8211; center_frequency in GHz</li>
+<li><strong>observation_frequency</strong> (<em>float</em>) &#8211; The observation frequency in GHz.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>v_lsr</strong> &#8211;
+The velocity corresponding to the frequency shift in km/s</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Approved!</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.astro_functions.</code><code class="descname">vel_to_freq_resolution</code><span class="sig-paren">(</span><em>center_frequency</em>, <em>velocity_resolution</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/astro_functions.html#vel_to_freq_resolution"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Converts a velocity resolution to frequency resolution for a given
+center frequency.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>center_frequency</strong> (<em>float</em>) &#8211; Center frequency in GHz.</li>
+<li><strong>velocity_resolution</strong> &#8211; Velocity resolution in km/s.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>frequency_resolution</strong> &#8211;
+The corresponding frequency resolution in Mhz</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Approved!</p>
+</dd></dl>
+
+</div>
+<hr class="docutils" />
+<div class="section" id="units">
+<h3>units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h3>
+<p>Constant unit conversions available in this module are:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># Constant conversion factors.</span>
+<span class="c">#==============&gt; Approved !!! &lt;==========================</span>
+<span class="n">WattToErgs</span>    <span class="o">=</span> <span class="mf">1e7</span>  <span class="c"># 1W = 1e7 erg/s</span>
+<span class="n">ErgsToWatt</span>    <span class="o">=</span> <span class="mf">1e-7</span>  <span class="c"># 1W = 1e-7 erg/s</span>
+<span class="n">JanskyToWatt</span>  <span class="o">=</span> <span class="mf">1e-26</span>  <span class="c"># 1Jy = 1e-26 W/m2/Hz</span>
+<span class="n">WattToJansky</span>  <span class="o">=</span> <span class="mf">1e26</span>  <span class="c"># 1W  = 1 Jy * m2 * Hz</span>
+<span class="n">ErgsToJansky_cm</span>  <span class="o">=</span> <span class="mf">1e23</span>  <span class="c"># 1 erg/s =  1e23 Jy * cm2 * Hz * s</span>
+<span class="n">JanskyToErgs_cm</span>  <span class="o">=</span> <span class="mf">1e-23</span>  <span class="c"># 1 Jy = 1e-23 erg/s/cm2/Hz</span>
+<span class="n">ErgsToJansky_m</span>  <span class="o">=</span> <span class="mf">1e19</span>  <span class="c"># 1 erg/s = 1e-19 Jy * m2 * Hz * s</span>
+</pre></div>
+</div>
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">Int2Lum</code><span class="sig-paren">(</span><em>distance_in_pc</em>, <em>cm_or_m='cm'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#Int2Lum"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Conversion factor to calculate luminosity from intensities
+by integrating over the sky 4 pi Distance^2.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>distance_in_pc</strong> (<em>float</em>) &#8211; Distance to the source in parsecs.</li>
+<li><strong>cm_or_m</strong> (<em>string</em>) &#8211; Choose wether the out put is in cm^2 = <code class="docutils literal"><span class="pre">'cm'</span></code> or in
+m^2 = <code class="docutils literal"><span class="pre">'m'</span></code>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Approved.</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">JyBToErgsB</code><span class="sig-paren">(</span><em>input_flux</em>, <em>distance</em>, <em>wavelength</em>, <em>invert=False</em>, <em>map_use=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#JyBToErgsB"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Conversion between Jy/beam and ergs/beam.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>input_flux</strong> (<em>float</em>) &#8211; Flux to be converted in Jy/beam</li>
+<li><strong>distance</strong> (<em>float</em>) &#8211; Distance to the source in parsec.</li>
+<li><strong>wavelength</strong> (<em>float</em>) &#8211; Wavelength <img class="math" src="_images/math/1ab0134b6e0837594649c75a2ed83cfd85a2d03d.png" alt="\lambda"/> in <img class="math" src="_images/math/ceea00f221a4d74eaf52c6625387e774a06e189c.png" alt="\mu m"/>.</li>
+<li><strong>map_use</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><em>The conversion factor (map_use = true) or the already converted flux</em></li>
+<li><em>(map_use = False).</em></li>
+<li><em>r</em></li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">JyBToWKpc2</code><span class="sig-paren">(</span><em>input_flux</em>, <em>distance</em>, <em>major</em>, <em>minor</em>, <em>wavelength</em>, <em>invert=False</em>, <em>map_use=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#JyBToWKpc2"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Conversion from JyB to W kpc^-2.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>input_flux</strong> (<em>float</em>) &#8211; Flux to be converted.</li>
+<li><strong>distance</strong> (<em>float</em>) &#8211; Distance to source in parsec.</li>
+<li><strong>major</strong> (<em>float</em>) &#8211; Major Axis Beam (arcsec).</li>
+<li><strong>minor</strong> (<em>float</em>) &#8211; Minor Axis Beam(arcsec).</li>
+<li><strong>wavelength</strong> (<em>float</em>) &#8211; Wavelenght <img class="math" src="_images/math/1ab0134b6e0837594649c75a2ed83cfd85a2d03d.png" alt="\lambda"/> in <img class="math" src="_images/math/ceea00f221a4d74eaf52c6625387e774a06e189c.png" alt="\mu m"/>.</li>
+<li><strong>invert</strong> (<em>True or False</em>) &#8211; Changes the direction of conversion.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>float</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">the converted Flux.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">JyBToWM2Kpc2</code><span class="sig-paren">(</span><em>input_flux</em>, <em>distance</em>, <em>major</em>, <em>minor</em>, <em>wavelength</em>, <em>invert=False</em>, <em>map_use=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#JyBToWM2Kpc2"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Conversion between Jy/beam and W m^-2 kpc^-2</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>input_flux</strong> (<em>float</em>) &#8211; Flux to be converted.</li>
+<li><strong>distance</strong> (<em>float</em>) &#8211; Distance to source in parsec.</li>
+<li><strong>major</strong> (<em>float</em>) &#8211; Major Axis Beam (arcsec).</li>
+<li><strong>minor</strong> (<em>float</em>) &#8211; Minor Axis Beam(arcsec).</li>
+<li><strong>wavelength</strong> (<em>float</em>) &#8211; Wavelenght <img class="math" src="_images/math/1ab0134b6e0837594649c75a2ed83cfd85a2d03d.png" alt="\lambda"/> in <img class="math" src="_images/math/ceea00f221a4d74eaf52c6625387e774a06e189c.png" alt="\mu m"/></li>
+<li><strong>invert</strong> (<em>True or False</em>) &#8211; Changes the direction of conversion.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>float</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">the converted Flux.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">WmToKkms</code><span class="sig-paren">(</span><em>x</em>, <em>resolution=0</em>, <em>sterad=False</em>, <em>ToKKms=False</em>, <em>m2_or_cm2='m'</em>, <em>nu_or_lambda='nu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#WmToKkms"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Conversion between W/m2 and K km/s.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>float</em>) &#8211; wavelenght/frequency [GHZ].</li>
+<li><strong>resolution</strong> (<em>float</em>) &#8211; </li>
+<li><strong>ToKKms</strong> (<em>True or False</em>) &#8211; Direction of the conversion.</li>
+<li><strong>sterad</strong> (<em>True or False</em>) &#8211; If False convert from per beam to per sterad.</li>
+<li><strong>m2_or_cm2</strong> (<em>string</em>) &#8211; Choose if conversion to/from W m-2 oder W cm-2. <code class="docutils literal"><span class="pre">'m2'</span></code> or <code class="docutils literal"><span class="pre">'cm2'</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>factor</strong> &#8211;
+The conversion factor.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">ergToKkms</code><span class="sig-paren">(</span><em>x</em>, <em>toErg=False</em>, <em>nu_or_lambda='nu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#ergToKkms"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Conversion between ergs/cm2/s/sr and K km/s.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>float</em>) &#8211; wavelenght/frequency [GHZ],</li>
+<li><strong>toErg</strong> (<em>True or False</em>) &#8211; True converts the other direction, i.e. from K km/s to ergs/cm2/s/sr.</li>
+<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Choose type of x: frequency = <code class="docutils literal"><span class="pre">'nu'</span></code> or wavelenght = <code class="docutils literal"><span class="pre">'lambda'</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>factor</strong> &#8211;
+The conversion factor.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Approved.</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">jansky_to_kelvin</code><span class="sig-paren">(</span><em>x</em>, <em>major</em>, <em>minor</em>, <em>nu_or_lambda='nu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#jansky_to_kelvin"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Conversion from Jy/beam to K.km/s (Tmb).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>x</strong> (<em>float</em>) &#8211; wavelength/frequency [GHZ],</li>
+<li><strong>major</strong> (<em>float</em>) &#8211; Major Axis Beam (arcsec).</li>
+<li><strong>minor</strong> (<em>float</em>) &#8211; Minor Axis Beam(arcsec).</li>
+<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Choose type of x: frequency = <code class="docutils literal"><span class="pre">'nu'</span></code> or wavelength = <code class="docutils literal"><span class="pre">'lambda'</span></code>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Same as <code class="xref py py-func docutils literal"><span class="pre">kelvin_to_jansky()</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">astrolyze.functions.units.</code><code class="descname">kelvin_to_jansky</code><span class="sig-paren">(</span><em>x</em>, <em>major</em>, <em>minor</em>, <em>nu_or_lambda='nu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrolyze/functions/units.html#kelvin_to_jansky"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Conversion from K.km/s (Tmb) and Jy/beam.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>x</strong> (<em>float</em>) &#8211; wavelength/frequency [GHZ],</li>
+<li><strong>major</strong> (<em>float</em>) &#8211; Major Axis Beam (arcsec),</li>
+<li><strong>minor</strong> (<em>float</em>) &#8211; Minor Axis Beam(arcsec),</li>
+<li><strong>nu_or_lambda</strong> (<em>string</em>) &#8211; Choose type of x: frequency = <code class="docutils literal"><span class="pre">'nu'</span></code> or wavelength = <code class="docutils literal"><span class="pre">'lambda'</span></code>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>This function has been compared with the Time estimator from the
+[GILDAS] package ASTRO and yields the same conversion factors.</p>
+<p class="rubric">References</p>
+<table class="docutils citation" frame="void" id="gildas" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[GILDAS]</td><td>www.iram.fr/IRAMFR/GILDAS</td></tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<hr class="docutils" />
+<div class="section" id="constants">
+<h3>constants<a class="headerlink" href="#constants" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># Natural Constants</span>
+<span class="n">c</span> <span class="o">=</span> <span class="mf">299792458.</span>  <span class="c"># Speed of light [m]</span>
+<span class="n">c_in_cm</span> <span class="o">=</span> <span class="n">c</span> <span class="o">*</span> <span class="mf">1e2</span>  <span class="c"># Speed of light [cm]</span>
+<span class="n">h</span> <span class="o">=</span> <span class="mf">6.62606896e-34</span>  <span class="c"># Plancks constant [Js]</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mf">1.3806503e-23</span>  <span class="c"># Boltzman constant [m^2 kg s^-1 K^-1]</span>
+<span class="n">tBG</span> <span class="o">=</span> <span class="mf">2.7</span>  <span class="c"># Cosmic Microwave Background Temperature in [K]</span>
+<span class="n">e</span> <span class="o">=</span> <span class="mf">2.7182818284</span>  <span class="c"># Eulers number </span>
+
+<span class="c"># Natural Constants in cgs units.</span>
+<span class="n">k_CGS</span> <span class="o">=</span> <span class="mf">1.3806503e-16</span>  <span class="c"># Boltzman constant [cm^2 g s^-1 K^-1]</span>
+<span class="n">h_CGS</span> <span class="o">=</span> <span class="mf">6.62606896e-27</span>  <span class="c"># Plancks constant [Js]</span>
+<span class="n">c_CGS</span> <span class="o">=</span> <span class="mf">2.99792458e10</span>  <span class="c"># Speed of light [cm]</span>
+
+<span class="c"># Conversion of distances</span>
+<span class="n">parsec_in_m_1</span> <span class="o">=</span> <span class="mf">3.08568025e16</span>
+<span class="n">parsec_in_m</span> <span class="o">=</span> <span class="mf">3.085e16</span>  <span class="c"># parsec in m</span>
+<span class="n">parsec_in_cm</span> <span class="o">=</span> <span class="mf">3.08568025e18</span>  <span class="c"># parsec in cm</span>
+<span class="n">km_in_cm</span> <span class="o">=</span> <span class="mf">1e5</span>
+
+<span class="c"># Masses</span>
+<span class="n">m_sun</span> <span class="o">=</span> <span class="mf">1.9891e30</span>  <span class="c"># [kg]</span>
+<span class="n">m_proton</span> <span class="o">=</span> <span class="mf">1.672621637e-27</span>  <span class="c"># [kg]</span>
+
+<span class="c"># Gauss constants</span>
+<span class="c"># GaussArea/(height*FWHM)</span>
+<span class="n">gauss_constant</span> <span class="o">=</span> <span class="mf">1.064467</span>
+
+<span class="c"># Luminosities </span>
+<span class="n">LsunW</span> <span class="o">=</span> <span class="mf">3.846e26</span>  <span class="c"># Watts</span>
+<span class="n">Lsunergs</span> <span class="o">=</span> <span class="mf">3.846e26</span><span class="o">*</span><span class="mf">1e7</span>  <span class="c"># erg/s</span>
+<span class="n">debye_to_EsuCm</span> <span class="o">=</span> <span class="mf">1.e-18</span>  <span class="c"># Change from debye to esu/cm</span>
+
+<span class="c"># Angle Conversions</span>
+<span class="n">a2r</span> <span class="o">=</span> <span class="mf">4.848e-6</span>  <span class="c"># arcsec to radian</span>
+<span class="n">a2d</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="mi">60</span><span class="o">/</span><span class="mi">60</span>  <span class="c"># arcsec to degree</span>
+<span class="n">r2d</span> <span class="o">=</span> <span class="mf">180.</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span>  <span class="c"># radian to degree</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="cookbook.html" class="btn btn-neutral" title="Cookbook" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Christof Buchbender.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.2.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

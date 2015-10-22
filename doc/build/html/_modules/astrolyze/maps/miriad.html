@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>astrolyze.maps.miriad &mdash; astrolyze 0.1.5 documentation</title>
+  <title>astrolyze.maps.miriad &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="../../../index.html"/>
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -62,7 +62,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -85,23 +85,10 @@
             
                 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -153,8 +140,6 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">pyfits</span>
-<span class="kn">import</span> <span class="nn">pywcs</span>
 
 <span class="kn">from</span> <span class="nn">pysqlite2</span> <span class="kn">import</span> <span class="n">dbapi2</span> <span class="k">as</span> <span class="n">sqlite</span>
 <span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
@@ -168,20 +153,20 @@
 <span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
 
 
-<div class="viewcode-block" id="MiriadMap"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.miriad.MiriadMap">[docs]</a><span class="k">class</span> <span class="nc">MiriadMap</span><span class="p">(</span><span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="p">):</span>
+<div class="viewcode-block" id="MiriadMap"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.miriad.MiriadMap">[docs]</a><span class="k">class</span> <span class="nc">MiriadMap</span><span class="p">(</span><span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Calling the Map parent class and check that the file is really a</span>
 <span class="sd">        miriad map.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="p">)</span>
+        <span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">print</span> <span class="s">&#39;Exiting: not the right format&#39;</span>
             <span class="k">print</span> <span class="nb">map</span><span class="o">.</span><span class="n">resolution</span>
             <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
 
-<div class="viewcode-block" id="MiriadMap.toFits"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.miriad.MiriadMap.toFits">[docs]</a>    <span class="k">def</span> <span class="nf">toFits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MiriadMap.toFits"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.miriad.MiriadMap.toFits">[docs]</a>    <span class="k">def</span> <span class="nf">toFits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Converts the actual map to a Fits map.</span>
 
@@ -210,7 +195,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">fitsName</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span> <span class="o">+</span> <span class="s">&#39;.fits&#39;</span>
         <span class="k">return</span> <span class="n">fits</span><span class="o">.</span><span class="n">FitsMap</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span> <span class="o">+</span> <span class="s">&#39;.fits&#39;</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="MiriadMap.toGildas"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.miriad.MiriadMap.toGildas">[docs]</a>    <span class="k">def</span> <span class="nf">toGildas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MiriadMap.toGildas"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.miriad.MiriadMap.toGildas">[docs]</a>    <span class="k">def</span> <span class="nf">toGildas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Converts the actual map to a Gildas map.</span>
 
@@ -242,7 +227,7 @@
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm temp.greg&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">gildas</span><span class="o">.</span><span class="n">GildasMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gildasName</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="MiriadMap.toMiriad"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.miriad.MiriadMap.toMiriad">[docs]</a>    <span class="k">def</span> <span class="nf">toMiriad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MiriadMap.toMiriad"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.miriad.MiriadMap.toMiriad">[docs]</a>    <span class="k">def</span> <span class="nf">toMiriad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Copies the actual map changing the name such that it takes changes in</span>
 <span class="sd">        keywords into account.</span>
@@ -269,7 +254,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">map_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span>
 </div>
-<div class="viewcode-block" id="MiriadMap.smooth"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.miriad.MiriadMap.smooth">[docs]</a>    <span class="k">def</span> <span class="nf">smooth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_resolution</span><span class="p">,</span> <span class="n">old_resolution</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="MiriadMap.smooth"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.miriad.MiriadMap.smooth">[docs]</a>    <span class="k">def</span> <span class="nf">smooth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_resolution</span><span class="p">,</span> <span class="n">old_resolution</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Smoothes a miriad map to the new resolution.</span>
 
@@ -279,13 +264,15 @@
 <span class="sd">        new_resolution : float or list</span>
 <span class="sd">            The resolution in of the smoothed image.</span>
 <span class="sd">            Can be a:</span>
-<span class="sd">                * float: Output beam has same major and minor axis [arcsec] and</span>
-<span class="sd">                         the position angle (PA) [degrees] is 0.</span>
-<span class="sd">                * A list with two entries:</span>
-<span class="sd">                         The major and minor axis. PA is 0.</span>
-<span class="sd">                         E.g. [major_axis, minor_axis ]</span>
-<span class="sd">                * A list with three entries:</span>
-<span class="sd">                         [major_axis, minor_axis, PA]</span>
+
+<span class="sd">            * float: Output beam has same major and minor axis [arcsec] and</span>
+<span class="sd">              the position angle (PA) [degrees] is 0.</span>
+<span class="sd">            * A list with two entries:</span>
+<span class="sd">              The major and minor axis. PA is 0.</span>
+<span class="sd">              E.g. [major_axis, minor_axis ]</span>
+<span class="sd">            * A list with three entries:</span>
+<span class="sd">              [major_axis, minor_axis, PA]</span>
+
 <span class="sd">        old_resolution : float</span>
 <span class="sd">            If None the self.resolution information is taken into account.</span>
 <span class="sd">            Otherwise, it is assumed that old_resolution is the actual</span>
@@ -561,7 +548,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>astrolyze.maps.stack &mdash; astrolyze 0.1.5 documentation</title>
+  <title>astrolyze.maps.stack &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="../../../index.html"/>
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -62,7 +62,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -85,23 +85,10 @@
             
                 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -149,15 +136,19 @@
   <h1>Source code for astrolyze.maps.stack</h1><div class="highlight"><pre>
 <span class="c"># Copyright (C) 2012, Christof Buchbender</span>
 <span class="c"># BSD License (License.txt)</span>
+
+<span class="c"># standart library</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">pyfits</span>
-<span class="kn">import</span> <span class="nn">pywcs</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
+<span class="c"># from generaltools</span>
+<span class="kn">from</span> <span class="nn">generaltools</span> <span class="kn">import</span> <span class="n">log_tools</span>
+
+<span class="c"># from astrolyze</span>
 <span class="kn">import</span> <span class="nn">main</span>
 <span class="kn">import</span> <span class="nn">fits</span>
 <span class="kn">import</span> <span class="nn">gildas</span>
@@ -165,20 +156,49 @@
 
 <span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
 
+<span class="n">USER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">&quot;USER&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Stack"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack">[docs]</a><span class="k">class</span> <span class="nc">Stack</span><span class="p">:</span>
-    <span class="sd">r&quot;&quot;&quot; Allows to treat a folder of images as a whole and to perform the same</span>
-<span class="sd">    transformations on all of the maps. It is also the basis for the SED</span>
-<span class="sd">    package. The images in the input folder can have arbitrary formats, units,</span>
-<span class="sd">    resolutions and other specifications.</span>
-<span class="sd">    The Stack class can help to unify the different parameters of the maps to</span>
-<span class="sd">    help comparing them.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Stack"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.stack.Stack">[docs]</a><span class="k">class</span> <span class="nc">Stack</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot; Class to work with several maps at once.</span>
+
+<span class="sd">    Allows to treat all images inside a folder simultaneously. This allows to</span>
+<span class="sd">    to perform the same transformations on all maps.</span>
+
+<span class="sd">    The images in the input folder can have arbitrary formats, units,</span>
+<span class="sd">    resolutions and other properties. The Stack class can help to unify the</span>
+<span class="sd">    different parameters of the maps to help comparing them.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    folder : str</span>
+<span class="sd">        The folder containing the images that are to be treated as a stack</span>
+<span class="sd">    data_format : str</span>
+<span class="sd">        If not None filter images by format.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    The stack class can be used like builtin objects that are iterable e.g.:</span>
+
+<span class="sd">        &gt;&gt;&gt; st = Stack(&quot;folder_name&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; list_map_names = [i.map_name for i in st]</span>
+
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">      `Stack` is also the basis for the :py:mod:`astrolyze.sed.Sed` package.</span>
+<span class="sd">       &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">data_format</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Initialization of the stack. Reading in the maps and creating a list</span>
 <span class="sd">        of ``Map`` class objects, depending on the input format.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">log_tools</span><span class="o">.</span><span class="n">init_logger</span><span class="p">(</span>
+            <span class="n">directory</span><span class="o">=</span><span class="s">&quot;/home/{}/.astrolyze/&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">USER</span><span class="p">),</span>
+            <span class="n">name</span><span class="o">=</span><span class="s">&quot;astrolyze&quot;</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">gildas_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;gdf&#39;</span><span class="p">,</span> <span class="s">&#39;mean&#39;</span><span class="p">,</span> <span class="s">&#39;velo&#39;</span><span class="p">,</span> <span class="s">&#39;width&#39;</span><span class="p">,</span> <span class="s">&#39;lmv&#39;</span><span class="p">,</span>
                                <span class="s">&#39;lmv-clean&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;fits&#39;</span><span class="p">]</span>
@@ -197,8 +217,27 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">resolutions</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">resolution</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">fluxUnit</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dataFormats</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">dataFormat</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">log_tools</span><span class="o">.</span><span class="n">init_logger</span><span class="p">(</span>
+            <span class="n">directory</span><span class="o">=</span><span class="s">&quot;/home/{}/.astrolyze/&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">USER</span><span class="p">),</span>
+            <span class="n">name</span><span class="o">=</span><span class="s">&quot;astrolyze&quot;</span>
+        <span class="p">)</span>
 
-<div class="viewcode-block" id="Stack.get_map_format"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.get_map_format">[docs]</a>    <span class="k">def</span> <span class="nf">get_map_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="s">&quot;Stack(</span><span class="se">\&quot;</span><span class="s">{}</span><span class="se">\&quot;</span><span class="s">)</span><span class="se">\n</span><span class="s">Contains:</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">folder</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">map_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">+=</span> <span class="s">&quot;{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">map_</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">string</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="n">position</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Stack.get_map_format"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.stack.Stack.get_map_format">[docs]</a>    <span class="k">def</span> <span class="nf">get_map_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot; This function creates returns the correct ``GildasMap``,</span>
 <span class="sd">        ``FitsMap`` or ``MiriadMap`` object without that the data format of the</span>
 <span class="sd">        map has to be given.</span>
@@ -225,7 +264,7 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">map_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="mi">5</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">map_name</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">miriad</span><span class="o">.</span><span class="n">MiriadMap</span><span class="p">(</span><span class="n">map_name</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="Stack.get_list"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.get_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_format</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Stack.get_list"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.stack.Stack.get_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_format</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Loading a list of files in all sub-folders.</span>
 
@@ -307,7 +346,7 @@
             <span class="c"># list of folders of the next.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">folder_list</span> <span class="o">=</span> <span class="n">new_folder_list</span>
 </div>
-<div class="viewcode-block" id="Stack.copy_structure"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.copy_structure">[docs]</a>    <span class="k">def</span> <span class="nf">copy_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old_prefix</span><span class="p">,</span> <span class="n">new_prefix</span><span class="p">):</span>
+<div class="viewcode-block" id="Stack.copy_structure"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.stack.Stack.copy_structure">[docs]</a>    <span class="k">def</span> <span class="nf">copy_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old_prefix</span><span class="p">,</span> <span class="n">new_prefix</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Copies a folder structure from old_prefix to new_prefix. To assure all</span>
 <span class="sd">        folders exists before working with or copying data.</span>
@@ -368,7 +407,7 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">pass</span>
 </div>
-<div class="viewcode-block" id="Stack.unify_resolutions"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.unify_resolutions">[docs]</a>    <span class="k">def</span> <span class="nf">unify_resolutions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Stack.unify_resolutions"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.stack.Stack.unify_resolutions">[docs]</a>    <span class="k">def</span> <span class="nf">unify_resolutions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Smoothing all maps to the same resolution; either the maximum</span>
 <span class="sd">        resolution found in the stack or a given resolution.</span>
@@ -378,11 +417,13 @@
 
 <span class="sd">        resolution : float or list</span>
 <span class="sd">            This may be either:</span>
-<span class="sd">                 1. A list with three entries, i.e.</span>
-<span class="sd">                    [[minor_fwhm], [major_fwhm], [position_angle]]</span>
-<span class="sd">                 2. A list with two entries, position_angle defaults to 0, i.e.</span>
-<span class="sd">                    [[minor_fwhm], [major_fwhm]]</span>
-<span class="sd">                 3. A float. Same minor, major fwhm pa=0</span>
+
+<span class="sd">             1. A list with three entries, i.e.</span>
+<span class="sd">                [[minor_fwhm], [major_fwhm], [position_angle]]</span>
+<span class="sd">             2. A list with two entries, position_angle defaults to 0, i.e.</span>
+<span class="sd">                [[minor_fwhm], [major_fwhm]]</span>
+<span class="sd">             3. A float. Same minor, major fwhm pa=0</span>
+
 <span class="sd">        folder : string</span>
 <span class="sd">            The path tot the folder in which the files are to be stored.</span>
 
@@ -430,23 +471,26 @@
                     <span class="n">old_map</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span>
                     <span class="k">if</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">max_major_fwhm</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span>
                         <span class="nb">float</span><span class="p">(</span><span class="n">max_minor_fwhm</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
-                        <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">smooth</span><span class="p">([</span><span class="n">max_major_fwhm</span><span class="p">,</span> <span class="n">max_minor_fwhm</span><span class="p">,</span> <span class="n">pa</span><span class="p">],</span>
-                                           <span class="n">scale</span><span class="o">=</span><span class="n">scaling</span><span class="p">)</span>
+                        <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">smooth</span><span class="p">([</span><span class="n">max_major_fwhm</span><span class="p">,</span> <span class="n">max_minor_fwhm</span><span class="p">,</span>
+                                            <span class="n">pa</span><span class="p">],</span> <span class="n">scale</span><span class="o">=</span><span class="n">scaling</span><span class="p">)</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>
                                   <span class="nb">str</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">)))</span>
                         <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
                         <span class="n">new_stack</span> <span class="o">+=</span> <span class="p">[</span><span class="n">map_</span><span class="p">]</span>
-                        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>  <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="bp">None</span><span class="p">))</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span> <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="bp">None</span><span class="p">))</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>
                                   <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                                                   <span class="n">resolution</span><span class="o">=</span><span class="n">old_resolution</span><span class="p">))</span>
-                    <span class="k">elif</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">max_major_fwhm</span><span class="p">)</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span>
-                        <span class="nb">float</span><span class="p">(</span><span class="n">max_minor_fwhm</span><span class="p">)</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+                    <span class="k">elif</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">max_major_fwhm</span><span class="p">)</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                          <span class="ow">and</span>
+                          <span class="nb">float</span><span class="p">(</span><span class="n">max_minor_fwhm</span><span class="p">)</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>
                                   <span class="nb">str</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">)))</span>
                         <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
                         <span class="n">new_stack</span> <span class="o">+=</span> <span class="p">[</span><span class="n">map_</span><span class="p">]</span>
-                        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>  <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="bp">None</span><span class="p">))</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="bp">None</span><span class="p">))</span>
+                        <span class="p">)</span>
         <span class="k">if</span> <span class="n">resolution</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">map_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
@@ -475,7 +519,7 @@
                 <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span>  <span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="bp">None</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">new_stack</span>
 </div>
-<div class="viewcode-block" id="Stack.unify_units"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.unify_units">[docs]</a>    <span class="k">def</span> <span class="nf">unify_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;JyB&#39;</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+<div class="viewcode-block" id="Stack.unify_units"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.stack.Stack.unify_units">[docs]</a>    <span class="k">def</span> <span class="nf">unify_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;JyB&#39;</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Change all maps in the stack to the same unit.</span>
 
@@ -511,7 +555,7 @@
             <span class="n">new_stack</span> <span class="o">+=</span> <span class="p">[</span><span class="n">map_</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">new_stack</span>
 </div>
-<div class="viewcode-block" id="Stack.unify_dimensions"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.unify_dimensions">[docs]</a>    <span class="k">def</span> <span class="nf">unify_dimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Stack.unify_dimensions"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.stack.Stack.unify_dimensions">[docs]</a>    <span class="k">def</span> <span class="nf">unify_dimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot; Reproject all maps to the same central coordinates and map</span>
 <span class="sd">        dimensions.  All properties of one template map are copied to all the</span>
 <span class="sd">        other maps using the ``&quot;reproject&quot;`` task of GILDAS.</span>
@@ -547,11 +591,22 @@
             <span class="n">old_map</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span>
             <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">reproject</span><span class="p">(</span><span class="n">template</span><span class="o">=</span><span class="n">template</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
             <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
-            <span class="k">print</span> <span class="n">map_</span><span class="o">.</span><span class="n">map_name</span>
             <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">map_</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">max_value</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">)))])</span>
-            <span class="n">min_value</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">)))])</span>
+            <span class="n">max_value</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">)))]</span>
+            <span class="p">)</span>
+            <span class="n">min_value</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+                <span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">data</span><span class="p">)))]</span>
+            <span class="p">)</span>
+            <span class="n">map_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&quot;NAXIS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]:</span>
+                <span class="k">del</span> <span class="n">map_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;NAXIS{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+                <span class="k">del</span> <span class="n">map_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+                <span class="k">del</span> <span class="n">map_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRPIX{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+                <span class="k">del</span> <span class="n">map_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CRVAL{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+                <span class="k">del</span> <span class="n">map_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CTYPE{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+                <span class="k">del</span> <span class="n">map_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CROTA{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
             <span class="n">map_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;DATAMAX&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_value</span>
             <span class="n">map_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;DATAMIN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">min_value</span>
             <span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
@@ -560,7 +615,7 @@
             <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;gdf&#39;</span><span class="p">)))</span>
         <span class="k">return</span> <span class="n">new_stack</span>
 </div>
-<div class="viewcode-block" id="Stack.unify_projections"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.unify_projections">[docs]</a>    <span class="k">def</span> <span class="nf">unify_projections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Stack.unify_projections"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.stack.Stack.unify_projections">[docs]</a>    <span class="k">def</span> <span class="nf">unify_projections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Changing the central coordinate and the rotation angle.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -590,7 +645,7 @@
             <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">returnName</span><span class="p">(</span><span class="n">dataFormat</span><span class="o">=</span><span class="s">&#39;gdf&#39;</span><span class="p">)))</span>
         <span class="k">return</span> <span class="n">new_stack</span>
 </div>
-<div class="viewcode-block" id="Stack.unify_formats"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.unify_formats">[docs]</a>    <span class="k">def</span> <span class="nf">unify_formats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_format</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Stack.unify_formats"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.stack.Stack.unify_formats">[docs]</a>    <span class="k">def</span> <span class="nf">unify_formats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_format</span><span class="o">=</span><span class="s">&#39;fits&#39;</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot; Converts all maps to the ``target_format`` which has to be one</span>
 <span class="sd">        that is known to astrolyze. Please see TODO for a list of kwon formats.</span>
 <span class="sd">        Default is fits.</span>
@@ -633,7 +688,7 @@
             <span class="n">new_stack</span> <span class="o">+=</span> <span class="p">[</span><span class="n">map_</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">new_stack</span>
 </div>
-<div class="viewcode-block" id="Stack.pixel_pixel_compare"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.stack.Stack.pixel_pixel_compare">[docs]</a>    <span class="k">def</span> <span class="nf">pixel_pixel_compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e6</span><span class="p">):</span>
+<div class="viewcode-block" id="Stack.pixel_pixel_compare"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.stack.Stack.pixel_pixel_compare">[docs]</a>    <span class="k">def</span> <span class="nf">pixel_pixel_compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e6</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot; Producing a pixel-to-pixel comparison for all combinations</span>
 <span class="sd">        possible between the maps of the stack.</span>
 
@@ -777,7 +832,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

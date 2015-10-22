@@ -1,0 +1,357 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Motivation - What is astrolyze all about &mdash; astrolyze 0.2.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="index.html"/>
+        <link rel="next" title="Manual" href="manual.html"/>
+        <link rel="prev" title="Installation of astrolyze" href="installation.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> astrolyze
+          
+
+          
+            
+            <img src="_static/logo1.jpg" class="logo" />
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation of astrolyze</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Motivation - What is astrolyze all about</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#inter-operating-fits-gildas-and-miriad">Inter-operating Fits, Gildas and Miriad</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#changing-map-units">Changing map units</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#working-with-stacks-of-images">Working with stacks of images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#producing-seds">Producing SEDs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#not-only-images">Not only images ...</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source_documentation.html">Source Documenation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">astrolyze</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Motivation - What is astrolyze all about</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/motivation.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="motivation-what-is-astrolyze-all-about">
+<span id="label-motivation"></span><h1>Motivation - What is astrolyze all about<a class="headerlink" href="#motivation-what-is-astrolyze-all-about" title="Permalink to this headline">¶</a></h1>
+<p>First, before delving into the details of the astrolyze package, here a few
+examples are given of what astrolyze is all about. The following is a short
+teaser of some of the features of astrolyze; a thorough introduction with more
+features and possibilities are given in the <span class="xref std std-ref">label-naming-convention</span>.</p>
+<div class="section" id="inter-operating-fits-gildas-and-miriad">
+<h2>Inter-operating Fits, Gildas and Miriad<a class="headerlink" href="#inter-operating-fits-gildas-and-miriad" title="Permalink to this headline">¶</a></h2>
+<p>A central concept of <cite>astrolyze</cite> is to enable to use different astronomically map formats and
+different programs from within python seamlessly. Say, for example, that you
+have a Fits image called <code class="docutils literal"><span class="pre">M33_30m_12CO10_Tmb_12.fits</span></code> and that you want to
+smooth it in miriad to 40 arcsec resolution, re-project it with Gildas to a new
+central coordinate and finally convert it back to fits-format:</p>
+<p>This is how you would do it with astrolyze:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">map_</span> <span class="o">=</span> <span class="n">FitsMap</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_12.fits&#39;</span><span class="p">)</span>
+<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toMiriad</span><span class="p">()</span>
+<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">smooth</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span>
+<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toGildas</span><span class="p">()</span>
+<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">reproject</span><span class="p">(</span><span class="n">coordinate</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;01:34:50.890&#39;</span><span class="p">,</span> <span class="s">&#39;+31:08:28.03&#39;</span><span class="p">])</span>
+<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">toFits</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Please note the special format of the map name. The format follows a certain
+<code class="docutils literal"><span class="pre">naming</span> <span class="pre">convention</span></code> that <strong>has</strong> to be used with astrolyze. The reason for the
+naming conventions and it&#8217;s internal logic is explained below.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">As a side note I use an underscore for the <code class="docutils literal"><span class="pre">map_</span></code> variable, because
+otherwise the python function <code class="docutils literal"><span class="pre">map</span></code> is overwritten which may lead to
+problems.</p>
+</div>
+</div>
+<div class="section" id="changing-map-units">
+<h2>Changing map units<a class="headerlink" href="#changing-map-units" title="Permalink to this headline">¶</a></h2>
+<p>With astrolyze the units of a map can be quickly transformed between common
+units used in (Radio-) Astronomy (as far as the conversion was implemented
+already). Take for example again the <code class="docutils literal"><span class="pre">M33_30m_12CO10_Tmb_12.fits</span></code> map.
+Following the naming convention this map is in main beam temperature
+(Tmb). Changing its units to <code class="docutils literal"><span class="pre">JyB</span></code> is as easy as:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">map_</span> <span class="o">=</span> <span class="n">FitsMap</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_12.fits&#39;</span><span class="p">)</span>
+<span class="n">map_</span> <span class="o">=</span> <span class="n">map_</span><span class="o">.</span><span class="n">change_unit</span><span class="p">(</span><span class="s">&#39;JyB&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Another side note: It&#8217;s only that easy when astrolyze is set-up with the
+database so that astrolyze knows about the frequency/wavelenght of the line in
+the map.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Please double check the results of the unit conversion.</p>
+</div>
+</div>
+<div class="section" id="working-with-stacks-of-images">
+<h2>Working with stacks of images<a class="headerlink" href="#working-with-stacks-of-images" title="Permalink to this headline">¶</a></h2>
+<p>The previous examples demonstrated how single maps can be used in astrolyze.
+It is further possible to work on a stack of images and perform tasks on all of
+them.</p>
+<p>To create a stack, all files that are going to be in the stack have to be
+located in one folder (with possible sub-folders NOTE: The functionality with
+sub-folders is not thoroughly tested, yet.)
+A stack is initialized as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">example_stack</span> <span class="o">=</span> <span class="n">Stack</span><span class="p">(</span><span class="s">&#39;path_to_folder&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The maps can be a mix of GILDAS, Fits and MIRIAD maps. The Instance of the
+Stack object (here: <code class="docutils literal"><span class="pre">example_stack</span></code>) contains a variable called stack which
+is a list with Instances of the corresponding maps Objects (GildasMap, FitsMap
+and MiriadMap).</p>
+<p>The stack module provides several tools to <code class="docutils literal"><span class="pre">unify</span></code> the stack for further
+analysis. The maps can be all re-gridded and re-projected to the same central
+coordinates, pixel-sizes and dimensions as a given template image via:</p>
+<div class="highlight-python"><div class="highlight"><pre>example_stack.unify_dimensions(template=&#39;path_to_template_file&#39;,
+                               folder=&#39;path_to_output_folder&#39;) .
+</pre></div>
+</div>
+<p>Also the maps can be all smoothed to the same resolution, by default this is
+the largest resolution found in the stack but can also be given manually:</p>
+<div class="highlight-python"><div class="highlight"><pre>example_stack.unify_resolutions(folder=&#39;path_to_output_folder&#39;) .
+</pre></div>
+</div>
+<p>Astrolyze includes unit conversions that can be used to change all maps to the
+same resolutions as long as the input and output units are programmed. For
+the stack:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">example_stack</span><span class="o">.</span><span class="n">unify_units</span><span class="p">(</span><span class="n">folder</span><span class="o">=</span><span class="s">&#39;path_to_output_folder&#39;</span><span class="p">)</span> <span class="p">,</span>
+</pre></div>
+</div>
+<p>can be used.</p>
+</div>
+<div class="section" id="producing-seds">
+<h2>Producing SEDs<a class="headerlink" href="#producing-seds" title="Permalink to this headline">¶</a></h2>
+<p>Build on-top of the stack module astrolyze, contains the <code class="docutils literal"><span class="pre">sed</span></code> module
+which allows to analyze and plot <strong>dust-seds</strong>. SEDs can be read out for an
+arbitrary number of positions or for the entire maps. In the latter case
+temperature, mass, beta and $chi^2$ maps will be created.</p>
+<p>When all maps have the same resolution and dimension (i.e. pixel size and
+number) producing temperature maps can be done as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre>from astrolyze import *
+sed = SedStack(folder=&#39;path_to_input_folder&#39;, full_map=True,
+       output_folder=&#39;path_to_output_folder&#39;) .
+</pre></div>
+</div>
+<p>To generate SEDs at given coordinates it is easiest to provide a separate file
+(e.g. <code class="docutils literal"><span class="pre">coordinates.txt</span></code>) with the names and coordinates of the positions to be
+extracted as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre>source_1    1:34:7.00     +30:47:52.00
+source_2    1:33:55.80    +30:43:2.00
+source_3    1:33:52.40    +30:39:18.00
+  .              .             .
+  .              .             .
+  .              .             .
+</pre></div>
+</div>
+<p>Then a stack of seds can be created:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">seds</span> <span class="o">=</span> <span class="n">SedStack</span><span class="p">(</span><span class="n">folder</span><span class="o">=</span><span class="s">&#39;path_to_input_folder&#39;</span><span class="p">,</span> <span class="n">flux_acquisition</span><span class="o">=</span><span class="s">&#39;pixel&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>By default the SED is also directly fitted. One can produce a quick preview
+plot of the SEDs via:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">seds</span><span class="o">.</span><span class="n">sed_stack</span><span class="p">:</span>
+    <span class="n">i</span><span class="o">.</span><span class="n">create_figure</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="not-only-images">
+<h2>Not only images ...<a class="headerlink" href="#not-only-images" title="Permalink to this headline">¶</a></h2>
+<p>Last but not least astrolyze is also able to work with 30m class spectra from
+within python based on the same principles used to work with images/maps. The
+implementation makes extensive use of pyGildas.  For example if you have a
+file with the spectra of a cube, e.g. <code class="docutils literal"><span class="pre">M33_30m_12CO10_Tmb_21_cube.30m</span></code> you
+can extract the spectra that corresponds closest to a given coordinate as
+follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">spectra</span> <span class="o">=</span> <span class="n">ClassSpectra</span><span class="p">(</span><span class="s">&#39;M33_30m_12CO10_Tmb_21_cube.30m&#39;</span><span class="p">)</span>
+<span class="n">coordinate</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;1:34:7.00&#39;</span><span class="p">,</span> <span class="s">&#39;+30:47:52.00&#39;</span><span class="p">]</span>
+<span class="n">spectrum</span> <span class="o">=</span> <span class="n">spectra</span><span class="o">.</span><span class="n">get_spectra_from_cube</span><span class="p">(</span><span class="n">coordinate</span><span class="p">)</span>
+<span class="c"># To show the spectrum in the Class window</span>
+<span class="n">spectrum</span><span class="o">.</span><span class="n">quick_view</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="manual.html" class="btn btn-neutral float-right" title="Manual" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="installation.html" class="btn btn-neutral" title="Installation of astrolyze" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Christof Buchbender.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.2.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

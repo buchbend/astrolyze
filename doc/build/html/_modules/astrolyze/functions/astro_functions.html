@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>astrolyze.functions.astro_functions &mdash; astrolyze 0.1.5 documentation</title>
+  <title>astrolyze.functions.astro_functions &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="../../../index.html"/>
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -62,7 +62,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -85,23 +85,10 @@
             
                 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -151,18 +138,27 @@
 <span class="c"># BSD Licencse</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">scipy</span>
+
 <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">leastsq</span> <span class="k">as</span> <span class="n">least</span>
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">asarray</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="p">,</span> <span class="n">where</span><span class="p">,</span> <span class="n">exp</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">sqrt</span><span class="p">,</span> <span class="n">arange</span>
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span> <span class="k">as</span> <span class="n">copy</span>
 <span class="kn">import</span> <span class="nn">random</span> <span class="kn">as</span> <span class="nn">rnd</span>
 
+<span class="kn">from</span> <span class="nn">generaltools</span> <span class="kn">import</span> <span class="n">log_tools</span>
+
 <span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
 <span class="kn">import</span> <span class="nn">astrolyze.functions.units</span>
 
+<span class="n">USER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">&quot;USER&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="black_body"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.black_body">[docs]</a><span class="k">def</span> <span class="nf">black_body</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">):</span>
+<span class="n">log</span> <span class="o">=</span> <span class="n">log_tools</span><span class="o">.</span><span class="n">init_logger</span><span class="p">(</span>
+    <span class="n">directory</span><span class="o">=</span><span class="s">&quot;/home/{}/.astrolyze/&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">USER</span><span class="p">),</span>
+    <span class="n">name</span><span class="o">=</span><span class="s">&quot;astrolyze&quot;</span>
+<span class="p">)</span>
+
+<div class="viewcode-block" id="black_body"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.black_body">[docs]</a><span class="k">def</span> <span class="nf">black_body</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Calculation of the flux density of a black body at a temperature T and a</span>
 <span class="sd">    wavelenght/frequency x.</span>
@@ -235,7 +231,7 @@
                 <span class="mf">1e-26</span><span class="p">)</span>
 
 </div>
-<div class="viewcode-block" id="grey_body"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.grey_body">[docs]</a><span class="k">def</span> <span class="nf">grey_body</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mf">840e3</span><span class="p">):</span>
+<div class="viewcode-block" id="grey_body"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.grey_body">[docs]</a><span class="k">def</span> <span class="nf">grey_body</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mf">840e3</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot; Calculation of the flux density in Jansky of a grey_body under</span>
 <span class="sd">    assumption of optically thin emission. Please see Notes below for an</span>
 <span class="sd">    detailed description assumptions and equations used.</span>
@@ -346,7 +342,7 @@
 <span class="c">#        print &#39;Warning: This part of the script is not up to date&#39;</span>
 <span class="c">#        return N * ((c/(x * 1e-6))**beta) * black_body(x,T,nu_or_lambda)</span>
 </div>
-<div class="viewcode-block" id="multi_component_grey_body"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.multi_component_grey_body">[docs]</a><span class="k">def</span> <span class="nf">multi_component_grey_body</span><span class="p">(</span><span class="n">pMulti</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="multi_component_grey_body"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.multi_component_grey_body">[docs]</a><span class="k">def</span> <span class="nf">multi_component_grey_body</span><span class="p">(</span><span class="n">pMulti</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Combines multiple grey_body functions and returns the flux density in</span>
 <span class="sd">    Jansky for the input frequency/wavelenght.</span>
@@ -393,7 +389,7 @@
     <span class="k">return</span> <span class="n">snu</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">snu</span>
 
 </div>
-<div class="viewcode-block" id="grey_body_fit"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.grey_body_fit">[docs]</a><span class="k">def</span> <span class="nf">grey_body_fit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">start_parameter</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">fit_beta</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+<div class="viewcode-block" id="grey_body_fit"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.grey_body_fit">[docs]</a><span class="k">def</span> <span class="nf">grey_body_fit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">start_parameter</span><span class="p">,</span> <span class="n">nu_or_lambda</span><span class="o">=</span><span class="s">&#39;nu&#39;</span><span class="p">,</span> <span class="n">fit_beta</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
                 <span class="n">fix_temperature</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">rawChiSq</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">,</span>
                 <span class="n">residuals</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mf">1e9</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
@@ -431,7 +427,7 @@
 <span class="sd">        given dataset.</span>
 <span class="sd">    chisq/rawChiSq :</span>
 <span class="sd">        chisq is reduced chisq with degrees of freedom:</span>
-<span class="sd">            dof= #dataPoints-#freeFitParameters-1</span>
+<span class="sd">        dof= #dataPoints-#freeFitParameters-1</span>
 
 <span class="sd">    Other Parameters</span>
 <span class="sd">    ----------------</span>
@@ -688,7 +684,7 @@
     <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">chisq</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="LTIR"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.LTIR">[docs]</a><span class="k">def</span> <span class="nf">LTIR</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">,</span> <span class="n">xmin</span><span class="o">=</span><span class="mf">3.</span><span class="p">,</span> <span class="n">xmax</span><span class="o">=</span><span class="mf">1100.</span><span class="p">,</span> <span class="n">beamConv</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+<div class="viewcode-block" id="LTIR"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.LTIR">[docs]</a><span class="k">def</span> <span class="nf">LTIR</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="s">&#39;Kruegel&#39;</span><span class="p">,</span> <span class="n">xmin</span><span class="o">=</span><span class="mf">3.</span><span class="p">,</span> <span class="n">xmax</span><span class="o">=</span><span class="mf">1100.</span><span class="p">,</span> <span class="n">beamConv</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
          <span class="n">distance</span><span class="o">=</span><span class="mf">847e3</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;JyB&#39;</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Integration of a multi-component greybody model.</span>
@@ -746,7 +742,7 @@
     <span class="k">return</span> <span class="n">LTIR1</span>
 
 </div>
-<div class="viewcode-block" id="generate_monte_carlo_data_sed"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.generate_monte_carlo_data_sed">[docs]</a><span class="k">def</span> <span class="nf">generate_monte_carlo_data_sed</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<div class="viewcode-block" id="generate_monte_carlo_data_sed"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.generate_monte_carlo_data_sed">[docs]</a><span class="k">def</span> <span class="nf">generate_monte_carlo_data_sed</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    MonteCarlo Simulation of a set of flux measurements, assuming that the</span>
 <span class="sd">    measurement data follows a gauss distribution.</span>
@@ -780,7 +776,7 @@
     <span class="k">return</span> <span class="n">newData</span>
 
 </div>
-<div class="viewcode-block" id="grey_body_monte_carlo"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.grey_body_monte_carlo">[docs]</a><span class="k">def</span> <span class="nf">grey_body_monte_carlo</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+<div class="viewcode-block" id="grey_body_monte_carlo"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.grey_body_monte_carlo">[docs]</a><span class="k">def</span> <span class="nf">grey_body_monte_carlo</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function to evaluate the errors in the parameters fitted with the</span>
 <span class="sd">    grey_body_fit function.</span>
@@ -878,7 +874,7 @@
         <span class="k">return</span> <span class="n">string</span><span class="p">,</span> <span class="n">betaTList</span>
 
 </div>
-<div class="viewcode-block" id="line"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.line">[docs]</a><span class="k">def</span> <span class="nf">line</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<div class="viewcode-block" id="line"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.line">[docs]</a><span class="k">def</span> <span class="nf">line</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Line `y = m*x + b` equation. Returns y value at point x.</span>
 
@@ -894,7 +890,7 @@
     <span class="k">return</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
 </div>
-<div class="viewcode-block" id="anti_line"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.anti_line">[docs]</a><span class="k">def</span> <span class="nf">anti_line</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<div class="viewcode-block" id="anti_line"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.anti_line">[docs]</a><span class="k">def</span> <span class="nf">anti_line</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Inverse of a line returning the x value corresponding to a y value, i.e.</span>
 <span class="sd">    `x = y/m - b`.</span>
@@ -911,7 +907,7 @@
     <span class="k">return</span> <span class="n">y</span> <span class="o">/</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
 </div>
-<div class="viewcode-block" id="linear_error_function"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.linear_error_function">[docs]</a><span class="k">def</span> <span class="nf">linear_error_function</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">x_error</span><span class="p">):</span>
+<div class="viewcode-block" id="linear_error_function"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.linear_error_function">[docs]</a><span class="k">def</span> <span class="nf">linear_error_function</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">x_error</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Error function, i.e. residual from the measured value, which has to be</span>
 <span class="sd">    minimised in the least square fit taking X and Y Error into account.</span>
@@ -936,7 +932,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">x_error</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
         <span class="k">return</span> <span class="n">sqrt</span><span class="p">(((</span><span class="n">line</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">y_error</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="line_fit"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.line_fit">[docs]</a><span class="k">def</span> <span class="nf">line_fit</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">x_error</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10000</span><span class="p">):</span>
+<div class="viewcode-block" id="line_fit"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.line_fit">[docs]</a><span class="k">def</span> <span class="nf">line_fit</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">x_error</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10000</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Linear Fit to data, taking either errors in y or both in x and y into</span>
 <span class="sd">    account.</span>
@@ -966,7 +962,7 @@
     <span class="k">return</span> <span class="n">p1</span><span class="p">,</span> <span class="n">chisq</span><span class="p">,</span> <span class="n">Error</span>
 
 </div>
-<div class="viewcode-block" id="analytic_linear_fit"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.analytic_linear_fit">[docs]</a><span class="k">def</span> <span class="nf">analytic_linear_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_error</span><span class="p">,</span> <span class="n">y_error</span><span class="p">):</span>
+<div class="viewcode-block" id="analytic_linear_fit"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.analytic_linear_fit">[docs]</a><span class="k">def</span> <span class="nf">analytic_linear_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_error</span><span class="p">,</span> <span class="n">y_error</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    This function resembles the analytical solution following chaper 8 from</span>
 <span class="sd">    [TA].</span>
@@ -1040,7 +1036,7 @@
     <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">SigmaA</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">SigmaB</span><span class="p">,</span> <span class="n">Chisq</span>
 
 </div>
-<div class="viewcode-block" id="generate_monte_carlo_data_line"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.generate_monte_carlo_data_line">[docs]</a><span class="k">def</span> <span class="nf">generate_monte_carlo_data_line</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
+<div class="viewcode-block" id="generate_monte_carlo_data_line"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.generate_monte_carlo_data_line">[docs]</a><span class="k">def</span> <span class="nf">generate_monte_carlo_data_line</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This function makes a Monte Carlo Simulation of a data Set of measurements</span>
 <span class="sd">    it uses the random.gauss() function to generate a data point</span>
@@ -1073,7 +1069,7 @@
     <span class="k">return</span> <span class="n">newData</span>
 
 </div>
-<div class="viewcode-block" id="line_monte_carlo"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.line_monte_carlo">[docs]</a><span class="k">def</span> <span class="nf">line_monte_carlo</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_error</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">iterations</span><span class="p">,</span>
+<div class="viewcode-block" id="line_monte_carlo"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.line_monte_carlo">[docs]</a><span class="k">def</span> <span class="nf">line_monte_carlo</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_error</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">iterations</span><span class="p">,</span>
                               <span class="n">fitIterations</span><span class="o">=</span><span class="mf">1e9</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Gererate an estimate of the errors of the fitted parameters determined by</span>
@@ -1139,7 +1135,7 @@
     <span class="k">return</span> <span class="n">string</span><span class="p">,</span> <span class="n">BList</span><span class="p">,</span> <span class="n">MList</span><span class="p">,</span> <span class="n">chisqList</span><span class="p">,</span> <span class="n">resultArray</span>
 
 </div>
-<div class="viewcode-block" id="gauss1D"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.gauss1D">[docs]</a><span class="k">def</span> <span class="nf">gauss1D</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fwhm</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="gauss1D"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.gauss1D">[docs]</a><span class="k">def</span> <span class="nf">gauss1D</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fwhm</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Calulcates 1D Gaussian.</span>
 
@@ -1173,7 +1169,7 @@
     <span class="k">return</span> <span class="n">gauss</span>
 
 </div>
-<div class="viewcode-block" id="gauss2D"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.gauss2D">[docs]</a><span class="k">def</span> <span class="nf">gauss2D</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">,</span> <span class="n">pa</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">xOffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">yOffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="gauss2D"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.gauss2D">[docs]</a><span class="k">def</span> <span class="nf">gauss2D</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">,</span> <span class="n">pa</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">xOffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">yOffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Calculates a 2D Gaussian at position x y.</span>
 
@@ -1227,7 +1223,7 @@
     <span class="n">gauss</span> <span class="o">=</span> <span class="n">amplitude</span> <span class="o">*</span> <span class="n">gauss</span>
 
 </div>
-<div class="viewcode-block" id="degrees_to_equatorial"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.degrees_to_equatorial">[docs]</a><span class="k">def</span> <span class="nf">degrees_to_equatorial</span><span class="p">(</span><span class="n">degrees</span><span class="p">):</span>
+<div class="viewcode-block" id="degrees_to_equatorial"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.degrees_to_equatorial">[docs]</a><span class="k">def</span> <span class="nf">degrees_to_equatorial</span><span class="p">(</span><span class="n">degrees</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Converts RA, DEC coordinates in degrees to equatorial notation.</span>
 
@@ -1256,7 +1252,7 @@
     <span class="k">return</span> <span class="n">coordinate</span>
 
 </div>
-<div class="viewcode-block" id="equatorial_to_degrees"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.equatorial_to_degrees">[docs]</a><span class="k">def</span> <span class="nf">equatorial_to_degrees</span><span class="p">(</span><span class="n">equatorial</span><span class="p">):</span>
+<div class="viewcode-block" id="equatorial_to_degrees"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.equatorial_to_degrees">[docs]</a><span class="k">def</span> <span class="nf">equatorial_to_degrees</span><span class="p">(</span><span class="n">equatorial</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Converts RA, DEC coordinates in equatorial notation to degrees.</span>
 
@@ -1280,7 +1276,9 @@
         <span class="n">CoordsplitRA</span> <span class="o">=</span> <span class="n">equatorial</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
         <span class="n">CoordsplitDec</span> <span class="o">=</span> <span class="n">equatorial</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="s">&#39;Input has to be equatorial coordinates.&#39;</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;equatorial_to_degrees needs a pair of RA DEC &quot;</span>\
+                       <span class="s">&quot;coordinated in equatiorial notation as input&quot;</span><span class="p">)</span>
+        <span class="k">raise</span>
     <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitDec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">degrees</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitRA</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mf">360.</span> <span class="o">/</span> <span class="mi">24</span><span class="p">)</span> <span class="o">+</span>
                   <span class="nb">float</span><span class="p">(</span><span class="n">CoordsplitRA</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mf">360.</span> <span class="o">/</span> <span class="mi">24</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span> <span class="o">+</span>
@@ -1296,7 +1294,7 @@
     <span class="k">return</span> <span class="n">degrees</span>
 
 </div>
-<div class="viewcode-block" id="calc_offset"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.calc_offset">[docs]</a><span class="k">def</span> <span class="nf">calc_offset</span><span class="p">(</span><span class="n">central_coordinate</span><span class="p">,</span> <span class="n">offset_coordinate</span><span class="p">,</span> <span class="n">angle</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<div class="viewcode-block" id="calc_offset"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.calc_offset">[docs]</a><span class="k">def</span> <span class="nf">calc_offset</span><span class="p">(</span><span class="n">central_coordinate</span><span class="p">,</span> <span class="n">offset_coordinate</span><span class="p">,</span> <span class="n">angle</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
                 <span class="n">output_unit</span><span class="o">=</span><span class="s">&#39;farcsec&#39;</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Calculates the offset between two coordinates.</span>
@@ -1349,7 +1347,7 @@
     <span class="k">return</span> <span class="n">rotated_offset</span>
 
 </div>
-<div class="viewcode-block" id="rotation_2d"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.rotation_2d">[docs]</a><span class="k">def</span> <span class="nf">rotation_2d</span><span class="p">(</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">angle</span><span class="p">):</span>
+<div class="viewcode-block" id="rotation_2d"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.rotation_2d">[docs]</a><span class="k">def</span> <span class="nf">rotation_2d</span><span class="p">(</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">angle</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Implementation of the rotation matrix in two dimensions.</span>
 
@@ -1373,7 +1371,7 @@
     <span class="k">return</span> <span class="p">[</span><span class="n">x_rotated</span><span class="p">,</span> <span class="n">y_rotated</span><span class="p">]</span>
 
 </div>
-<div class="viewcode-block" id="vel_to_freq_resolution"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.vel_to_freq_resolution">[docs]</a><span class="k">def</span> <span class="nf">vel_to_freq_resolution</span><span class="p">(</span><span class="n">center_frequency</span><span class="p">,</span> <span class="n">velocity_resolution</span><span class="p">):</span>
+<div class="viewcode-block" id="vel_to_freq_resolution"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.vel_to_freq_resolution">[docs]</a><span class="k">def</span> <span class="nf">vel_to_freq_resolution</span><span class="p">(</span><span class="n">center_frequency</span><span class="p">,</span> <span class="n">velocity_resolution</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot; Converts a velocity resolution to frequency resolution for a given</span>
 <span class="sd">    center frequency.</span>
 
@@ -1405,7 +1403,7 @@
     <span class="n">frequency_resolution</span> <span class="o">=</span> <span class="n">frequency_resolution</span> <span class="o">/</span> <span class="mf">1e6</span>
     <span class="k">return</span> <span class="n">frequency_resolution</span>
 </div>
-<div class="viewcode-block" id="freq_to_vel_resolution"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.freq_to_vel_resolution">[docs]</a><span class="k">def</span> <span class="nf">freq_to_vel_resolution</span><span class="p">(</span><span class="n">center_frequency</span><span class="p">,</span> <span class="n">frequency_resolution</span><span class="p">):</span>
+<div class="viewcode-block" id="freq_to_vel_resolution"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.freq_to_vel_resolution">[docs]</a><span class="k">def</span> <span class="nf">freq_to_vel_resolution</span><span class="p">(</span><span class="n">center_frequency</span><span class="p">,</span> <span class="n">frequency_resolution</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot; Function to convert a frequency resolution to a velocity resolution</span>
 <span class="sd">    for a given center frequency.</span>
 
@@ -1434,7 +1432,7 @@
     <span class="c"># Difference between nu0 and nuObs is the velocity resolution</span>
     <span class="k">return</span> <span class="n">velocity_resolution</span>
 </div>
-<div class="viewcode-block" id="v_lsr"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.v_lsr">[docs]</a><span class="k">def</span> <span class="nf">v_lsr</span><span class="p">(</span><span class="n">center_frequency</span><span class="p">,</span> <span class="n">observation_frequency</span><span class="p">):</span>
+<div class="viewcode-block" id="v_lsr"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.v_lsr">[docs]</a><span class="k">def</span> <span class="nf">v_lsr</span><span class="p">(</span><span class="n">center_frequency</span><span class="p">,</span> <span class="n">observation_frequency</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot; Calculates the velocity that corresponds to a certain frequency shift</span>
 <span class="sd">    between two frequencies.</span>
 
@@ -1460,7 +1458,7 @@
                         <span class="n">center_frequency</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e3</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">v_lsr</span>
 </div>
-<div class="viewcode-block" id="redshifted_frequency"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.redshifted_frequency">[docs]</a><span class="k">def</span> <span class="nf">redshifted_frequency</span><span class="p">(</span><span class="n">rest_frequency</span><span class="p">,</span> <span class="n">v_lsr</span><span class="p">):</span>
+<div class="viewcode-block" id="redshifted_frequency"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.redshifted_frequency">[docs]</a><span class="k">def</span> <span class="nf">redshifted_frequency</span><span class="p">(</span><span class="n">rest_frequency</span><span class="p">,</span> <span class="n">v_lsr</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot; Calculates the sky frequency corresponding to a rest frequency for a</span>
 <span class="sd">    source with a velocity v_lsr.</span>
 
@@ -1498,16 +1496,18 @@
     <span class="k">return</span> <span class="n">redshifted_frequency</span>
 
 </div>
-<div class="viewcode-block" id="frequency_to_wavelength"><a class="viewcode-back" href="../../../functions.html#astrolyze.functions.astro_functions.frequency_to_wavelength">[docs]</a><span class="k">def</span> <span class="nf">frequency_to_wavelength</span><span class="p">(</span><span class="n">frequency</span><span class="p">):</span>
+<div class="viewcode-block" id="frequency_to_wavelength"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.functions.astro_functions.frequency_to_wavelength">[docs]</a><span class="k">def</span> <span class="nf">frequency_to_wavelength</span><span class="p">(</span><span class="n">frequency</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Converting frequency to wavelength.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
+
 <span class="sd">    frequency : float [GHZ]</span>
 
 <span class="sd">    Returns</span>
-<span class="sd">   -------</span>
+<span class="sd">    -------</span>
+
 <span class="sd">    wavelength : float [micron]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c"># Conversion from GHz to Hz</span>
@@ -1574,7 +1574,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

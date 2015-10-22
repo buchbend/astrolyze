@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>astrolyze.maps.tools &mdash; astrolyze 0.1.5 documentation</title>
+  <title>astrolyze.maps.tools &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="../../../index.html"/>
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -62,7 +62,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -85,23 +85,10 @@
             
                 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -153,8 +140,6 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">pyfits</span>
-<span class="kn">import</span> <span class="nn">pywcs</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
 
 <span class="kn">import</span> <span class="nn">astrolyze.maps.main</span>
@@ -165,7 +150,7 @@
 <span class="kn">import</span> <span class="nn">astrolyze.functions.constants</span> <span class="kn">as</span> <span class="nn">const</span>
 
 
-<div class="viewcode-block" id="get_list"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.tools.get_list">[docs]</a><span class="k">def</span> <span class="nf">get_list</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">data_format</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="get_list"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.tools.get_list">[docs]</a><span class="k">def</span> <span class="nf">get_list</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">data_format</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Loading a list of files in all subfolders.</span>
 
@@ -245,7 +230,7 @@
         <span class="k">return</span> <span class="n">final_list</span><span class="p">,</span> <span class="n">folder_list</span>
 
 </div>
-<div class="viewcode-block" id="copy_structure"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.tools.copy_structure">[docs]</a><span class="k">def</span> <span class="nf">copy_structure</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">old_prefix</span><span class="p">,</span> <span class="n">new_prefix</span><span class="p">):</span>
+<div class="viewcode-block" id="copy_structure"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.tools.copy_structure">[docs]</a><span class="k">def</span> <span class="nf">copy_structure</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">old_prefix</span><span class="p">,</span> <span class="n">new_prefix</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Copies a folder structure from old_prefix to new_prefix. To assure all</span>
 <span class="sd">    folders exists before working with or copying data.</span>
@@ -336,7 +321,7 @@
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm -rf &#39;</span> <span class="o">+</span> <span class="n">folder</span> <span class="o">+</span> <span class="s">&#39;/*.gdf&#39;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="unifyUnits"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.tools.unifyUnits">[docs]</a><span class="k">def</span> <span class="nf">unifyUnits</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="s">&#39;units&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="unifyUnits"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.tools.unifyUnits">[docs]</a><span class="k">def</span> <span class="nf">unifyUnits</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="s">&#39;units&#39;</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    NOT READY YET!</span>
 <span class="sd">    &#39;&#39;&#39;</span>
@@ -369,7 +354,7 @@
     <span class="k">pass</span>
 
 </div>
-<div class="viewcode-block" id="unifyMaps"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.tools.unifyMaps">[docs]</a><span class="k">def</span> <span class="nf">unifyMaps</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">tinMap</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="s">&#39;reg&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="unifyMaps"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.tools.unifyMaps">[docs]</a><span class="k">def</span> <span class="nf">unifyMaps</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">tinMap</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="s">&#39;reg&#39;</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    changes the dimensions and pixel sizes off all maps to that of a template</span>
 <span class="sd">    map.</span>
@@ -452,7 +437,7 @@
                     <span class="n">format</span><span class="o">=</span><span class="s">&#39;eps&#39;</span><span class="p">,</span> <span class="n">transparent</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s">&#39;tight&#39;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="unifyResolution"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.tools.unifyResolution">[docs]</a><span class="k">def</span> <span class="nf">unifyResolution</span><span class="p">(</span><span class="n">liste</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="unifyResolution"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.tools.unifyResolution">[docs]</a><span class="k">def</span> <span class="nf">unifyResolution</span><span class="p">(</span><span class="n">liste</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="s">&#39;smooth&#39;</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Approved.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
@@ -558,7 +543,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

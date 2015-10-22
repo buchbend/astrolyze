@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>astrolyze.maps.fits &mdash; astrolyze 0.1.5 documentation</title>
+  <title>astrolyze.maps.fits &mdash; astrolyze 0.2.1 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="astrolyze 0.1.5 documentation" href="../../../index.html"/>
+    <link rel="top" title="astrolyze 0.2.1 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -62,7 +62,7 @@
             
             
               <div class="version">
-                0.1.5
+                0.2.1
               </div>
             
           
@@ -85,23 +85,10 @@
             
                 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation of astrolyze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Motivation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#manual">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#modules">Modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#maps">maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#main">main</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#fits">fits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-gildas">Using gildas</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-miriad">Using miriad</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-stack-module">Using the stack module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../manual.html#using-the-sed-module">Using the sed module</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../maps.html">Maps</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../spectra.html">Spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../sed.html">SEDs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../lte.html">LTE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../functions.html">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../motivation.html">Motivation - What is astrolyze all about</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source_documentation.html">Source Documenation</a></li>
 </ul>
 
             
@@ -147,20 +134,24 @@
            <div itemprop="articleBody">
             
   <h1>Source code for astrolyze.maps.fits</h1><div class="highlight"><pre>
-<span class="c"># Copyright (C) 2009-2012, Christof Buchbender</span>
+<span class="c"># Copyright (C) 2009-2015, Christof Buchbender</span>
 <span class="c"># BSD License (License.txt)</span>
+
+<span class="c"># standard library</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">pyfits</span>
-<span class="kn">import</span> <span class="nn">pywcs</span>
 <span class="kn">import</span> <span class="nn">math</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">pysqlite2</span> <span class="kn">import</span> <span class="n">dbapi2</span> <span class="k">as</span> <span class="n">sqlite</span>
 <span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">wcs</span>
+<span class="kn">import</span> <span class="nn">astropy.io.fits</span>
 
+<span class="c"># from astrolzye</span>
 <span class="kn">import</span> <span class="nn">main</span>
 <span class="kn">import</span> <span class="nn">gildas</span>
 <span class="kn">import</span> <span class="nn">miriad</span>
@@ -169,19 +160,21 @@
 <span class="kn">from</span> <span class="nn">astrolyze.functions</span> <span class="kn">import</span> <span class="n">astro_functions</span> <span class="k">as</span> <span class="n">astFunc</span>
 <span class="kn">from</span> <span class="nn">astrolyze.functions</span> <span class="kn">import</span> <span class="n">units</span>
 
-<div class="viewcode-block" id="FitsMap"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap">[docs]</a><span class="k">class</span> <span class="nc">FitsMap</span><span class="p">(</span><span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="p">):</span>
+<div class="viewcode-block" id="FitsMap"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.fits.FitsMap">[docs]</a><span class="k">class</span> <span class="nc">FitsMap</span><span class="p">(</span><span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Fits Map manipulation making extensive use of the</span>
 <span class="sd">    pyfits package.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
-        <span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">,</span> <span class="n">name_convention</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">):</span>
+        <span class="n">main</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_name</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataFormat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fits_formats</span><span class="p">:</span>
-            <span class="k">print</span> <span class="s">&#39;Exiting: not the right format&#39;</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="s">&quot;This is not a configured fits format. &quot;</span>\
+                              <span class="s">&quot;Adapt /home/USER/.astrolyze/astrolyze.cfg &quot;</span>\
+                              <span class="s">&quot;to add this format to known fits formats&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">SystemExit</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__get_data</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__get_header</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">wcs</span> <span class="o">=</span> <span class="n">pywcs</span><span class="o">.</span><span class="n">WCS</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wcs</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">WCS</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">headerKeywords</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">headerKeywords</span><span class="p">[</span><span class="s">&#39;source&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;OBJECT&#39;</span><span class="p">,</span> <span class="s">&#39;SOURCE&#39;</span><span class="p">,</span> <span class="s">&#39;TARNAME&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">headerKeywords</span><span class="p">[</span><span class="s">&#39;telescope&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;TELESCOP&#39;</span><span class="p">]</span>
@@ -189,6 +182,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">headerKeywords</span><span class="p">[</span><span class="s">&#39;fluxUnit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;BUNIT&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">headerKeywords</span><span class="p">[</span><span class="s">&#39;resolution&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;BMAJ&#39;</span><span class="p">,</span> <span class="s">&#39;BMIN&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">get_pixel_size</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;FitsMap(</span><span class="se">\&quot;</span><span class="s">{}</span><span class="se">\&quot;</span><span class="s">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
@@ -198,7 +194,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
         <span class="k">except</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span> <span class="o">=</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
 
     <span class="k">def</span> <span class="nf">__get_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -207,13 +203,13 @@
 <span class="sd">        information of the map. This function is automatically executed every</span>
 <span class="sd">        time a Fits map is opened.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span>
+        <span class="c"># try:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span>
+        <span class="c"># except:</span>
+        <span class="c">#     self.hdulist = astropy.io.fits.open(self.map_name)</span>
+        <span class="c">#     self.header = self.hdulist[0].header</span>
 
-<div class="viewcode-block" id="FitsMap.update_file"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.update_file">[docs]</a>    <span class="k">def</span> <span class="nf">update_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="FitsMap.update_file"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.fits.FitsMap.update_file">[docs]</a>    <span class="k">def</span> <span class="nf">update_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backup</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Writing changes to the self.data and/or self.header to the current</span>
 <span class="sd">        file.</span>
@@ -234,87 +230,15 @@
 <span class="sd">        If all variables that define the map name () are unchanged the current</span>
 <span class="sd">        file is overwritten else</span>
 
-<span class="sd">        Examples</span>
-<span class="sd">        --------</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">map_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">backup</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_old&#39;</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">map_name</span><span class="p">))</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">pyfits</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">map_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="k">print</span> <span class="s">&#39;Problem with the header or data format. -&gt; Exit!&#39;</span>
-            <span class="k">raise</span> <span class="ne">SystemExit</span>
+        <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">fits</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">map_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">FitsMap</span><span class="p">(</span><span class="n">map_name</span><span class="p">)</span>
 </div>
-    <span class="k">def</span> <span class="nf">updateHeader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">get_header</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">changemap_name</span><span class="p">()</span>
-        <span class="c"># Print source</span>
-        <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;source&#39;</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">)</span>
-                <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">updateCheck</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;source&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
-                               <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">))</span>
-        <span class="c"># Print telescope</span>
-        <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;telescope&#39;</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">telescope</span><span class="p">)</span>
-                <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">updateCheck</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;telescope&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
-                               <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">telescope</span><span class="p">))</span>
-        <span class="c"># Print species</span>
-        <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;species&#39;</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">)</span>
-                <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">updateCheck</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;species&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
-                               <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">))</span>
-        <span class="c"># Update fluxUnit</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;fluxUnit&#39;</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="p">)</span>
-                <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">updateCheck</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;fluxUnit&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
-                               <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fluxUnit</span><span class="p">))</span>
-        <span class="c"># Update resolution</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;resolution&#39;</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span>
-                                   <span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">))</span>
-                <span class="n">updateCheck</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">updateCheck</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headerKeyWords</span><span class="p">[</span><span class="s">&#39;resolution&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
-                               <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-        <span class="c"># update header information about the minimum and maximum of the map</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;DATAMIN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">-</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;DATAMIN&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">-</span> <span class="mf">0.1</span> <span class="o">*</span>
-                               <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;DATAMAX&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s">&#39;DATAMAX&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span>
-                               <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;cp &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">+</span>
-                  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_old&#39;</span><span class="p">)</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">))</span>
-        <span class="n">pyfits</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">map_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
-
-<div class="viewcode-block" id="FitsMap.get_pixel_size"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.get_pixel_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_pixel_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="FitsMap.get_pixel_size"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.fits.FitsMap.get_pixel_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_pixel_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot; Calculates the Area of a pixel in m^2 and steradians if distance</span>
 <span class="sd">        is given. If not only  steradians are calculated.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -427,59 +351,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;cut&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update_file</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">radial</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">centerCoord</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="c"># TODO: OLD code. Check or remove.</span>
-        <span class="sd">r&quot;&quot;&quot;</span>
-<span class="sd">        Extracts a linear cut trough a map between two coordinates.</span>
-
-<span class="sd">        Distance in kpc.</span>
-
-<span class="sd">        Notes</span>
-<span class="sd">        -----</span>
-<span class="sd">        ..  warning:</span>
-
-<span class="sd">            Old code. Test and document or remove.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">centerCoord</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">centx</span><span class="p">,</span> <span class="n">centy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">centerCoord</span><span class="p">)</span>
-            <span class="k">print</span> <span class="n">centy</span><span class="p">,</span> <span class="n">centx</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="p">[[],</span> <span class="p">[]]</span>
-        <span class="c"># in arcsec</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT1&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pixSize2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;CDELT2&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">x1</span> <span class="o">!=</span> <span class="n">x2</span> <span class="ow">and</span> <span class="n">y1</span> <span class="o">!=</span> <span class="n">y2</span><span class="p">:</span>
-            <span class="k">print</span> <span class="p">(</span><span class="s">&#39;This version of strip only supports linear cuts.&#39;</span>
-                   <span class="s">&#39;Please rotate your map.&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">x1</span> <span class="o">==</span> <span class="n">x2</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">y1</span> <span class="o">&gt;</span> <span class="n">y2</span><span class="p">:</span>
-                <span class="n">loop</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">y2</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">y1</span> <span class="o">&lt;</span> <span class="n">y2</span><span class="p">:</span>
-                <span class="n">loop</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">y1</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">loop</span><span class="p">:</span>
-                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">x1</span><span class="p">]]</span>
-                <span class="k">if</span> <span class="n">radial</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">i</span> <span class="o">-</span> <span class="n">centy</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixSize2</span> <span class="o">/</span> <span class="mi">60</span><span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">y1</span> <span class="o">==</span> <span class="n">y2</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">x1</span> <span class="o">&gt;</span> <span class="n">x2</span><span class="p">:</span>
-                <span class="n">loop</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">x1</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">x1</span> <span class="o">&lt;</span> <span class="n">x2</span><span class="p">:</span>
-                <span class="n">loop</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">loop</span><span class="p">:</span>
-                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">y1</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
-                <span class="k">if</span> <span class="n">radial</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
-                    <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">i</span> <span class="o">-</span> <span class="n">centx</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixSize1</span> <span class="o">/</span> <span class="mi">60</span><span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">values</span>
-
-<div class="viewcode-block" id="FitsMap.read_flux"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.read_flux">[docs]</a>    <span class="k">def</span> <span class="nf">read_flux</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+<div class="viewcode-block" id="FitsMap.read_flux"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.fits.FitsMap.read_flux">[docs]</a>    <span class="k">def</span> <span class="nf">read_flux</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Returns the value of the pixel that corresponds to the</span>
 <span class="sd">        given positions of RA, DEC (J2000) in units of equatorial</span>
@@ -494,7 +366,9 @@
 
 <span class="sd">                * [&#39;RA&#39;,&#39;DEC&#39;] with strings representing equatorial</span>
 <span class="sd">                  coordinates, e.g. [&#39;01:34:32.8&#39;, &#39;+30:47:00.6&#39;].</span>
+
 <span class="sd">            or:</span>
+
 <span class="sd">                * [RA, DEC] where RA and DEC being the coordinates in Grad.</span>
 
 <span class="sd">        Returns</span>
@@ -509,10 +383,15 @@
 <span class="sd">        sky2pix, astFunc.equatorial_to_degrees, wcs.wcs_sky2pix</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Determining the Flux at position: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">position</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;NAXIS is {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&quot;NAXIS&quot;</span><span class="p">]))</span>
         <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s">&quot;Sky2Pix returned coordinates: x={}, y={}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="n">x</span><span class="p">]</span>
 </div>
-<div class="viewcode-block" id="FitsMap.read_aperture"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.read_aperture">[docs]</a>    <span class="k">def</span> <span class="nf">read_aperture</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">apertureSize</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">backgroundSize</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<div class="viewcode-block" id="FitsMap.read_aperture"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.fits.FitsMap.read_aperture">[docs]</a>    <span class="k">def</span> <span class="nf">read_aperture</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">apertureSize</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">backgroundSize</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                       <span class="n">output</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">annotation</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">newAnnotation</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="c"># TODO: needs better scheme for the header keywords. Migth not work</span>
         <span class="c"># with all maps.</span>
@@ -531,7 +410,9 @@
 
 <span class="sd">                * [&#39;RA&#39;,&#39;DEC&#39;] with strings representing equatorial</span>
 <span class="sd">                  coordinates, e.g. [&#39;01:34:32.8&#39;, &#39;+30:47:00.6&#39;].</span>
+
 <span class="sd">            or:</span>
+
 <span class="sd">                * [RA, DEC] where RA and DEC being the coordinates in Grad.</span>
 
 <span class="sd">        apertureSize : float [arcsec]</span>
@@ -572,6 +453,11 @@
 <span class="sd">        corresponding to the given coordinate.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s">&quot;Determining the Flux at position: {}; &quot;</span>\
+            <span class="s">&quot;in aperture of size {} and background of {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">position</span><span class="p">,</span> <span class="n">apertureSize</span><span class="p">,</span> <span class="n">backgroundSize</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="c"># Calculate the x,y Pixel coordinate of the position.</span>
         <span class="n">xCenter</span><span class="p">,</span> <span class="n">yCenter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sky2pix</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
         <span class="c"># Read the pixel Size (normaly in Grad FITS-Standard)</span>
@@ -684,12 +570,12 @@
             <span class="n">fileout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">result</span>
 </div>
-<div class="viewcode-block" id="FitsMap.sky2pix"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.sky2pix">[docs]</a>    <span class="k">def</span> <span class="nf">sky2pix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="FitsMap.sky2pix"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.fits.FitsMap.sky2pix">[docs]</a>    <span class="k">def</span> <span class="nf">sky2pix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Calculates the Pixel corresponding to a given coordinate.</span>
 
 <span class="sd">        Parameters</span>
-<span class="sd">        -----------</span>
+<span class="sd">        ----------</span>
 <span class="sd">        coordinate : list</span>
 <span class="sd">            Either [&#39;RA&#39;,&#39;DEC&#39;], e.g. [&#39;1:34:7.00&#39;, &#39;+30:47:52.00&#39;] in</span>
 <span class="sd">            equatorial coordinates or [RA, DEC] in GRAD.</span>
@@ -699,32 +585,38 @@
 <span class="sd">           ``1`` is the fits standart.</span>
 
 <span class="sd">        Returns</span>
-<span class="sd">        --------</span>
+<span class="sd">        -------</span>
 <span class="sd">        pixel : List</span>
 <span class="sd">            [x, y]; the pixel coordinates of the map.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c"># Equatorial_to_degrees is only possible to execute if coordinate is in</span>
         <span class="c"># the correct form for RA DEC.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Calculate map pixel for coord. {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">coordinate</span><span class="p">))</span>
         <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Test trying to convert coord. to degrees&quot;</span><span class="p">)</span>
             <span class="n">coordinate</span> <span class="o">=</span> <span class="n">astFunc</span><span class="o">.</span><span class="n">equatorial_to_degrees</span><span class="p">(</span><span class="n">coordinate</span><span class="p">)</span>
-            <span class="k">print</span> <span class="n">coordinate</span>
-            <span class="k">print</span> <span class="p">[[</span><span class="n">coordinate</span><span class="p">[</span><span class="mi">0</span><span class="p">]],[</span><span class="n">coordinate</span><span class="p">[</span><span class="mi">1</span><span class="p">]]]</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="k">pass</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Calculated coordinate in &quot;</span>\
+                           <span class="s">&quot;Degrees: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">coordinate</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Conversion to degrees failed. &quot;</span>\
+                           <span class="s">&quot;This does not have to be a problem.&quot;</span><span class="p">)</span>
         <span class="n">coordinate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">coordinate</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">coordinate</span><span class="p">[</span><span class="mi">1</span><span class="p">]]],</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)</span>
-        <span class="n">pixel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">wcs_sky2pix</span><span class="p">(</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">origin</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Retrieving the pixels of the map at given coordinate&quot;</span><span class="p">)</span>
+        <span class="n">sky2pix_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">wcs_world2pix</span><span class="p">(</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">origin</span><span class="p">)</span>
+        <span class="n">pixel</span> <span class="o">=</span> <span class="n">sky2pix_result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="c"># The pixels are floats. To get integers we get the floor value</span>
         <span class="c"># of the floats</span>
         <span class="n">pixel</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">pixel</span><span class="p">[</span><span class="mi">0</span><span class="p">]))),</span>
                  <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">pixel</span><span class="p">[</span><span class="mi">1</span><span class="p">])))]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Output pixel {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pixel</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">pixel</span>
 </div>
-<div class="viewcode-block" id="FitsMap.pix2sky"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.pix2sky">[docs]</a>    <span class="k">def</span> <span class="nf">pix2sky</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixel</span><span class="p">,</span> <span class="n">degrees_or_equatorial</span><span class="o">=</span><span class="s">&#39;degrees&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="FitsMap.pix2sky"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.fits.FitsMap.pix2sky">[docs]</a>    <span class="k">def</span> <span class="nf">pix2sky</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixel</span><span class="p">,</span> <span class="n">degrees_or_equatorial</span><span class="o">=</span><span class="s">&#39;degrees&#39;</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Calculates the Coordinates of a given Pixel.</span>
 
 <span class="sd">        Parameters</span>
-<span class="sd">        -----------</span>
+<span class="sd">        ----------</span>
 <span class="sd">        pixel : list</span>
 <span class="sd">            Pixel of the map; [x, y].</span>
 <span class="sd">        degrees_or_equatorial : string</span>
@@ -733,7 +625,7 @@
 <span class="sd">            Defaults to ``&quot;degrees&quot;``.</span>
 
 <span class="sd">        Returns</span>
-<span class="sd">        --------</span>
+<span class="sd">        -------</span>
 <span class="sd">        coordinate : list</span>
 <span class="sd">            The coordinates corresponding to pixel. Either in Degrees or in</span>
 <span class="sd">            Equatorial coordinates, depending on the parameter</span>
@@ -747,9 +639,9 @@
             <span class="n">coordinate</span> <span class="o">=</span> <span class="n">astFunc</span><span class="o">.</span><span class="n">degrees_to_equatorial</span><span class="p">(</span><span class="n">coordinate</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">coordinate</span>
 </div>
-<div class="viewcode-block" id="FitsMap.gauss_factor"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.gauss_factor">[docs]</a>    <span class="k">def</span> <span class="nf">gauss_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beamConv</span><span class="p">,</span> <span class="n">beamOrig</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dx1</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dy1</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FitsMap.gauss_factor"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.fits.FitsMap.gauss_factor">[docs]</a>    <span class="k">def</span> <span class="nf">gauss_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beamConv</span><span class="p">,</span> <span class="n">beamOrig</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dx1</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dy1</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
-<span class="sd">        Caluclates the scaling factor to be applied after convolving</span>
+<span class="sd">        Calculates the scaling factor to be applied after convolving</span>
 <span class="sd">        a map in Jy/beam with a gaussian to get fluxes in Jy/beam again.</span>
 
 <span class="sd">        This function is a copy of the FORTRAN gaufac function from the Miriad</span>
@@ -781,7 +673,7 @@
 <span class="sd">        bpa :</span>
 <span class="sd">            Position angle of the resulting gaussian.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c">#include &#39;mirconst.h&#39;</span>
+        <span class="c"># include &#39;mirconst.h&#39;</span>
         <span class="c"># Define cosine and Sinus of the position Angles of the</span>
         <span class="c"># Gaussians</span>
         <span class="n">bmaj2</span><span class="p">,</span> <span class="n">bmin2</span><span class="p">,</span> <span class="n">bpa2</span> <span class="o">=</span> <span class="n">beamConv</span>
@@ -820,30 +712,28 @@
             <span class="n">bpa</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">bpa</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">-</span> <span class="n">beta</span><span class="p">)</span>
-        <span class="c">#print math.pi/ (4.0*math.log(2.0))</span>
         <span class="n">amp</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">2.0</span><span class="p">))</span> <span class="o">*</span> <span class="n">bmaj1</span> <span class="o">*</span> <span class="n">bmin1</span> <span class="o">*</span> <span class="n">bmaj2</span> <span class="o">*</span> <span class="n">bmin2</span>
                <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">beta</span> <span class="o">-</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">))</span>
         <span class="n">fac</span> <span class="o">=</span> <span class="p">((</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dx1</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dy1</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)))</span> <span class="o">/</span> <span class="n">amp</span>
-        <span class="c">#print fac</span>
+
         <span class="k">return</span> <span class="n">fac</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">bmaj</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span> <span class="n">bmin</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span> <span class="n">bpa</span>
 </div>
-<div class="viewcode-block" id="FitsMap.change_unit"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.change_unit">[docs]</a>    <span class="k">def</span> <span class="nf">change_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">final_unit</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-        <span class="sd">r&quot;&quot;&quot;</span>
-<span class="sd">        Changes the unit of a map in an automated way.</span>
+<div class="viewcode-block" id="FitsMap.change_unit"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.fits.FitsMap.change_unit">[docs]</a>    <span class="k">def</span> <span class="nf">change_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">final_unit</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;Changes the unit of a map</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        final_unit : string</span>
 <span class="sd">            The unit to change the map to. Possible are:</span>
-<span class="sd">                1. Jy/beam: ``&quot;JyB&quot;`` ``&quot;JyBeam&quot;``</span>
-<span class="sd">                2. Jy/pixel: ``&quot;JyP&quot;``, ``&quot;JyPix&quot;``, ``&quot;JyPixel&quot;``</span>
-<span class="sd">                3. MJy/sterad: ``&quot;MJyPsr&quot;``, ``&quot;MJPSR&quot;``, ``&quot;MJy/sr&quot;``</span>
-<span class="sd">                4. Main Beam Temperature: ``&quot;Tmb&quot;``, ``&quot;T&quot;``, ``&quot;Kkms&quot;``</span>
-<span class="sd">                5. erg/s/pixel: ``&quot;ergs&quot;`` ``&quot;ERGPSECPPIX&quot;``,</span>
-<span class="sd">                                ``&quot;ERGPSECPPIXEL&quot;``, ``&quot;ERG-S-1-Pixel&quot;``,</span>
-<span class="sd">                                ``&quot;ERG-S-1&quot;``</span>
-<span class="sd">                6. erg/s/beam: ``&quot;ERGPSECPBEAM&quot;``</span>
-<span class="sd">                7. erg/s/sterad ``&quot;ERGPERSTER&quot;``</span>
+
+<span class="sd">              1. Jy/beam: ``&quot;JyB&quot;`` ``&quot;JyBeam&quot;``</span>
+<span class="sd">              2. Jy/pixel: ``&quot;JyP&quot;``, ``&quot;JyPix&quot;``, ``&quot;JyPixel&quot;``</span>
+<span class="sd">              3. MJy/sterad: ``&quot;MJyPsr&quot;``, ``&quot;MJPSR&quot;``, ``&quot;MJy/sr&quot;``</span>
+<span class="sd">              4. Main Beam Temperature: ``&quot;Tmb&quot;``, ``&quot;T&quot;``, ``&quot;Kkms&quot;``</span>
+<span class="sd">              5. erg/s/pixel: ``&quot;ergs&quot;`` ``&quot;ERGPSECPPIX&quot;``, ``&quot;ERGPSECPPIXEL&quot;``, ``&quot;ERG-S-1-Pixel&quot;``, ``&quot;ERG-S-1&quot;``</span>
+<span class="sd">              6. erg/s/beam: ``&quot;ERGPSECPBEAM&quot;``</span>
+<span class="sd">              7. erg/s/sterad ``&quot;ERGPERSTER&quot;``</span>
+
 <span class="sd">        frequency : float</span>
 <span class="sd">            Can be used if self.frequency is NaN. The frequency (in GHz) is</span>
 <span class="sd">            needed for conversions between temperature and Jansky/Erg scale.</span>
@@ -1169,7 +1059,7 @@
                 <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">FitsMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">returnName</span><span class="p">())</span>
 </div>
-<div class="viewcode-block" id="FitsMap.toGildas"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.toGildas">[docs]</a>    <span class="k">def</span> <span class="nf">toGildas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FitsMap.toGildas"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.fits.FitsMap.toGildas">[docs]</a>    <span class="k">def</span> <span class="nf">toGildas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Changes the current map to the Gildas Format.</span>
 
@@ -1207,7 +1097,7 @@
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&#39;rm temp.greg&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">gildas</span><span class="o">.</span><span class="n">GildasMap</span><span class="p">(</span><span class="n">gildas_name</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="FitsMap.toMiriad"><a class="viewcode-back" href="../../../maps.html#astrolyze.maps.fits.FitsMap.toMiriad">[docs]</a>    <span class="k">def</span> <span class="nf">toMiriad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FitsMap.toMiriad"><a class="viewcode-back" href="../../../source_documentation.html#astrolyze.maps.fits.FitsMap.toMiriad">[docs]</a>    <span class="k">def</span> <span class="nf">toMiriad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Changes the current map to the Miriad Format.</span>
 
@@ -1279,7 +1169,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.1.5',
+            VERSION:'0.2.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
