@@ -40,7 +40,7 @@ def calc_jnu(nu, T):
     References
     ----------
 
-    Doktorarbeit_
+    Mike Zielinsky
     """
     return (const.h_CGS * nu / const.k_CGS / (exp(const.h_CGS * nu /
                                                 const.k_CGS / T) - 1))
@@ -56,7 +56,7 @@ def lte_column_density(nu, Tmb, excitation_temperature, J, Z, mu):
     Notes
     -----
 
-    The implemented formula, taken from Doktorarbeit_ is:
+    The implemented formula, taken from Doktorarbeit is:
 
     .. math::
 
@@ -77,9 +77,9 @@ def lte_column_density(nu, Tmb, excitation_temperature, J, Z, mu):
     References
     ----------
 
-    .. [Doktorarbeit] add reference
+    add reference to Zielinsky
 
-    .. warning:: 
+    .. warning::
 
        Extend documentation!!!!
     """

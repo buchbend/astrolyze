@@ -281,11 +281,13 @@ class Stack(object):
 
         resolution : float or list
             This may be either:
-                 1. A list with three entries, i.e.
-                    [[minor_fwhm], [major_fwhm], [position_angle]]
-                 2. A list with two entries, position_angle defaults to 0, i.e.
-                    [[minor_fwhm], [major_fwhm]]
-                 3. A float. Same minor, major fwhm pa=0
+
+             1. A list with three entries, i.e.
+                [[minor_fwhm], [major_fwhm], [position_angle]]
+             2. A list with two entries, position_angle defaults to 0, i.e.
+                [[minor_fwhm], [major_fwhm]]
+             3. A float. Same minor, major fwhm pa=0
+
         folder : string
             The path tot the folder in which the files are to be stored.
 

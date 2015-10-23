@@ -23,6 +23,8 @@ CONFIG_FOLDER = "/home/{}/.astrolyze/".format(USER)
 data_files = [("/home/{}/.astrolyze/cfg/".format(USER),
               ["cfg/calibration_error.txt", "cfg/galaxy_parameter.txt",
                "cfg/line_parameter.txt"]),
+              ("/home/{}/.ipython/profile_astrolyze/".format(USER),
+               ["cfg/ipython_config.py"]),
               ("/home/{}/.astrolyze/".format(USER),
                ["cfg/astrolyze.cfg"])
 ]
@@ -66,7 +68,8 @@ setup(
         'Topic :: Scientific/Engineering :: Astronomy',
         'Topic :: Scientific/Engineering :: Physics'
       ],
-    scripts=['scripts/astrolyze_opt_db_setup.py']
+    scripts=['scripts/astrolyze_opt_db_setup.py',
+             'scripts/astrolyze']
 )
 
 subprocess.call("chown -R {0}:{0} {1}".format(USER,

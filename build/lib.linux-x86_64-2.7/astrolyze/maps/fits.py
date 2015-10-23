@@ -230,7 +230,9 @@ class FitsMap(main.Map):
 
                 * ['RA','DEC'] with strings representing equatorial
                   coordinates, e.g. ['01:34:32.8', '+30:47:00.6'].
+
             or:
+
                 * [RA, DEC] where RA and DEC being the coordinates in Grad.
 
         Returns
@@ -272,7 +274,9 @@ class FitsMap(main.Map):
 
                 * ['RA','DEC'] with strings representing equatorial
                   coordinates, e.g. ['01:34:32.8', '+30:47:00.6'].
+
             or:
+
                 * [RA, DEC] where RA and DEC being the coordinates in Grad.
 
         apertureSize : float [arcsec]
@@ -584,7 +588,7 @@ class FitsMap(main.Map):
         Parameters
         ----------
         final_unit : string
-            The unit to change the map to. Possible are::
+            The unit to change the map to. Possible are:
 
               1. Jy/beam: ``"JyB"`` ``"JyBeam"``
               2. Jy/pixel: ``"JyP"``, ``"JyPix"``, ``"JyPixel"``
@@ -593,6 +597,7 @@ class FitsMap(main.Map):
               5. erg/s/pixel: ``"ergs"`` ``"ERGPSECPPIX"``, ``"ERGPSECPPIXEL"``, ``"ERG-S-1-Pixel"``, ``"ERG-S-1"``
               6. erg/s/beam: ``"ERGPSECPBEAM"``
               7. erg/s/sterad ``"ERGPERSTER"``
+
         frequency : float
             Can be used if self.frequency is NaN. The frequency (in GHz) is
             needed for conversions between temperature and Jansky/Erg scale.

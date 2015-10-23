@@ -128,13 +128,15 @@ class MiriadMap(main.Map):
         new_resolution : float or list
             The resolution in of the smoothed image.
             Can be a:
-                * float: Output beam has same major and minor axis [arcsec] and
-                         the position angle (PA) [degrees] is 0.
-                * A list with two entries:
-                         The major and minor axis. PA is 0.
-                         E.g. [major_axis, minor_axis ]
-                * A list with three entries:
-                         [major_axis, minor_axis, PA]
+
+            * float: Output beam has same major and minor axis [arcsec] and
+              the position angle (PA) [degrees] is 0.
+            * A list with two entries:
+              The major and minor axis. PA is 0.
+              E.g. [major_axis, minor_axis ]
+            * A list with three entries:
+              [major_axis, minor_axis, PA]
+
         old_resolution : float
             If None the self.resolution information is taken into account.
             Otherwise, it is assumed that old_resolution is the actual
