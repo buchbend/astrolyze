@@ -106,10 +106,17 @@ class FitsMap(main.Map):
         r""" Calculates the Area of a pixel in m^2 and steradians if distance
         is given. If not only  steradians are calculated.
         """
-        _pixSize = np.asarray([float(math.fabs(self.header['CDELT1']) *
-                                     const.d2r),
-                               float(math.fabs(self.header['CDELT2'])
-                                     * const.d2r)])
+        try:
+            _pixSize = np.asarray([float(math.fabs(self.header['CDELT1']) *
+                                         const.d2r),
+                                   float(math.fabs(self.header['CDELT2'])
+                                         * const.d2r)])
+        except:
+            _pixSize = np.asarray([float(math.fabs(self.header['CDELT1']) *
+                                         const.d2r),
+                                   float(math.fabs(self.header['CDELT2'])
+                                         * const.d2r)])
+            
         _pixSizeSterad = _pixSize[0] * _pixSize[1]
         self.pixelSizeSterad = math.sqrt((float(_pixSizeSterad)) ** 2)
         if self.distance is not None:
@@ -646,7 +653,7 @@ class FitsMap(main.Map):
                 self.fluxUnit = 'JyB'
                 self.header.update('BUNIT', 'Jy/Beam')
             if invert:
-                factor = self.pixelSize / self.beamSize
+                factor = self.pixelSizeSterad / self.beamSizeSterad
                 self.data = self.data * factor
                 self.fluxUnit = 'JyPix'
                 self.header.update('BUNIT', 'Jy/Pixel')
