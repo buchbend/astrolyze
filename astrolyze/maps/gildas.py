@@ -213,8 +213,14 @@ class GildasMap(main.Map):
             fileout = self.returnName(prefix=prefix, dataFormat='30m')
         else:
             fileout = prefix + fileout
-        pyclass.comm('file out {} single /over'.format(file_30m))
-        pyclass.comm('lmv {}'.format(self.map_name))
+        # pyclass.comm('file out {} single /over'.format(fileout))
+        convFile = open('temp.greg', 'w')
+        convFile.write('file out {} single /over\n'.format(fileout))
+        convFile.write('lmv {}\nexit\n'.format(self.map_name))
+        convFile.close()
+        os.system('class -nw @temp.greg')
+        os.system('rm temp.greg')
+        # pyclass.comm('lmv {}'.format(self.map_name))
         return ClassSpectra(fileout)
 
     def mask(self, polygon, prefix=None):

@@ -314,7 +314,7 @@ class Stack(object):
         if not resolution:
             for map_ in self.stack:
                 # Check the necessary scaling.
-                if map_.fluxUnit.upper() in ['JYB']:
+                if map_.fluxUnit.upper() in ['JYB', "JyB", "jyb"]:
                     scaling = ''
                 if map_.fluxUnit.upper() in ['TMB', 'T', 'KKMS']:
                     scaling = '0.0'

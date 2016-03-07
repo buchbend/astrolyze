@@ -34,9 +34,9 @@ class ClassSpectra(Map):
     >>> cube.get_spectra_from_cube(coordinate)
     Generates a 30m file with comment extract in the actual cube.prefix path.
     """
-    def __init__(self, map_name, nameConvention=True):
+    def __init__(self, map_name):
         r"""Initializes a Class Spectral File."""
-        astrolyze.maps.main.Map.__init__(self, map_name, nameConvention)
+        astrolyze.maps.main.Map.__init__(self, map_name)
         print self.map_name
         self._init_file_to_greg()
         if self.dataFormat not in self.class_formats:
@@ -124,9 +124,12 @@ class ClassSpectra(Map):
         print self.central_coordinate_equatorial
         print offset
         pyclass.comm('file in ' + self.map_name)
+        self.log('file in ' + self.map_name)
         pyclass.comm('set offset ' + str(offset[0]) + ' ' + str(offset[1]))
+        self.log('set offset ' + str(offset[0]) + ' ' + str(offset[1]))
         while True:
             pyclass.comm('set match ' + str(accuracy))
+            self.log('set match ' + str(accuracy))
             pyclass.comm('find')
             try:
                 pyclass.comm('get f')
@@ -168,6 +171,15 @@ class ClassSpectra(Map):
         return self.get_spectra_from_cube(coordinate, angle=angle,
                                           prefix=prefix, accuracy=accuracy,
                                           region=True)
+
+    def get_intensity_in_velocity_range(self, vel_range):
+        pyclass.comm("get f")
+        central_velocity = pyclass.gdict.reference.__sicdata__
+        reference_channel = pyclass.gdict.reference.__sicdata__
+        velocity_channel_increment = pyclass.gdict.velo_step.__sicdata__
+        velocity_channel_increment = pyclass.gdict.velo_step.__sicdata__
+        pyclass.comm("")
+        return intensity
 
     def get_average_spectrum(self, prefix=None):
         r"""

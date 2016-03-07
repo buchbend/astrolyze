@@ -88,7 +88,12 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation of astrolyze</a></li>
 <li class="toctree-l1"><a class="reference internal" href="motivation.html">Motivation - What is astrolyze all about</a></li>
 <li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Cookbook</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Cookbook</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#setup-initial-guesses">Setup initial guesses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prepare-the-maps-with-the-different-wavelength-of-the-sed">Prepare the maps with the different wavelength of the SED</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#loadind-the-sedstack-and-fitting">Loadind the SedStack and fitting</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="source_documentation.html">Source Documenation</a></li>
 </ul>
 
@@ -136,9 +141,51 @@
             
   <div class="section" id="cookbook">
 <h1>Cookbook<a class="headerlink" href="#cookbook" title="Permalink to this headline">¶</a></h1>
-<p>Producing dust-temperature, dust-mass and $beta$ maps from a list of images at
+<p>Producing dust-temperature, dust-mass and <span class="math">\beta</span> maps from a list of images at
 different temperature by fitting multi-greybody components to the spectral
 energy distribution at every pixel.</p>
+<div class="section" id="setup-initial-guesses">
+<h2>Setup initial guesses<a class="headerlink" href="#setup-initial-guesses" title="Permalink to this headline">¶</a></h2>
+<p>The Sed and SedStack classes take initial guesses for temperatures, masses and
+beta values as input. These variables have to be given as lists with as many
+entries as there are components to be fitted.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astrolyze</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">number_of_components</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">temperature_guesses</span> <span class="o">=</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mass_guesses</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e5</span><span class="p">,</span> <span class="mf">1e3</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">beta_guess</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">At the moment only a single beta value for both components can be used.</p>
+</div>
+</div>
+<div class="section" id="prepare-the-maps-with-the-different-wavelength-of-the-sed">
+<h2>Prepare the maps with the different wavelength of the SED<a class="headerlink" href="#prepare-the-maps-with-the-different-wavelength-of-the-sed" title="Permalink to this headline">¶</a></h2>
+<p>To create an SedStack you have to have a folder that contains only the maps you
+want to use. At the beginning these can still have different formats,
+resolution and other parameters. You can use the <span class="xref std std-ref">Stack</span> class to unify
+the maps.  Especially to construct temperature and mass maps from these maps,
+the Stack of maps has to have the same resolution, flux unit, and dimensions
+(map/pixel size). In the following the process of unifying a set of images is shown.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">stack_</span> <span class="o">=</span> <span class="n">Stack</span><span class="p">(</span><span class="s">&quot;InputFolder&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stack_</span> <span class="o">=</span> <span class="n">stack_</span><span class="o">.</span><span class="n">unify_units</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="s">&quot;JyB&quot;</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="s">&quot;output_folder1&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stack_</span> <span class="o">=</span> <span class="n">stack_</span><span class="o">.</span><span class="n">unify_resolutions</span><span class="p">(</span><span class="n">folder</span><span class="o">=</span><span class="s">&quot;output_folder2&quot;</span><span class="p">)</span>  <span class="c">#  Default uses larges resolution found</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stack_</span> <span class="o">=</span> <span class="n">stack_</span><span class="o">.</span><span class="n">unify_dimensions</span><span class="p">(</span><span class="n">template</span><span class="o">=</span><span class="s">&quot;template_map&quot;</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="s">&quot;output_folder3&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here <cite>template_map</cite> is a map that has the dimension and pixel size one ones to
+obtain for the final SED-maps. output_folder1-3 should be physically distinct.</p>
+</div>
+<div class="section" id="loadind-the-sedstack-and-fitting">
+<h2>Loadind the SedStack and fitting<a class="headerlink" href="#loadind-the-sedstack-and-fitting" title="Permalink to this headline">¶</a></h2>
+<p>Now one can load the final stack of images and produce the SED maps</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">sed_stack</span> <span class="o">=</span> <span class="n">SedStack</span><span class="p">(</span><span class="s">&#39;output_folder3&#39;</span><span class="p">,</span> <span class="n">full_map</span><span class="o">=</span><span class="n">true</span><span class="p">,</span> <span class="n">flux_acquisition</span><span class="o">=</span><span class="s">&#39;pixel&#39;</span><span class="p">,</span> <span class="n">number_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">temperature_guesses</span><span class="o">=</span><span class="n">temperature_guesses</span><span class="p">,</span> <span class="n">mass_guesses</span><span class="o">=</span><span class="n">mass_guesses</span><span class="p">,</span> <span class="n">beta_guess</span><span class="o">=</span><span class="n">beta_guess</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sed_stack</span><span class="o">.</span><span class="n">get_sed_maps</span><span class="p">(</span><span class="n">folder</span><span class="o">=</span><span class="s">&quot;final_output_folder&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
 </div>
 
 
