@@ -246,6 +246,7 @@ class Map(object):
         # Still does contain points only due to numbers.
         test = string.split('.')
         x = True
+        print string
         while x:
             if 'uk' in string:
                 break
@@ -255,7 +256,7 @@ class Map(object):
             except KeyboardInterrupt:
                 sys.exit()
             except:
-                string = string.replace('.' + test[-1], '')
+                string = string.replace('.{}'.format(test[-1]), '')
                 test = test[0:-1]
         if 'uk' in string:
             return string

@@ -172,6 +172,15 @@ class ClassSpectra(Map):
                                           prefix=prefix, accuracy=accuracy,
                                           region=True)
 
+    def get_intensity_in_velocity_range(self, vel_range):
+        pyclass.comm("get f")
+        central_velocity = pyclass.gdict.reference.__sicdata__
+        reference_channel = pyclass.gdict.reference.__sicdata__
+        velocity_channel_increment = pyclass.gdict.velo_step.__sicdata__
+        velocity_channel_increment = pyclass.gdict.velo_step.__sicdata__
+        pyclass.comm("")
+        return intensity
+
     def get_average_spectrum(self, prefix=None):
         r"""
         Averages all spectra in a cube.

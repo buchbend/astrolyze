@@ -314,7 +314,7 @@ class Stack(object):
         if not resolution:
             for map_ in self.stack:
                 # Check the necessary scaling.
-                if map_.fluxUnit.upper() in ['JYB']:
+                if map_.fluxUnit.upper() in ['JYB',]:
                     scaling = ''
                 if map_.fluxUnit.upper() in ['TMB', 'T', 'KKMS']:
                     scaling = '0.0'
@@ -376,6 +376,10 @@ class Stack(object):
                     map_.prefix = folder
                 # change to miriad and save in new folder
                 map_ = map_.toMiriad()
+                if map_.fluxUnit.upper() in ['JYB',]:
+                    scaling = ''
+                if map_.fluxUnit.upper() in ['TMB', 'T', 'KKMS']:
+                    scaling = '0.0'
                 map_ = map_.smooth(resolution, scale=scaling)
                 os.system('rm -rf ' + map_.returnName(dataFormat='fits'))
                 map_ = map_.toFits()
