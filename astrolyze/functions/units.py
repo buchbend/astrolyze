@@ -54,7 +54,7 @@ def WmToKkms(x, resolution=0, sterad=False, ToKKms=False, m2_or_cm2='m',
     # => to make the units fit we have to multiply by 1*km in cm -> 1e5
     # i.e. const.km_in_cm
     # converts from K - > ergs
-    conversionFactor = (2 * k_CGS * x ** 3 * const.km_in_cm /
+    conversionFactor = (2 * const.k_CGS * x ** 3 * const.km_in_cm /
                         (const.c_in_cm ** 3))
     factor = factor / conversionFactor
     if ToKKms == True:
