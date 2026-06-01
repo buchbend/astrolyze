@@ -25,9 +25,13 @@ Tracer-bullet, **units-first**. GitHub issues (label `ready-for-agent`):
 #3 units ........... DONE (merged, #3; 25 tests)                    ADR-0003
 #4 io + schema ..... DONE (merged via PR; 25 tests)                 ADR-0006
 #5 core ............ DONE (merged to main; 12 tests)                ADR-0004
-#6 viz ............. DONE (merged to main; 16 tests)                ADR-0005
+#6 viz ............. DONE (merged to main; 16 tests) — issue kept OPEN, see below   ADR-0005
 #7 tracer + CLI .... NEXT  (needs #3-#6, PRD acceptance)            ADR-0011/0012
 ```
+
+> **Issue housekeeping:** GitHub issue **#6 is intentionally left OPEN** — close it
+> **together with #7** when the tracer/CLI lands (user's call). The viz *code* is done and
+> on `main` (commit `8d713ea`); only the issue ticket is held open.
 
 **#3 units — DONE** (`astrolyze/units/`, `tests/test_units.py`): pure-astropy, no I/O, no
 import side effects. Aliases (`Tmb`, `Ta`, `Jy_beam`, `Jy_sr`, `MJy_sr`, `K_kms`);
