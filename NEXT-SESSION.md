@@ -5,8 +5,8 @@ Single entry point for resuming the astrolyze build in a fresh session.
 ## Where you are
 
 - **This repo (`~/git/astrolyze`, GitHub `buchbend/astrolyze`, public, BSD-3)** = the Core
-  Toolkit. Scaffold + units + io are done; `pip install -e ".[dev]"` works, `pytest` is 54/54
-  green (28 units, 25 io, 1 smoke). Venv at `.venv/`.
+  Toolkit. Scaffold + units + io + core are done; `pip install -e ".[dev]"` works, `pytest` is
+  65/65 green (25 units, 25 io, 3 smoke, 12 core). Venv at `.venv/`.
 - **Design lives in the PRIVATE repo `~/git/science/ppv-foundation`** (two-repo split,
   ADR-0007). Read these there before building:
   - `CONTEXT.md` — glossary / shared language.
@@ -15,17 +15,17 @@ Single entry point for resuming the astrolyze build in a fresh session.
   - `docs/astrolyze-build-plan.md` — module layout + build order.
 - The 2012-2016 original is preserved at **buchbend/astrolyze-legacy** (heritage; don't touch).
 
-## What to build next — issue #5: `core` (Cube / Map / Spectrum)
+## What to build next — issue #6: `viz` (plotting engine + house style)
 
 Tracer-bullet, **units-first**. GitHub issues (label `ready-for-agent`):
 
 ```
 #1 PRD (tracking)
 #2 scaffold ........ DONE (closed)
-#3 units ........... DONE (merged, #3; 28 tests)                    ADR-0003
+#3 units ........... DONE (merged, #3; 25 tests)                    ADR-0003
 #4 io + schema ..... DONE (merged via PR; 25 tests)                 ADR-0006
-#5 core ............ NEXT  (needs #3 + #4)                          ADR-0004
-#6 viz ............. needs #5                                       ADR-0005
+#5 core ............ DONE (merged to main; 12 tests)                ADR-0004
+#6 viz ............. NEXT  (needs #5)                                ADR-0005
 #7 tracer + CLI .... needs #3-#6 (PRD acceptance)                   ADR-0011/0012
 ```
 
@@ -68,10 +68,30 @@ authoritative; the filename is a derived projection; loading is lazy. **Notes fo
   **derived file only** — raw inputs are never renamed.
 - I added `coerce_velocity_convention` to the `astrolyze.units` public exports (io needs it).
 
-**#5 core** (ADR-0004): thin `Cube`/`Map`/`Spectrum` wrappers over spectral-cube/astropy/
-specutils that carry beam+rest-freq+convention (build them from `io.load(...).metadata`), a
-unit-hub `.to()` routed through `astrolyze.units.convert`, and a `.plot()` seam for #6. Stay
-thin — delegate moments/convolution; don't reimplement.
+**#5 core — DONE** (`astrolyze/core/`, `tests/test_core.py`; ADR-0004), merged to `main`
+(commit `Implement core module … (#5)`; 12 tests). Thin `Cube`/`Map`/`Spectrum` that
+**compose** (private handles: `Cube._sc` = SpectralCube, `Spectrum._spec` = specutils.Spectrum,
+`Map._data` + `Map._wcs`) and carry the io `Metadata` as the single context source. **Notes for
+#6 viz:**
+- A shared `ContextCarrier` mixin (`core/_base.py`) gives all three `.to()`, `.plot()`, and the
+  context shortcuts `.beam` / `.rest_frequency` / `.velocity_convention` / `.is_complete` /
+  `.missing` (+ `require_complete()`, the door for velocity/spectral-axis ops).
+- **`.plot()` is already wired** and is the seam #6 fills: it does `from astrolyze import viz`
+  then `getattr(viz, self._viz_function)(self, **kwargs)`. The names it expects are **`plot_cube`**
+  (Cube), **`plot_map`** (Map), **`plot_spectrum`** (Spectrum) — define those free functions in
+  `astrolyze.viz` and `.plot()` lights up automatically; until they exist it raises a clear
+  `NotImplementedError`.
+- Free functions take the wrapper object (`plot_map(map, ax=...)`). Available for drawing:
+  `map.wcs` (2D WCS), `map.data` (Quantity → colorbar unit), `map.beam` (`radio_beam.Beam` for
+  the ellipse), `cube.spectral_axis`, `spectrum.spectral_axis` / `spectrum.flux`.
+- Apply the house style **locally** (context manager); **never** mutate global rcParams on
+  import (ADR-0005). Importing core already pulls matplotlib via spectral-cube but does NOT
+  touch rcParams — keep it that way.
+- `.to()` supplies beam/rest-freq/convention from the object but **never** defaults the
+  RJ-vs-Planck `temperature_scale` (ADR-0003): pass it explicitly for brightness-temperature
+  conversions. Type transitions: `Cube.moment0()` / `moment(order,axis)` → `Map`;
+  `cube[:, y, x]` → `Spectrum`; `cube[k]` → `Map`; sub-cube slice → `Cube`. Build a cube with
+  `Cube.from_loaded(io.load(path))`.
 
 ## Non-negotiable house rules (from the ADRs)
 
