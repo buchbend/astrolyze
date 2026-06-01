@@ -5,120 +5,84 @@ Single entry point for resuming the astrolyze build in a fresh session.
 ## Where you are
 
 - **This repo (`~/git/astrolyze`, GitHub `buchbend/astrolyze`, public, BSD-3)** = the Core
-  Toolkit. Scaffold + units + io + core + viz are done; `pip install -e ".[dev]"` works,
-  `pytest` is 82/82 green (25 units, 25 io, 3 smoke, 13 core, 16 viz). Venv at `.venv/`.
+  Toolkit. Scaffold + units + io + core + viz + **tracer/CLI are all done**. The PRD 0001
+  tracer-bullet slice is **complete and accepted** — `pip install -e ".[dev]"` works,
+  `pytest` is **90 passed / 1 skipped** (the 1 skip is the full-cube acceptance, gated by
+  `$ASTROLYZE_TRACER_CUBE`). Venv at `.venv/`.
 - **Design lives in the PRIVATE repo `~/git/science/ppv-foundation`** (two-repo split,
-  ADR-0007). Read these there before building:
+  ADR-0007). Read these there before building more:
   - `CONTEXT.md` — glossary / shared language.
   - `docs/adr/0001`–`0013` — the decisions that govern everything.
-  - `docs/prd/0001-astrolyze-tracer-bullet.md` — the full PRD.
+  - `docs/prd/0001-astrolyze-tracer-bullet.md` — the (now-delivered) tracer PRD.
   - `docs/astrolyze-build-plan.md` — module layout + build order.
 - The 2012-2016 original is preserved at **buchbend/astrolyze-legacy** (heritage; don't touch).
 
-## What to build next — issue #7: `tracer + CLI` (PRD acceptance)
-
-Tracer-bullet, **units-first**. GitHub issues (label `ready-for-agent`):
+## Module status
 
 ```
 #1 PRD (tracking)
 #2 scaffold ........ DONE (closed)
 #3 units ........... DONE (merged, #3; 25 tests)                    ADR-0003
 #4 io + schema ..... DONE (merged via PR; 25 tests)                 ADR-0006
-#5 core ............ DONE (merged to main; 12 tests)                ADR-0004
+#5 core ............ DONE (merged to main; 13 tests)                ADR-0004
 #6 viz ............. DONE (merged to main; 16 tests) — issue kept OPEN, see below   ADR-0005
-#7 tracer + CLI .... NEXT  (needs #3-#6, PRD acceptance)            ADR-0011/0012
+#7 tracer + CLI .... DONE on branch `issue-7-tracer-cli` (UNCOMMITTED), see below   ADR-0011/0012
 ```
 
-> **Issue housekeeping:** GitHub issue **#6 is intentionally left OPEN** — close it
-> **together with #7** when the tracer/CLI lands (user's call). The viz *code* is done and
-> on `main` (commit `8d713ea`); only the issue ticket is held open.
+## What was just done — issue #7: tracer + CLI (PRD 0001 acceptance)
 
-**#3 units — DONE** (`astrolyze/units/`, `tests/test_units.py`): pure-astropy, no I/O, no
-import side effects. Aliases (`Tmb`, `Ta`, `Jy_beam`, `Jy_sr`, `MJy_sr`, `K_kms`);
-equivalency builders (`brightness_temperature` with **both** Rayleigh-Jeans *and* an exact
-**Planck** equivalency — astropy's built-in is RJ-only; `beam_angular_area`, `doppler`,
-`spectral`); and `convert(quantity, target, *, rest_frequency, convention, beam,
-temperature_scale)`. **Design notes for whoever picks this up:**
-- Added `temperature_scale` (rayleigh_jeans|planck) to the mandated `convert` signature —
-  RJ-vs-Planck is the #1 silent-error trap (ADR-0003), so it is explicit/mandatory like the
-  velocity convention, never defaulted. Strings or enums accepted.
-- Velocity-integrated intensity (K km/s ↔ Jy/beam km/s) is handled manually (astropy won't
-  compose the equivalency across the km/s factor) and is **RJ-only by construction** —
-  asking for Planck on an integrated quantity raises (B_ν is nonlinear; ∫B_ν(T)dv ≠ B_ν(∫T)).
-- astropy does **not chain** two equivalencies in one `.to()`, so each conversion is built
-  as exactly one registered pair (e.g. Jy/beam↔K folds the beam in, rather than
-  beam_angular_area + surface-brightness).
-- `#3` is **merged to `main`** (commit `Implement units module … (#3)`).
+Implemented on branch **`issue-7-tracer-cli`** and **not yet committed** (held for the user's
+call on commit/PR/merge). The library modules #3–#6 were untouched — #7 is the thin top layer:
 
-**#4 io + schema — DONE** (`astrolyze/io/`, `tests/test_io.py`; ADR-0006). The FITS header is
-authoritative; the filename is a derived projection; loading is lazy. **Notes for #5:**
-- `load(path) -> LoadedData(data, header, wcs, metadata, path)` — the seam #5 consumes to build
-  `Cube`/`Map`/`Spectrum`. Byte I/O delegated to astropy; io adds the schema, not a reader.
-- `Metadata` (`io/schema.py`) carries object, telescope, species, rest_frequency (Hz),
-  velocity_convention, beam (`radio_beam.Beam`), bunit (`u.Unit`), distance (with unit),
-  calibration_error, name_tag, + a `provenance=None` seam. `.is_complete` / `.missing` /
-  `.ensure_complete()` — the latter raises the **shared** `MissingContextError` from
-  `astrolyze.units` (reused, not re-defined). **#5 should call `metadata.ensure_complete()`
-  at the door of any unit/velocity op.**
-- Keyword schema: standard keys where they exist (`OBJECT`,`TELESCOP`,`BUNIT`,`RESTFRQ`,
-  `BMAJ/BMIN/BPA`); everything astrolyze-specific under `HIERARCH ASTROLYZE …` (`VCONV`,
-  `SPECIES`,`DISTANCE`+`DISTUNIT`,`CALERR`,`NAMETAG`,`SCHEMA`). **Incompleteness triggers =
-  rest_frequency + velocity_convention** only (ADR-0006 ii); beam-ops are gated by units.
-- Velocity convention is *read, not guessed*: `VCONV` keyword first, else WCS `CTYPE3`
-  (`VRAD`→radio / `VOPT`→optical / `VELO`→relativistic).
-- Filename projection (`io/naming.py`, legacy v1 grammar):
-  `source_telescope_species_fluxunit_resolution.fits`; resolution from beam in arcsec
-  (`12.00` / `12.00x10.00` / `…a30.0`); missing fields → `unknown`. `save(...)` writes a
-  **derived file only** — raw inputs are never renamed.
-- I added `coerce_velocity_convention` to the `astrolyze.units` public exports (io needs it).
+- **`astrolyze/cli.py`** — typer/rich CLI (entry point `astrolyze` was already wired in
+  `pyproject.toml`). Two commands: **`info PATH`** (rich table of the metadata schema +
+  completeness; read-only, never raises on a partial header) and **`moment0 PATH -u "K km/s"
+  -o fig.png`** (the tracer: load → moment0 → `.to(unit)` → plot → savefig). `--version`
+  callback. The CLI owns output (rich + `typer.Exit`); a missing-context conversion exits 1
+  with a clear message. Heavy imports are deferred into the command bodies, so `import
+  astrolyze.cli` pulls **neither matplotlib nor spectral-cube** and `--help` stays fast.
+- **`examples/tracer_ngc628.py`** — the same spine as a plain, reviewable script (the
+  "agent works as a human would" artifact, ADR-0011/0012). Path from argv or
+  `$ASTROLYZE_TRACER_CUBE`.
+- **Committed real-data fixture** — `tests/data/ngc0628_co21_cutout.fits.gz` (128×128×50,
+  3.0 MB), a cutout of the PHANGS-ALMA NGC 628 CO(2-1) cube, generated by
+  `tests/data/make_cutout.py`; provenance/attribution in `tests/data/PROVENANCE.md`. Parses
+  as **complete** (RESTFRQ + VRAD→radio) so the spine runs without raising.
+- **Tests** — `tests/test_cli.py` (CliRunner over a synthetic cube: info, moment0, default
+  output path, missing-context → non-zero, `--version`) and `tests/test_tracer.py` (synthetic
+  spine; **always-on real-data smoke on the committed cutout**; full-cube acceptance gated by
+  `$ASTROLYZE_TRACER_CUBE`).
+- **Docs** — `AGENTS.md` filled out (verified against the real API: tracer recipe Python+CLI,
+  explicit-physics rule, house-display, "extend astrolyze first") and `README.md` got a
+  Quickstart.
 
-**#5 core — DONE** (`astrolyze/core/`, `tests/test_core.py`; ADR-0004), merged to `main`
-(commit `Implement core module … (#5)`; 12 tests). Thin `Cube`/`Map`/`Spectrum` that
-**compose** (private handles: `Cube._sc` = SpectralCube, `Spectrum._spec` = specutils.Spectrum,
-`Map._data` + `Map._wcs`) and carry the io `Metadata` as the single context source. **Notes for
-#6 viz:**
-- A shared `ContextCarrier` mixin (`core/_base.py`) gives all three `.to()`, `.plot()`, and the
-  context shortcuts `.beam` / `.rest_frequency` / `.velocity_convention` / `.is_complete` /
-  `.missing` (+ `require_complete()`, the door for velocity/spectral-axis ops).
-- **`.plot()` is already wired** and is the seam #6 fills: it does `from astrolyze import viz`
-  then `getattr(viz, self._viz_function)(self, **kwargs)`. The names it expects are **`plot_cube`**
-  (Cube), **`plot_map`** (Map), **`plot_spectrum`** (Spectrum) — define those free functions in
-  `astrolyze.viz` and `.plot()` lights up automatically; until they exist it raises a clear
-  `NotImplementedError`.
-- Free functions take the wrapper object (`plot_map(map, ax=...)`). Available for drawing:
-  `map.wcs` (2D WCS), `map.data` (Quantity → colorbar unit), `map.beam` (`radio_beam.Beam` for
-  the ellipse), `cube.spectral_axis`, `spectrum.spectral_axis` / `spectrum.flux`.
-- Apply the house style **locally** (context manager); **never** mutate global rcParams on
-  import (ADR-0005). Importing core already pulls matplotlib via spectral-cube but does NOT
-  touch rcParams — keep it that way.
-- `.to()` supplies beam/rest-freq/convention from the object but **never** defaults the
-  RJ-vs-Planck `temperature_scale` (ADR-0003): pass it explicitly for brightness-temperature
-  conversions. Type transitions: `Cube.moment0()` / `moment(order,axis)` → `Map`;
-  `cube[:, y, x]` → `Spectrum`; `cube[k]` → `Map`; sub-cube slice → `Cube`. Build a cube with
-  `Cube.from_loaded(io.load(path))`.
+**Acceptance verified end-to-end:** `python examples/tracer_ngc628.py
+~/Downloads/ngc0628_12m+7m+tp_co21.fits` runs in ~31 s on the full 958 MB cube and produces
+the house-style moment-0 figure (cividis + WCS + beam + `K km/s` colorbar). The full cube is
+**not** in the repo (size + public-repo policy); only the small cutout is committed.
 
-**#6 viz — DONE** (`astrolyze/viz/`, `tests/test_viz.py`; ADR-0005), merged to `main` (16
-tests). Free-function engine + thin object sugar; house style applied **locally**, never global
-on import. **Notes for #7 tracer/CLI:**
-- The engine is three free functions, each returning `(fig, ax)` and accepting an `ax=` to
-  compose into a multi-panel figure: **`plot_map(map, *, ax, cmap='cividis', add_beam, add_colorbar,
-  backend, **imshow_kwargs)`** (WCSAxes, beam ellipse from `map.beam`, colorbar labelled with
-  `str(map.unit)`), **`plot_spectrum(spec, *, ax, drawstyle='steps-mid', backend, **plot_kwargs)`**
-  (flux vs spectral axis, axes auto-labelled), **`plot_cube(cube, **kwargs)`** = quick-look that
-  reuses `plot_map(cube.moment0())`. `obj.plot(**kwargs)` is sugar that delegates to these.
-- House style ships as `astrolyze/viz/astrolyze.mplstyle` (package-data) and is applied **only**
-  inside `with astrolyze.style(): …` — `import astrolyze` stays matplotlib-free (lazy `astrolyze.style`
-  via module `__getattr__`); the tracer/CLI can rely on that for fast `--help`.
-- Default cmap **cividis**, always overridable. A `backend=` seam exists on every signature but
-  only `"matplotlib"` is built — anything else raises `NotImplementedError` (YAGNI).
-- The tracer (load → moment0 → convert → plot) is just `Cube.from_loaded(io.load(p)).moment0()
-  .to('K km/s', temperature_scale='rayleigh_jeans').plot()`; for the CLI use rich + typer (stack
-  default), and remember the no-`print`/no-`SystemExit` library rule (the CLI layer owns output).
+## To finish landing #7 (user's call)
+
+1. Commit branch `issue-7-tracer-cli`, open a PR (or merge to `main`, matching how #5/#6 went).
+2. **Close GitHub issues #6 and #7 together** (handover: #6 was deliberately held open for the
+   tracer; the viz code already merged at `8d713ea`).
+3. Offer to document in `docs/` if/when a docs folder exists (per global CLAUDE.md).
+
+## What's next — beyond the tracer slice
+
+The tracer slice is intentionally minimal. Out-of-scope-for-#1 items (now candidate future
+PRDs, see `ppv-foundation/docs/prd/0001` "Out of Scope"):
+- Domain harvest from astrolyze v1/v3 (LTE physics, line/molecule/galaxy/calibration tables,
+  CLASS/GILDAS I/O).
+- The merciless **ingest** gate + DB-backed **manifest** + data-layout enforcement (ADR-0009),
+  and the experiment **Run Log / traceability** (ADR-0010/0013) — the experiment-harness PRD.
+- Toolkit growth by Promotion: `Stack` workflows, PV slices, convolution/harmonisation, SED.
 
 ## Non-negotiable house rules (from the ADRs)
 
 - Stay thin — delegate to spectral-cube/astropy; don't reimplement moments/convolution.
-- No silent physics; no `SystemExit`/`print` in library code; never mutate global rcParams.
+- No silent physics; no `SystemExit`/`print` in library code (the CLI layer owns output);
+  never mutate global rcParams.
 - Tests are the correctness obligation. **Verify claims against real artifacts** (incl. docs).
 - Bash on this host needs `dangerouslyDisableSandbox: true` for real work (seccomp).
 

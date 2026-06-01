@@ -31,6 +31,33 @@ pip install -e ".[dev]"   # development install
 pytest                    # run the test suite
 ```
 
+## Quickstart
+
+The tracer-bullet spine — load a PPV cube, collapse it to a velocity-integrated map, put it
+in the units you want, and display it the house way:
+
+```python
+from astrolyze.core import Cube
+from astrolyze.io import load
+
+cube = Cube.from_loaded(load("ngc0628_co21.fits"))
+integrated = cube.moment0().to("K km/s")   # beam / rest freq / convention come from the cube
+fig, ax = integrated.plot()                # cividis + WCS axes + beam ellipse + unit colorbar
+fig.savefig("ngc0628_co21_moment0.png")
+```
+
+The same path from the shell (a coding agent drives this identically — there is no AI-only
+interface):
+
+```bash
+astrolyze info  ngc0628_co21.fits                 # metadata schema + completeness (read-only)
+astrolyze moment0 ngc0628_co21.fits -u "K km/s" -o ngc0628_mom0.png
+```
+
+A small real-data cutout (PHANGS-ALMA NGC 628 CO 2-1) ships in
+`tests/data/ngc0628_co21_cutout.fits.gz` to try it on immediately. See [AGENTS.md](AGENTS.md)
+for the full "how we work with astro data" guide.
+
 ## License
 
 BSD-3-Clause. See [LICENSE](LICENSE).
