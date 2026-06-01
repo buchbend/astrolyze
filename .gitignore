@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.installed.cfg
+
+# venv
+.venv/
+venv/
+
+# tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# data (never commit science data into the toolkit)
+*.fits
+*.zarr/
+
+# OS / editor
+.DS_Store
+*.swp
