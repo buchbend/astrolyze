@@ -5,8 +5,8 @@ Single entry point for resuming the astrolyze build in a fresh session.
 ## Where you are
 
 - **This repo (`~/git/astrolyze`, GitHub `buchbend/astrolyze`, public, BSD-3)** = the Core
-  Toolkit. Scaffold + units + io + core are done; `pip install -e ".[dev]"` works, `pytest` is
-  65/65 green (25 units, 25 io, 3 smoke, 12 core). Venv at `.venv/`.
+  Toolkit. Scaffold + units + io + core + viz are done; `pip install -e ".[dev]"` works,
+  `pytest` is 82/82 green (25 units, 25 io, 3 smoke, 13 core, 16 viz). Venv at `.venv/`.
 - **Design lives in the PRIVATE repo `~/git/science/ppv-foundation`** (two-repo split,
   ADR-0007). Read these there before building:
   - `CONTEXT.md` — glossary / shared language.
@@ -15,7 +15,7 @@ Single entry point for resuming the astrolyze build in a fresh session.
   - `docs/astrolyze-build-plan.md` — module layout + build order.
 - The 2012-2016 original is preserved at **buchbend/astrolyze-legacy** (heritage; don't touch).
 
-## What to build next — issue #6: `viz` (plotting engine + house style)
+## What to build next — issue #7: `tracer + CLI` (PRD acceptance)
 
 Tracer-bullet, **units-first**. GitHub issues (label `ready-for-agent`):
 
@@ -25,8 +25,8 @@ Tracer-bullet, **units-first**. GitHub issues (label `ready-for-agent`):
 #3 units ........... DONE (merged, #3; 25 tests)                    ADR-0003
 #4 io + schema ..... DONE (merged via PR; 25 tests)                 ADR-0006
 #5 core ............ DONE (merged to main; 12 tests)                ADR-0004
-#6 viz ............. NEXT  (needs #5)                                ADR-0005
-#7 tracer + CLI .... needs #3-#6 (PRD acceptance)                   ADR-0011/0012
+#6 viz ............. DONE (merged to main; 16 tests)                ADR-0005
+#7 tracer + CLI .... NEXT  (needs #3-#6, PRD acceptance)            ADR-0011/0012
 ```
 
 **#3 units — DONE** (`astrolyze/units/`, `tests/test_units.py`): pure-astropy, no I/O, no
@@ -92,6 +92,24 @@ authoritative; the filename is a derived projection; loading is lazy. **Notes fo
   conversions. Type transitions: `Cube.moment0()` / `moment(order,axis)` → `Map`;
   `cube[:, y, x]` → `Spectrum`; `cube[k]` → `Map`; sub-cube slice → `Cube`. Build a cube with
   `Cube.from_loaded(io.load(path))`.
+
+**#6 viz — DONE** (`astrolyze/viz/`, `tests/test_viz.py`; ADR-0005), merged to `main` (16
+tests). Free-function engine + thin object sugar; house style applied **locally**, never global
+on import. **Notes for #7 tracer/CLI:**
+- The engine is three free functions, each returning `(fig, ax)` and accepting an `ax=` to
+  compose into a multi-panel figure: **`plot_map(map, *, ax, cmap='cividis', add_beam, add_colorbar,
+  backend, **imshow_kwargs)`** (WCSAxes, beam ellipse from `map.beam`, colorbar labelled with
+  `str(map.unit)`), **`plot_spectrum(spec, *, ax, drawstyle='steps-mid', backend, **plot_kwargs)`**
+  (flux vs spectral axis, axes auto-labelled), **`plot_cube(cube, **kwargs)`** = quick-look that
+  reuses `plot_map(cube.moment0())`. `obj.plot(**kwargs)` is sugar that delegates to these.
+- House style ships as `astrolyze/viz/astrolyze.mplstyle` (package-data) and is applied **only**
+  inside `with astrolyze.style(): …` — `import astrolyze` stays matplotlib-free (lazy `astrolyze.style`
+  via module `__getattr__`); the tracer/CLI can rely on that for fast `--help`.
+- Default cmap **cividis**, always overridable. A `backend=` seam exists on every signature but
+  only `"matplotlib"` is built — anything else raises `NotImplementedError` (YAGNI).
+- The tracer (load → moment0 → convert → plot) is just `Cube.from_loaded(io.load(p)).moment0()
+  .to('K km/s', temperature_scale='rayleigh_jeans').plot()`; for the CLI use rich + typer (stack
+  default), and remember the no-`print`/no-`SystemExit` library rule (the CLI layer owns output).
 
 ## Non-negotiable house rules (from the ADRs)
 

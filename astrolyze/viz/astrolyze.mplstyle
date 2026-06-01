@@ -1,0 +1,50 @@
+# astrolyze house style (ADR-0005) — publication-first, light background.
+#
+# Shipped with the package and applied LOCALLY by astrolyze.viz via a context manager
+# (astrolyze.style()). The library never sets this globally on import: a reader expecting
+# `import astrolyze` to restyle their matplotlib will find it does not, on purpose.
+
+# Perceptually-uniform default colormap that also prints well on white paper. Radio
+# astronomers do not always want dark themes, so the house default is cividis, not a
+# saturated map. Always overridable per call (plot_map(..., cmap=...)).
+image.cmap: cividis
+image.origin: lower
+
+# Figure / canvas
+figure.figsize: 6.0, 5.0
+figure.dpi: 110
+figure.facecolor: white
+axes.facecolor: white
+savefig.dpi: 300
+savefig.bbox: tight
+savefig.facecolor: white
+
+# Fonts
+font.size: 11
+axes.titlesize: 12
+axes.labelsize: 11
+xtick.labelsize: 10
+ytick.labelsize: 10
+legend.fontsize: 10
+
+# Axes / spines
+axes.linewidth: 1.0
+axes.grid: False
+# Colourblind-safe qualitative cycle (Wong 2011) for overplotted spectra.
+axes.prop_cycle: cycler('color', ['0173b2', 'de8f05', '029e73', 'd55e00', 'cc78bc', 'ca9161', '949494'])
+
+# Ticks point inward on all four sides (observatory / journal convention).
+xtick.direction: in
+ytick.direction: in
+xtick.top: True
+ytick.right: True
+xtick.major.size: 5
+ytick.major.size: 5
+xtick.minor.size: 3
+ytick.minor.size: 3
+xtick.minor.visible: True
+ytick.minor.visible: True
+
+# Lines / legend
+lines.linewidth: 1.5
+legend.frameon: False

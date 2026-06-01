@@ -215,11 +215,34 @@ def test_channel_slice_returns_map(cube):
 
 
 # --------------------------------------------------------------------------------------
-# .plot() is a thin seam onto the viz engine (ADR-0005); it arrives with issue #6
+# .plot() is a thin seam onto the viz engine (ADR-0005): it delegates to the matching
+# free function, passing the object + kwargs. (The engine itself is tested in test_viz.)
 # --------------------------------------------------------------------------------------
-def test_plot_is_a_seam_onto_the_unbuilt_viz_layer(integrated_map):
-    # The sugar delegates to astrolyze.viz; until #6 ships that engine, calling it is a
+def test_plot_delegates_to_the_matching_viz_function(integrated_map, monkeypatch):
+    import astrolyze.viz as viz
+
+    captured = {}
+
+    def fake_plot_map(obj, **kwargs):
+        captured["obj"], captured["kwargs"] = obj, kwargs
+        return ("fig", "ax")
+
+    monkeypatch.setattr(viz, "plot_map", fake_plot_map)
+    result = integrated_map.plot(cmap="magma")
+
+    assert result == ("fig", "ax")
+    assert captured["obj"] is integrated_map  # the object is handed to the engine
+    assert captured["kwargs"] == {
+        "cmap": "magma"
+    }  # caller kwargs flow straight through
+
+
+def test_plot_raises_clearly_when_its_viz_function_is_absent(
+    integrated_map, monkeypatch
+):
+    # Defensive branch: a wrapper pointing at a viz function that does not exist gets a
     # clear NotImplementedError, not an obscure AttributeError.
+    monkeypatch.setattr(type(integrated_map), "_viz_function", "plot_does_not_exist")
     with pytest.raises(NotImplementedError):
         integrated_map.plot()
 

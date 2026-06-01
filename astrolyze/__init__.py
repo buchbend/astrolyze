@@ -7,4 +7,17 @@ layer). See docs/adr for the design decisions behind the package.
 
 __version__ = "0.1.0.dev0"
 
-__all__ = ["__version__"]
+__all__ = ["__version__", "style"]
+
+
+def __getattr__(name):
+    """Resolve ``astrolyze.style`` lazily so plain ``import astrolyze`` stays matplotlib-free.
+
+    The house-style context manager lives in :mod:`astrolyze.viz`, which imports matplotlib.
+    Exposing it via PEP 562 module ``__getattr__`` keeps that cost off the bare package import
+    while still letting users write ``with astrolyze.style(): ...`` (ADR-0005)."""
+    if name == "style":
+        from astrolyze.viz import style
+
+        return style
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
