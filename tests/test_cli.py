@@ -84,6 +84,36 @@ def incomplete_cube(tmp_path):
 
 
 # --------------------------------------------------------------------------------------
+# init: scaffold the fixed experiment skeleton (ADR-0009)
+# --------------------------------------------------------------------------------------
+def test_init_scaffolds_experiment(tmp_path):
+    root = tmp_path / "study"
+    result = runner.invoke(app, ["init", str(root)])
+    assert result.exit_code == 0, _all_output(result)
+    for relative in (
+        "data/raw",
+        "data/interim",
+        "data/processed",
+        "outputs/figures",
+        "outputs/tables",
+        "logs",
+    ):
+        assert (root / relative).is_dir(), f"missing {relative}"
+    assert (root / "config.toml").is_file()
+    # the command reports what it scaffolded (assert stable tokens; rich wraps long paths)
+    out = _all_output(result).lower()
+    assert "experiment" in out and "raw" in out
+
+
+def test_init_is_idempotent_via_cli(tmp_path):
+    root = tmp_path / "study"
+    assert runner.invoke(app, ["init", str(root)]).exit_code == 0
+    # a second run on the same dir must also succeed (no clobber, no error)
+    result = runner.invoke(app, ["init", str(root)])
+    assert result.exit_code == 0, _all_output(result)
+
+
+# --------------------------------------------------------------------------------------
 # info: read the schema, report completeness (read-only, never raises)
 # --------------------------------------------------------------------------------------
 def test_info_reports_object_and_completeness(complete_cube):

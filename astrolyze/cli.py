@@ -28,6 +28,7 @@ import astropy.units as u
 import typer
 from rich.console import Console
 from rich.table import Table
+from rich.tree import Tree
 
 import astrolyze
 
@@ -81,6 +82,42 @@ def main(
     ),
 ) -> None:
     """astrolyze command-line interface."""
+
+
+@app.command()
+def init(
+    directory: Path = typer.Argument(
+        ...,
+        file_okay=False,
+        help="Experiment directory to scaffold (created if it does not exist).",
+    ),
+) -> None:
+    """Scaffold the fixed experiment skeleton at DIRECTORY (ADR-0009).
+
+    Creates ``data/{raw,interim,processed}``, ``outputs/{figures,tables}``, ``logs/`` and a
+    default ``config.toml``. Idempotent: re-running on an existing experiment adds nothing and
+    never overwrites a ``config.toml`` you have edited. ``raw/`` is sacred — astrolyze never
+    writes to or renames anything inside it.
+    """
+    from astrolyze.experiment import Experiment  # deferred (pulls dynaconf)
+
+    existed = directory.exists()
+    experiment = Experiment.init(directory)
+
+    tree = Tree(f"[bold]{experiment.root}[/bold]")
+    data = tree.add("data/")
+    data.add('raw/        [dim]immutable inputs — sacred[/dim]')
+    data.add("interim/    [dim]derived intermediates[/dim]")
+    data.add("processed/  [dim]analysis-ready products[/dim]")
+    outputs = tree.add("outputs/")
+    outputs.add("figures/    [dim]house-style plots[/dim]")
+    outputs.add("tables/     [dim]ECSV/CSV results[/dim]")
+    tree.add("logs/         [dim]experiment run log(s)[/dim]")
+    tree.add(f"{experiment.config.name}   [dim]dynaconf settings[/dim]")
+    console.print(tree)
+
+    verb = "ready" if existed else "created"
+    console.print(f"[green]{verb}[/green] experiment at {experiment.root}")
 
 
 @app.command()
