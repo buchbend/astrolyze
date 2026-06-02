@@ -70,6 +70,7 @@ If the header is missing a rest frequency or velocity convention, the file still
 The CLI exposes the identical spine; an agent reaches for it exactly as a human would.
 
 ```bash
+astrolyze init  study/                            # scaffold an experiment (skeleton + config)
 astrolyze info  ngc0628_co21.fits                 # metadata schema + completeness (read-only)
 astrolyze moment0 ngc0628_co21.fits -u "K km/s" -o ngc0628_mom0.png
 astrolyze moment0 ngc0628_co21.fits --temperature-scale planck   # for a brightness conversion
@@ -81,6 +82,51 @@ velocity convention, beam, unit, distance, calibration error) and whether the fi
 *complete*. `moment0` runs load → moment0 → `.to(unit)` → plot and writes a house-style PNG
 (default `<input>_moment0.png`). A conversion that needs absent context exits non-zero with a
 clear message — the CLI surfaces the library's refusal, it doesn't paper over it.
+
+## Organising an analysis: the experiment skeleton
+
+An *experiment* is the fixed home of one analysis. `astrolyze init` scaffolds it so every
+study has the same predictable, portable shape — you never hand-build folders, and an agent
+assumes the identical layout (ADR-0009):
+
+```bash
+astrolyze init study/        # create the skeleton + a default config.toml (idempotent)
+```
+
+```
+study/
+  data/
+    raw/         # immutable inputs — SACRED: astrolyze never writes to or renames these
+    interim/     # derived intermediates (harmonised cubes, …)
+    processed/   # analysis-ready products
+  outputs/
+    figures/     # house-style plots
+    tables/      # ECSV/CSV results
+  logs/          # experiment run log(s)
+  config.toml    # dynaconf settings
+```
+
+- **`raw/` is sacred.** Derivation flows raw → interim → processed; raw files keep their
+  upstream names so provenance back to the source is never broken. The header-derived filename
+  projection (ADR-0006) applies to derived files only.
+- **`init` is idempotent.** Re-running it adds nothing and never overwrites a `config.toml`
+  you have edited.
+- **`config.toml`** holds the configurable knobs, read through dynaconf — currently the
+  manifest database URL and an optional override of the mandatory-context fields.
+
+The same skeleton is a value object from Python:
+
+```python
+from astrolyze.experiment import Experiment, role_of
+
+exp = Experiment.init("study")            # or Experiment("study") to resolve paths only
+exp.raw, exp.interim, exp.figures         # resolved skeleton paths
+role_of(exp, exp.raw / "archival.fits")   # -> Role.RAW  (interim / processed / output / None)
+```
+
+Saving derived products with header-derived names, the merciless `ingest` gate that refuses
+incomplete data, the dataset manifest, and the always-on run log all build on this skeleton in
+the slices that follow (ADR-0009/0010).
 
 ## Try it on real data
 
