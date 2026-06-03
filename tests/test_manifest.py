@@ -24,6 +24,7 @@ import pytest
 import astropy.units as u
 import radio_beam
 
+from astrolyze.experiment import Experiment
 from astrolyze.experiment.manifest import DatasetRecord, Manifest
 from astrolyze.io.schema import SCHEMA_VERSION, Metadata
 from astrolyze.units import VelocityConvention
@@ -193,3 +194,33 @@ def test_file_backend_persists_across_instances(tmp_path):
     assert got.doi == "10.3/x"
     assert got.metadata.object == "NGC0628"
     assert u.isclose(got.metadata.rest_frequency, REST, rtol=1e-12)
+
+
+# --------------------------------------------------------------------------------------
+# for_experiment: the relative config db_url resolves against the experiment root, not CWD
+# --------------------------------------------------------------------------------------
+def test_for_experiment_places_db_inside_the_experiment(tmp_path):
+    experiment = Experiment.init(tmp_path / "study")
+    record = Manifest.for_experiment(experiment).register(
+        _complete_metadata(), "data/raw/a.fits"
+    )
+    # The default config db_url is relative (sqlite:///manifest.db); it must land inside the
+    # experiment regardless of the process CWD, and round-trip on reopen.
+    assert (experiment.root / "manifest.db").is_file()
+    assert Manifest.for_experiment(experiment).get(record.id).source_path == "data/raw/a.fits"
+
+
+def test_for_experiment_honours_an_edited_config_db_url(tmp_path):
+    experiment = Experiment.init(tmp_path / "study")
+    experiment.config.write_text('[manifest]\ndb_url = "sqlite:///registry.db"\n')
+    Manifest.for_experiment(experiment).register(_complete_metadata(), "data/raw/a.fits")
+    assert (experiment.root / "registry.db").is_file()
+
+
+def test_for_experiment_leaves_in_memory_url_unanchored(tmp_path):
+    experiment = Experiment.init(tmp_path / "study")
+    # An explicit db_url overrides the config; in-memory must not spill a file into the tree.
+    Manifest.for_experiment(experiment, db_url="sqlite://").register(
+        _complete_metadata(), "data/raw/a.fits"
+    )
+    assert not (experiment.root / "manifest.db").exists()

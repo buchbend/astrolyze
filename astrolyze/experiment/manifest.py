@@ -25,6 +25,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import astropy.units as u
 import radio_beam
@@ -35,6 +36,14 @@ from sqlalchemy.pool import StaticPool
 
 from astrolyze.io.schema import SCHEMA_VERSION, Metadata
 from astrolyze.units import VelocityConvention
+
+if TYPE_CHECKING:
+    from .layout import Experiment
+
+# Fallback when the experiment config declares no manifest db_url. Mirrors the [manifest]
+# db_url written by layout.DEFAULT_CONFIG; kept relative so it resolves against the experiment
+# root (see for_experiment / _resolve_db_url), never the current working directory.
+DEFAULT_DB_URL = "sqlite:///manifest.db"
 
 
 # -- ORM model -------------------------------------------------------------------------
@@ -115,6 +124,21 @@ class Manifest:
         self._engine = create_engine(db_url, **_engine_kwargs(db_url))
         _Base.metadata.create_all(self._engine)
 
+    @classmethod
+    def for_experiment(
+        cls, experiment: Experiment, db_url: str | None = None
+    ) -> "Manifest":
+        """Open the manifest for *experiment*.
+
+        Reads ``manifest.db_url`` from the experiment config (or uses an explicit *db_url*),
+        then resolves a **relative sqlite path against the experiment root** — so the registry
+        always lives inside the experiment, never wherever the process happens to be running
+        (the config default is relative on purpose). Absolute paths, ``:memory:``, and
+        non-sqlite backends pass through untouched."""
+        if db_url is None:
+            db_url = experiment.settings.get("manifest.db_url") or DEFAULT_DB_URL
+        return cls(_resolve_db_url(str(db_url), experiment.root))
+
     def register(
         self, metadata: Metadata, source_path: Path | str, doi: str | None = None
     ) -> DatasetRecord:
@@ -183,6 +207,23 @@ def _engine_kwargs(db_url: str) -> dict:
     if url.get_backend_name() == "sqlite" and url.database in (None, "", ":memory:"):
         return {"poolclass": StaticPool, "connect_args": {"check_same_thread": False}}
     return {}
+
+
+def _resolve_db_url(db_url: str, root: Path) -> str:
+    """Anchor a relative sqlite file path in *db_url* to the experiment *root*.
+
+    The config default (``sqlite:///manifest.db``) is relative; left as-is it would resolve
+    against the current working directory. We re-anchor it to *root* so the manifest lands in
+    the experiment. In-memory (``:memory:``), already-absolute paths, and non-sqlite backends
+    are returned unchanged."""
+    url = make_url(db_url)
+    database = url.database
+    if url.get_backend_name() != "sqlite" or not database or database == ":memory:":
+        return db_url
+    if Path(database).is_absolute():
+        return db_url
+    absolute = (Path(root) / database).resolve()
+    return url.set(database=str(absolute)).render_as_string(hide_password=False)
 
 
 def _now() -> datetime:
