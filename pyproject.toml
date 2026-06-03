@@ -33,6 +33,7 @@ dependencies = [
     "typer>=0.12",
     "rich>=13",
     "dynaconf>=3.2",
+    "SQLAlchemy>=2.0",
 ]
 
 [project.optional-dependencies]
