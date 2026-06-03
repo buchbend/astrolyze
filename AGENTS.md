@@ -124,9 +124,72 @@ exp.raw, exp.interim, exp.figures         # resolved skeleton paths
 role_of(exp, exp.raw / "archival.fits")   # -> Role.RAW  (interim / processed / output / None)
 ```
 
-Saving derived products with header-derived names, the merciless `ingest` gate that refuses
-incomplete data, the dataset manifest, and the always-on run log all build on this skeleton in
-the slices that follow (ADR-0009/0010).
+The **dataset manifest** (below) builds on this skeleton. Saving derived products with
+header-derived names, the merciless `ingest` gate that refuses incomplete data, and the
+always-on run log follow in later slices (ADR-0009/0010).
+
+### The dataset manifest
+
+The manifest is the **generated registry of an experiment's datasets** — one row per dataset,
+backed by a database (sqlite by default, one file inside the experiment). Each row holds:
+
+- **identity** — the source path (relative to the experiment) and an optional source **DOI**;
+- **full provenance**, copied from the FITS header via the `io` `Metadata` schema — object,
+  telescope, species, rest frequency, velocity convention, beam, `bunit`, distance,
+  calibration error;
+- the **schema version** and an **ingested-at** timestamp.
+
+**Why it exists.** `raw/` is sacred, so archival files keep their upstream names — the manifest
+is what maps those names to identity and physical provenance, so you can *see what is in an
+experiment at a glance* and query it (by object, species, …) instead of grepping filenames. A
+DOI per dataset keeps inputs citable and reproducible. It is **generated and kept in sync by
+ingest, never hand-edited**, so it never drifts from what is actually on disk. The backend is
+deliberately **swappable** (sqlite to start) and the registry is shaped to be **UI-readable** —
+a future graphical frontend can render it without rework (a seam, not built; ADR-0009).
+
+**Opening it.** Resolve it from the experiment config (the config `db_url` is relative; this
+anchors it to the experiment root, never the current working directory):
+
+```python
+from astrolyze.experiment import Experiment, Manifest
+
+exp = Experiment.init("study")
+manifest = Manifest.for_experiment(exp)        # uses config.toml [manifest] db_url
+# …or point it at any backend URL directly (backend-swappable):
+# manifest = Manifest("sqlite:////abs/path/registry.db")
+```
+
+**Registering** is normally driven by `ingest` (one call per accepted `raw/` file); done by
+hand it looks like this. It is **idempotent on the source path** — re-registering the same path
+updates the row in place (the id stays stable), never duplicating, so re-ingesting after fixing
+a header is a normal step:
+
+```python
+from astrolyze.io import load
+
+loaded = load(exp.raw / "ngc0628_co21.fits")
+record = manifest.register(loaded.metadata, "data/raw/ngc0628_co21.fits", doi="10.3847/…")
+```
+
+**Reading it back** — `get` / `query` / `all` return `DatasetRecord` value objects, each
+carrying a *reconstructed* `Metadata` (provenance is stored as primitives — Hz, degrees, unit
+strings — and the astropy/`radio_beam` objects are rebuilt on read, so you round-trip the
+value):
+
+```python
+manifest.get(record.id)                  # one dataset, or None
+manifest.query(object="NGC0628")         # filter by object / species / telescope / …
+manifest.query(species="CO21")
+manifest.all()                           # every registered dataset
+
+rec = manifest.query(object="NGC0628")[0]
+rec.source_path, rec.doi, rec.ingested_at
+rec.metadata.beam, rec.metadata.rest_frequency, rec.metadata.velocity_convention
+```
+
+The manifest itself is *generic storage*: it records whatever provenance is present (optional
+fields as nulls). Guaranteeing the mandatory context is filled in is `ingest`'s job — the
+merciless gate — not the manifest's. Don't hand-edit the database; let `ingest` generate it.
 
 ## Try it on real data
 
