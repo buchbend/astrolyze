@@ -711,6 +711,297 @@ register_estimator(
 )  # "mad_std" — robust default (#27)
 register_estimator("rms", _estimate_rms)  # signal-free-channel RMS
 register_estimator("mad", _estimate_mad_sigma_clip)  # robust σ-clipped MAD
+# ======================================================================================
+# Noise propagation through matching + correlated-noise synthesis (issue #32)
+# ======================================================================================
+# These are astrolyze's value-add: the propagation LAWS (correlation-area scaling, M_eff from
+# the ACF) and a synthesis utility. numpy/astropy/FFT do the maths; the laws are the physics.
+# Everything below is ADDITIVE — it does not touch #27's estimator or representation code.
+#
+# Why analytic, not re-estimated, on the hot path (ADR-0003/0004): matching is the fast path,
+# and a real science cube is *full of source* — re-measuring σ from a matched cube would fold
+# bright extended emission into the estimate and overstate the noise. The matching op therefore
+# propagates the stored, signal-free σ through the known correlation structure; re-estimation is
+# kept as the validation oracle / non-stationary fallback, never called inside the op.
+
+
+def _spatial_rms_factor(beam_in, beam_out) -> float:
+    """The per-pixel RMS scaling for convolving from *beam_in* to a larger *beam_out*.
+
+    The correlation area is the **beam** solid angle (instrument-limited), NOT the pixel area:
+    noise correlated over a beam averages down by the ratio of correlation footprints when
+    smoothed to a larger beam. The RMS scales by ``√(Ω_corr,in / Ω_out)`` — a larger output beam
+    averages over more correlated area, so σ drops (the factor is < 1). This is the spatial half
+    of issue #32's propagation law; ``beam.sr`` is radio_beam's beam solid angle (Ω)."""
+    omega_in = float(beam_in.sr.to_value(u.sr))
+    omega_out = float(beam_out.sr.to_value(u.sr))
+    if omega_out <= 0.0 or omega_in <= 0.0:
+        return float("nan")
+    return float(np.sqrt(omega_in / omega_out))
+
+
+def _m_eff(acf: np.ndarray, m: int) -> float:
+    """The *effective* number of independent samples in an ``m``-channel average, ``M²/Σρ``.
+
+    For white noise averaging M channels gives σ/√M; for **correlated** noise fewer samples are
+    independent, so the reduction is weaker. The autocorrelation ``acf`` (normalised to 1 at lag
+    0) sets the effective count via the standard variance-of-the-mean result:
+
+        Var(mean of M) = σ²/M² · Σ_{i,j} ρ(|i-j|)
+                       = σ²/M · [ ρ(0) + 2 Σ_{k=1}^{M-1} (1 - k/M) ρ(k) ]
+
+    so the variance reduction is ``M / Σ``, i.e. ``M_eff = M² / Σ`` with ``Σ`` the (triangular-
+    weighted) two-sided lag sum out to lag M-1. White noise (ρ = δ) -> Σ = 1 -> M_eff = M. A
+    broad ACF -> Σ > 1 -> M_eff < M (less averaging-down). This is the spectral half of the law:
+    σ/√M_eff, NOT the naive σ/√M (ADR-0003 — do not silently assume whiteness)."""
+    acf = np.asarray(acf, dtype="float64")
+    m = int(m)
+    if m <= 1 or acf.size == 0 or not np.isfinite(acf[0]) or acf[0] == 0.0:
+        return float(m)
+    rho = acf / acf[0]
+    lags = np.arange(1, min(m, rho.size))
+    triangular = rho[lags] * (1.0 - lags / m)
+    lag_sum = float(rho[0] + 2.0 * np.nansum(triangular))
+    if lag_sum <= 0.0:
+        return float(m)
+    return float((m * m) / (m * lag_sum))
+
+
+def _scaled_representation(rep, factor: float):
+    """Return a copy of *rep* with every σ array scaled by *factor* (the ACF is unitless: kept).
+
+    Propagation is a uniform rescale of the σ field — the spatial/spectral shape and the
+    correlation structure are unchanged, only the level moves — so we keep the same branch
+    (separable vs full) and rescale the stored arrays. Reusing the #27 representation classes
+    keeps every downstream product (sigma_cube/map/spectrum/scalar) consistent for free."""
+    from dataclasses import replace
+
+    if isinstance(rep, SeparableNoise):
+        return replace(
+            rep,
+            sigma_xy=np.asarray(rep.sigma_xy) * factor,
+            sigma_v=np.asarray(rep.sigma_v) * factor,
+            scalar=float(rep.scalar) * factor,
+        )
+    return replace(
+        rep,
+        sigma_field=np.asarray(rep.sigma_field) * factor,
+        sigma_xy=np.asarray(rep.sigma_xy) * factor,
+        sigma_v=np.asarray(rep.sigma_v) * factor,
+        scalar=float(rep.scalar) * factor,
+    )
+
+
+def propagate(
+    model: NoiseModel,
+    *,
+    beam_out=None,
+    spectral_factor: int | None = None,
+    per_channel_beam: bool = False,
+) -> NoiseModel:
+    """Propagate *model* through a matching op analytically; return a new :class:`NoiseModel`.
+
+    The fast path (ADR-0003/0004): given the matching *geometry* — a larger output beam and/or a
+    spectral averaging factor — scale the stored, signal-free σ through the known correlation
+    structure rather than re-measuring it:
+
+    - **spatial** (``beam_out``) — σ × ``√(Ω_corr,in / Ω_out)`` with the correlation area the
+      **beam** solid angle (not the pixel area); the new beam is recorded as context;
+    - **spectral** (``spectral_factor`` M) — σ ÷ ``√M_eff`` with ``M_eff = M²/Σρ`` from the
+      stored ACF (the naive σ/√M only when the noise is white).
+
+    The result carries :data:`NoiseQuality.PROPAGATED`. It degrades to
+    :data:`NoiseQuality.APPROXIMATE` (no silent physics) when the single-kernel / stationary
+    assumption breaks: a *per-channel beam* (``per_channel_beam=True``) or a non-stationary
+    source model (a full-3D, non-separable input — propagated as a uniform rescale, which is only
+    approximate). Re-estimation is **never** invoked here — that is :func:`reestimate`."""
+    if beam_out is None and spectral_factor is None:
+        raise ValueError(
+            "propagate() needs a geometry to propagate through: pass beam_out (spatial) "
+            "and/or spectral_factor (spectral). With neither there is nothing to propagate "
+            "(astrolyze does not silently return the input model unchanged, ADR-0003)."
+        )
+
+    rep = model._rep
+    approximate = per_channel_beam or not model.is_separable
+
+    if beam_out is not None:
+        rep = _scaled_representation(rep, _spatial_rms_factor(model.beam, beam_out))
+    if spectral_factor is not None:
+        m_eff = _m_eff(np.asarray(model._rep.acf, dtype="float64"), spectral_factor)
+        rep = _scaled_representation(rep, 1.0 / float(np.sqrt(m_eff)))
+
+    quality = NoiseQuality.APPROXIMATE if approximate else NoiseQuality.PROPAGATED
+    new_cube = model._cube
+    if beam_out is not None:
+        # Carry the new beam onto the model's parent cube so the propagated products report the
+        # post-match resolution. Lazy import keeps core import order clean (cube imports noise).
+        from .cube import Cube
+
+        new_cube = Cube(new_cube._sc, new_cube._metadata_with_beam(beam_out))
+    _emit(
+        "noise.propagate",
+        params={
+            "beam_out": str(beam_out) if beam_out is not None else None,
+            "spectral_factor": spectral_factor,
+            "quality": quality.value,
+        },
+    )
+    return NoiseModel(
+        new_cube, rep, method=model.method, quality=quality, version=model.version
+    )
+
+
+def reestimate(cube) -> NoiseModel:
+    """The validation oracle / non-stationary fallback: re-measure σ from *cube* via ``mad_std``.
+
+    This is exactly the #27 :func:`estimate` (robust ``mad_std`` on signal-free voxels) surfaced
+    under a propagation-validation name. It is the **oracle** that an analytic propagation can be
+    checked against on a synthetic stationary-noise cube, and the fallback for the genuinely
+    non-stationary case. It is **never** called inside a matching op — on a real science cube
+    bright extended emission fills the field of view and would corrupt the estimate (ADR-0003),
+    so the hot path stays analytic (:func:`propagate`)."""
+    return estimate(cube)
+
+
+def _beam_sigma_pixels(beam, pixel_scale: u.Quantity) -> tuple[float, float, float]:
+    """The beam's Gaussian σ (major, minor in pixels) and position angle (rad), from *beam*.
+
+    Synthesis convolves white noise by the beam, which is a Gaussian of these widths on the pixel
+    grid; ``beam.major``/``minor`` are FWHM, converted to σ in pixels via the pixel scale."""
+    pix = pixel_scale.to(u.deg)
+    major_fwhm = (beam.major.to(u.deg) / pix).to_value(u.dimensionless_unscaled)
+    minor_fwhm = (beam.minor.to(u.deg) / pix).to_value(u.dimensionless_unscaled)
+    fwhm_to_sigma = 1.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    pa = float(beam.pa.to_value(u.rad))
+    return major_fwhm * fwhm_to_sigma, minor_fwhm * fwhm_to_sigma, pa
+
+
+def synthesize_correlated_noise(
+    shape,
+    *,
+    beam,
+    pixel_scale: u.Quantity,
+    spectral_acf: np.ndarray | None = None,
+    sigma: float = 1.0,
+    rng=None,
+) -> np.ndarray:
+    """Synthesize realistic correlated noise at a target resolution; return a bare ``ndarray``.
+
+    Draw white Gaussian noise of *shape* ``(nz, ny, nx)`` and impose the target correlation:
+
+    - **spatial** — convolve each channel by the *beam* (an elliptical Gaussian of the beam's
+      FWHM on the pixel grid set by *pixel_scale*), so the spatial autocorrelation matches the
+      beam (instrument-limited correlation);
+    - **spectral** — if a target ``spectral_acf`` is given, shape the spectral axis by it via the
+      FFT: the noise power spectrum is the FFT of the ACF (Wiener-Khinchin), so multiplying the
+      white spectrum's amplitude by ``√|FFT(acf)|`` yields noise with that autocorrelation.
+
+    The realization is renormalised to the target per-voxel ``sigma`` (a robust scale), so it is
+    correlated noise *at a stated level*. Stays thin: numpy/astropy convolution + numpy FFT do
+    the maths; the recipe (beam = spatial kernel, ACF = spectral shaper) is the value-add. The
+    inverse of :func:`Cube.estimate_noise`'s analysis — useful for testing the propagation laws
+    and for injecting realistic noise into mock cubes."""
+    from astropy.convolution import Gaussian2DKernel, convolve_fft
+    from astropy.stats import mad_std
+
+    rng = rng if rng is not None else np.random.default_rng()
+    nz, ny, nx = shape
+    white = rng.normal(0.0, 1.0, size=(nz, ny, nx))
+
+    sigma_major, sigma_minor, pa = _beam_sigma_pixels(beam, pixel_scale)
+    # Gaussian2DKernel's theta is measured from the +x axis; radio_beam PA is from +y (North),
+    # so the kernel is rotated by pa + 90deg. The exact angle only matters for an elliptical
+    # beam; the recovered correlation width is dominated by the (major, minor) widths.
+    kernel = Gaussian2DKernel(
+        x_stddev=sigma_minor,
+        y_stddev=sigma_major,
+        theta=pa,
+    )
+    spatial = np.empty_like(white)
+    for k in range(nz):
+        spatial[k] = convolve_fft(
+            white[k], kernel, normalize_kernel=True, boundary="wrap"
+        )
+
+    if spectral_acf is not None:
+        spatial = _shape_spectral_acf(
+            spatial, np.asarray(spectral_acf, dtype="float64")
+        )
+
+    current = float(mad_std(spatial))
+    if current > 0.0 and np.isfinite(current):
+        spatial = spatial * (sigma / current)
+    return spatial
+
+
+def _shape_spectral_acf(field: np.ndarray, target_acf: np.ndarray) -> np.ndarray:
+    """Shape *field*'s spectral axis to have autocorrelation *target_acf* via the FFT.
+
+    Wiener-Khinchin: the power spectral density is the FFT of the autocorrelation. We build a
+    symmetric (two-sided) ACF of the spectral length, take its real FFT as the target PSD, and
+    multiply each pixel's white spectrum by ``√PSD`` — the result has the requested ACF. Negative
+    numerical PSD values (from a non-positive-definite truncated ACF) are clipped to 0."""
+    nz = field.shape[0]
+    acf = np.zeros(nz)
+    n = min(nz, target_acf.size)
+    acf[:n] = target_acf[:n]
+    if acf[0] != 0.0:
+        acf = acf / acf[0]
+    # Symmetric two-sided ACF -> its FFT is the (real, non-negative) power spectrum.
+    symmetric = np.concatenate([acf, acf[1:][::-1]])
+    psd = np.fft.rfft(symmetric).real
+    psd = np.clip(psd, 0.0, None)
+    amplitude = np.sqrt(psd)
+    flat = field.reshape(nz, -1)
+    out = np.empty_like(flat)
+    nsym = symmetric.size
+    for j in range(flat.shape[1]):
+        spec = np.fft.rfft(flat[:, j], n=nsym)
+        shaped = np.fft.irfft(spec * amplitude, n=nsym)
+        out[:, j] = shaped[:nz]
+    return out.reshape(field.shape)
+
+
+def _measure_spectral_acf(field: np.ndarray) -> np.ndarray:
+    """The mean per-pixel spectral autocorrelation of *field* (normalised to 1 at lag 0).
+
+    A test/validation helper mirroring the #27 estimator's ACF: it is how a synthesis is checked
+    against its target spectral correlation."""
+    return _spectral_acf(np.asarray(field, dtype="float64"))
+
+
+def _spatial_acf_fwhm_pixels(field: np.ndarray) -> float:
+    """The FWHM (pixels) of *field*'s mean spatial autocorrelation — a synthesis check helper.
+
+    Averages the per-channel 2D autocorrelation (via the FFT power spectrum), takes a central
+    radial profile, and returns the full width at half maximum in pixels. Used only by tests to
+    confirm a synthesized realization's spatial correlation tracks the target beam."""
+    nz, ny, nx = field.shape
+    acc = np.zeros((ny, nx))
+    for k in range(nz):
+        plane = field[k] - np.mean(field[k])
+        power = np.abs(np.fft.fft2(plane)) ** 2
+        acc += np.fft.ifft2(power).real
+    acf2d = np.fft.fftshift(acc / nz)
+    peak = acf2d.max()
+    if peak <= 0.0:
+        return float("nan")
+    acf2d = acf2d / peak
+    cy, cx = ny // 2, nx // 2
+    row = acf2d[cy, cx:]  # radial profile along +x from the centre
+    half = 0.5
+    below = np.where(row < half)[0]
+    if below.size == 0:
+        return float("nan")
+    # linear interpolation to the half-maximum crossing -> HWHM, doubled for FWHM.
+    i = below[0]
+    if i == 0:
+        return 0.0
+    x0, x1 = i - 1, i
+    y0, y1 = row[x0], row[x1]
+    hwhm = x0 + (y0 - half) / (y0 - y1) if y0 != y1 else float(x0)
+    return 2.0 * hwhm
 
 
 __all__ = [
@@ -721,6 +1012,9 @@ __all__ = [
     "estimate",
     "register_estimator",
     "available_estimators",
+    "propagate",
+    "reestimate",
+    "synthesize_correlated_noise",
     "NOISE_SCHEMA_VERSION",
     "DEFAULT_METHOD",
 ]
