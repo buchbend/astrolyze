@@ -71,6 +71,8 @@ The CLI exposes the identical spine; an agent reaches for it exactly as a human 
 
 ```bash
 astrolyze init  study/                            # scaffold an experiment (skeleton + config)
+astrolyze ingest study/                           # validate data/raw/ + register what is complete
+astrolyze manifest list study/ --object NGC0628   # query the registry (no grepping filenames)
 astrolyze info  ngc0628_co21.fits                 # metadata schema + completeness (read-only)
 astrolyze moment0 ngc0628_co21.fits -u "K km/s" -o ngc0628_mom0.png
 astrolyze moment0 ngc0628_co21.fits --temperature-scale planck   # for a brightness conversion
@@ -81,7 +83,8 @@ astrolyze --help
 velocity convention, beam, unit, distance, calibration error) and whether the file is
 *complete*. `moment0` runs load → moment0 → `.to(unit)` → plot and writes a house-style PNG
 (default `<input>_moment0.png`). A conversion that needs absent context exits non-zero with a
-clear message — the CLI surfaces the library's refusal, it doesn't paper over it.
+clear message — the CLI surfaces the library's refusal, it doesn't paper over it. `ingest` and
+`manifest list` drive the merciless gate and registry (below).
 
 ## Organising an analysis: the experiment skeleton
 
@@ -124,9 +127,9 @@ exp.raw, exp.interim, exp.figures         # resolved skeleton paths
 role_of(exp, exp.raw / "archival.fits")   # -> Role.RAW  (interim / processed / output / None)
 ```
 
-The **dataset manifest** (below) builds on this skeleton. Saving derived products with
-header-derived names, the merciless `ingest` gate that refuses incomplete data, and the
-always-on run log follow in later slices (ADR-0009/0010).
+The **dataset manifest** and the merciless **`ingest`** gate (both below) build on this
+skeleton. Saving derived products with header-derived names and the always-on run log follow in
+later slices (ADR-0009/0010).
 
 ### The dataset manifest
 
@@ -190,6 +193,51 @@ rec.metadata.beam, rec.metadata.rest_frequency, rec.metadata.velocity_convention
 The manifest itself is *generic storage*: it records whatever provenance is present (optional
 fields as nulls). Guaranteeing the mandatory context is filled in is `ingest`'s job — the
 merciless gate — not the manifest's. Don't hand-edit the database; let `ingest` generate it.
+
+### Merciless ingest: the gate into the manifest
+
+`ingest` is the **strict counterpart to the lazy `load`**. It walks `data/raw/`, parses each
+file's header through the *same* `io` `Metadata` schema, and partitions every dataset:
+
+- **accepted** — carries the mandatory physical context → **registered** in the manifest;
+- **rejected** — missing at least one mandatory field → **not** registered, and the report
+  **names the exact missing fields** so you know what to fix.
+
+That is what *merciless* means: nothing incomplete is ever registered, so a dataset in the
+manifest is always safe to compute on. `raw/` stays sacred — ingest never renames or writes
+anything under it (and reads **only headers**, never the multi-GB cube body). Non-FITS files
+(READMEs, sidecars) are ignored; an unreadable/corrupt file is reported, not allowed to abort
+the pass.
+
+```bash
+astrolyze ingest study/        # rich report: accepted (+object/species), rejected (+reasons)
+```
+
+```
+accepted — registered in the manifest      rejected — not registered
+  data/raw/ngc0628_co21.fits  NGC0628 CO21    data/raw/archival_map.fits
+                                                missing mandatory context:
+                                                rest_frequency, velocity_convention
+ingested study/: 1 accepted, 1 rejected
+```
+
+Fixing a header and re-running is the normal, iterative path — re-ingest **updates the same
+manifest row** (stable id), it never duplicates, and the now-complete file is accepted.
+
+From Python:
+
+```python
+from astrolyze.experiment import Experiment, ingest
+
+report = ingest(Experiment("study"))     # -> IngestReport
+[a.source_path for a in report.accepted]  # registered datasets (each .record is a DatasetRecord)
+[(r.source_path, r.missing) for r in report.rejected]  # refused, with the named gaps
+```
+
+The mandatory-context set defaults to the schema baseline (`rest_frequency`,
+`velocity_convention`) and is **overridable** — explicitly with `ingest(exp, required=(…))`, or
+per-experiment via `[ingest] required_context` in `config.toml` (e.g. add `"beam"` for a study
+that requires a resolved beam). An override naming a non-schema field is a clear error.
 
 ## Try it on real data
 
