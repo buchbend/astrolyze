@@ -163,8 +163,15 @@ class Cube(ContextCarrier):
     # astrolyze stays thin here: spectral-cube does the convolution/binning maths and
     # radio_beam decides which direction is resolution-losing. The only value added is the
     # lossy-direction guard (never super-resolve, ADR-0003) and the context carry (the new,
-    # larger beam recorded on the metadata, ADR-0004). Noise propagation is issue #32.
-    def convolve_to_beam(self, beam: radio_beam.Beam) -> "Cube":
+    # larger beam recorded on the metadata, ADR-0004).
+    #
+    # Noise propagation (issue #32) rides along as an OPT-IN: pass a NoiseModel (#27) as
+    # ``noise=`` and the op also propagates it analytically through the same geometry, returning
+    # ``(cube, propagated_model)``. The propagation is ANALYTIC only (the stored signal-free σ
+    # scaled by the correlation laws) — re-estimation is never called on this hot path, because a
+    # real science cube is full of source (ADR-0003). With no ``noise=`` the return is the bare
+    # Cube exactly as in #31 (backward compatible).
+    def convolve_to_beam(self, beam: radio_beam.Beam, *, noise=None):
         """Smooth the cube spatially to a **larger** *beam* via spectral-cube ``convolve_to``.
 
         The target must be larger than the current beam in the sense that it can be reached
@@ -172,20 +179,31 @@ class Cube(ContextCarrier):
         equal, or otherwise non-degrading target would require deconvolution / super-
         resolution and so :class:`LossyDirectionError` is raised instead (ADR-0003).
 
-        Returns a new :class:`Cube` carrying the new, larger beam as context (ADR-0004)."""
+        Returns a new :class:`Cube` carrying the new, larger beam as context (ADR-0004). When a
+        :class:`~astrolyze.core.NoiseModel` is passed as ``noise``, it is propagated analytically
+        through the beam change (spatial σ × √(Ω_in/Ω_out)) and the return is
+        ``(cube, propagated_model)`` (issue #32)."""
         self._require_larger_beam(beam)
         smoothed = self._masked_sc().convolve_to(beam)
         _emit("convolve_to_beam", params={"beam": str(beam)})
-        return Cube(smoothed, self._metadata_with_beam(beam))
+        out = Cube(smoothed, self._metadata_with_beam(beam))
+        if noise is None:
+            return out
+        from .noise import propagate
 
-    def spectral_bin(self, factor: int) -> "Cube":
+        return out, propagate(noise, beam_out=beam)
+
+    def spectral_bin(self, factor: int, *, noise=None):
         """Bin the spectral axis by an integer *factor* via spectral-cube ``downsample_axis``.
 
         Coarsens the spectral resolution (fewer, wider channels). A *factor* of 1 (no-op) or
         less (which would imply finer channels / up-sampling) raises
         :class:`LossyDirectionError` — ``spectral_bin`` only ever coarsens (ADR-0003).
 
-        Returns a new :class:`Cube`; the spatial beam is unchanged and carried through."""
+        Returns a new :class:`Cube`; the spatial beam is unchanged and carried through. When a
+        :class:`~astrolyze.core.NoiseModel` is passed as ``noise``, it is propagated analytically
+        through the channel averaging (σ / √M_eff, M_eff from the stored ACF) and the return is
+        ``(cube, propagated_model)`` (issue #32)."""
         if not isinstance(factor, (int, np.integer)) or factor <= 1:
             raise LossyDirectionError(
                 f"spectral_bin only coarsens: factor must be an integer > 1, got {factor!r} "
@@ -193,9 +211,14 @@ class Cube(ContextCarrier):
             )
         binned = self._masked_sc().downsample_axis(int(factor), axis=0)
         _emit("spectral_bin", params={"factor": int(factor)})
-        return Cube(binned, self._metadata_with_beam(self.metadata.beam))
+        out = Cube(binned, self._metadata_with_beam(self.metadata.beam))
+        if noise is None:
+            return out
+        from .noise import propagate
 
-    def spectral_smooth_to(self, width: u.Quantity) -> "Cube":
+        return out, propagate(noise, spectral_factor=int(factor))
+
+    def spectral_smooth_to(self, width: u.Quantity, *, noise=None):
         """Smooth the spectral axis to a **broader** resolution *width* (a FWHM).
 
         Delegates the Gaussian smoothing to spectral-cube ``spectral_smooth``. The target
@@ -204,7 +227,10 @@ class Cube(ContextCarrier):
         the one whose FWHM, added in quadrature to the channel width, reaches *width*.
 
         Returns a new :class:`Cube`; the channel grid and the spatial beam are unchanged and
-        carried through."""
+        carried through. When a :class:`~astrolyze.core.NoiseModel` is passed as ``noise`` it is
+        propagated analytically through the equivalent channel averaging (the effective number of
+        channels the smoothing kernel spans, σ / √M_eff from the ACF) and the return is
+        ``(cube, propagated_model)`` (issue #32)."""
         channel_width = self._channel_width()
         target = width.to(channel_width.unit, equivalencies=u.spectral())
         if target <= channel_width:
@@ -220,11 +246,20 @@ class Cube(ContextCarrier):
         ) / _FWHM_PER_SIGMA
         smoothed = self._masked_sc().spectral_smooth(Gaussian1DKernel(sigma_channels))
         _emit("spectral_smooth_to", params={"width": str(width)})
-        return Cube(smoothed, self._metadata_with_beam(self.metadata.beam))
+        out = Cube(smoothed, self._metadata_with_beam(self.metadata.beam))
+        if noise is None:
+            return out
+        from .noise import propagate
 
-    def match_to(
-        self, other: "Cube", *, reproject: bool = False
-    ) -> tuple["Cube", "Cube"]:
+        # The broadened resolution averages over ~ target/channel_width channels; propagate the
+        # noise through that effective channel count (σ/√M_eff from the ACF). Rounded to the
+        # nearest integer ≥ 2 so the law is applied through the same M_eff machinery.
+        effective_m = max(
+            2, int(round((target / channel_width).to_value(u.dimensionless_unscaled)))
+        )
+        return out, propagate(noise, spectral_factor=effective_m)
+
+    def match_to(self, other: "Cube", *, reproject: bool = False, noise=None):
         """Bring ``self`` and ``other`` to a common beam (a common-beam + line-ratio helper).
 
         The common beam is the smallest beam both cubes can be *smoothed* to (radio_beam's
@@ -236,7 +271,9 @@ class Cube(ContextCarrier):
         (their spectral axes are left alone). Line-ratio work must opt in to regridding.
 
         Returns ``(matched_self, matched_other)`` as :class:`Cube`\\ s carrying the new
-        common beam (ADR-0004)."""
+        common beam (ADR-0004). When a pair of :class:`~astrolyze.core.NoiseModel`\\ s is passed
+        as ``noise=(model_self, model_other)`` each is propagated analytically to the common beam
+        and the return is ``((matched_self, matched_other), (model_self, model_other))`` (#32)."""
         common = radio_beam.commonbeam.commonbeam(
             radio_beam.Beams(beams=[self.metadata.beam, other.metadata.beam])
         )
@@ -245,7 +282,14 @@ class Cube(ContextCarrier):
         if reproject:
             matched_self = matched_self._reproject_spatial_to(matched_other)
         _emit("match_to", params={"beam": str(common), "reproject": reproject})
-        return matched_self, matched_other
+        if noise is None:
+            return matched_self, matched_other
+        from .noise import propagate
+
+        model_self, model_other = noise
+        propagated_self = propagate(model_self, beam_out=common)
+        propagated_other = propagate(model_other, beam_out=common)
+        return (matched_self, matched_other), (propagated_self, propagated_other)
 
     # -- surface-brightness harmonisation (issue #25) -----------------------------------
     # I_ν (MJy/sr) is the one representation every input maps onto, because specific
