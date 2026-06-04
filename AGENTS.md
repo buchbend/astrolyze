@@ -73,6 +73,7 @@ The CLI exposes the identical spine; an agent reaches for it exactly as a human 
 astrolyze init  study/                            # scaffold an experiment (skeleton + config)
 astrolyze ingest study/                           # validate data/raw/ + register what is complete
 astrolyze manifest list study/ --object NGC0628   # query the registry (no grepping filenames)
+astrolyze narrate study/                          # offer a narrative note over the latest run
 astrolyze info  ngc0628_co21.fits                 # metadata schema + completeness (read-only)
 astrolyze moment0 ngc0628_co21.fits -u "K km/s" -o ngc0628_mom0.png
 astrolyze moment0 ngc0628_co21.fits --temperature-scale planck   # for a brightness conversion
@@ -84,7 +85,8 @@ velocity convention, beam, unit, distance, calibration error) and whether the fi
 *complete*. `moment0` runs load → moment0 → `.to(unit)` → plot and writes a house-style PNG
 (default `<input>_moment0.png`). A conversion that needs absent context exits non-zero with a
 clear message — the CLI surfaces the library's refusal, it doesn't paper over it. `ingest` and
-`manifest list` drive the merciless gate and registry (below).
+`manifest list` drive the merciless gate and registry, and `narrate` the narrative offer (all
+below).
 
 ## Organising an analysis: the experiment skeleton
 
@@ -263,7 +265,7 @@ its params, inputs/outputs (paths/ids), the software versions (astrolyze + key d
 version (the `io` schema version + any manifest ids), and a UTC timestamp:
 
 ```json
-{"schema": 1, "run_id": "20260604T093737-dc781abb", "timestamp": "2026-06-04T09:37:37.057+00:00",
+{"schema": 1, "run_id": "20260604T093737_057096-dc781abb", "timestamp": "2026-06-04T09:37:37.057+00:00",
  "op": "moment", "params": {"order": 0, "axis": 0}, "inputs": [], "outputs": [],
  "software": {"astrolyze": "0.1.0.dev0", "astropy": "7.2.0", …}, "data": {"schema_version": 1, "manifest_ids": []}}
 ```
@@ -287,6 +289,44 @@ with RunLog.open(exp) as run:
 records = run.entries()                  # [{op: "load", …}, {op: "moment", …}, …]
 ```
 
+### The narrative offer
+
+The run log records *what* ran; the **narrative** is the human *why / what I found / what it
+means*. It is **offered, never enforced** (ADR-0010) — a mandated narrative rots into
+box-ticking, so astrolyze only ever invites one:
+
+```bash
+astrolyze narrate study/              # scaffold/open a note for the latest run (or --run <id>)
+```
+
+```python
+from astrolyze.experiment import narrate
+
+note = narrate(exp)                   # study/logs/run-<id>.md, beside the run it documents
+```
+
+`narrate` writes a small markdown note next to the run log it documents, pre-filled with a link
+to that `run-<id>.jsonl` and the operations/artifacts it recorded — then empty `Why` /
+`What I found` / `What it means` sections for you. It is **idempotent and never clobbers your
+prose**: re-running it returns the existing note untouched. Keep what you write checkable — the
+note points at the real run-log/figure artifacts, which are the source of truth (ADR-0013); the
+narrative is the story over them, not a substitute. (Composing a rich narrative is a future-UI
+job; this is just the offer.)
+
+### The whole path, end to end
+
+The five steps compose into one ordinary workflow — the same from the shell or from Python, for
+a human or an agent (ADR-0011/0012):
+
+```
+init  →  place a cube in raw/  →  ingest  →  analyse (run log open)  →  manifest list  →  narrate
+```
+
+`examples/experiment_ngc628.py` runs exactly this on the committed cutout (`python
+examples/experiment_ngc628.py` — zero arguments), printing each step. After it, the experiment
+holds: the registered dataset in the manifest, the derived product in `processed/` and the
+figure in `figures/`, the run log in `logs/`, and a narrative note offered over it.
+
 ## Try it on real data
 
 A 128×128×50 cutout of the PHANGS-ALMA NGC 628 CO(2-1) cube ships in
@@ -295,6 +335,7 @@ A 128×128×50 cutout of the PHANGS-ALMA NGC 628 CO(2-1) cube ships in
 ```bash
 astrolyze info tests/data/ngc0628_co21_cutout.fits.gz
 python examples/tracer_ngc628.py tests/data/ngc0628_co21_cutout.fits.gz /tmp/mom0.png
+python examples/experiment_ngc628.py            # the full experiment path on the same cutout
 ```
 
 Point `$ASTROLYZE_TRACER_CUBE` at a full cube to run the example on real survey data without

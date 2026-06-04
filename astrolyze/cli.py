@@ -112,7 +112,7 @@ def init(
 
     tree = Tree(f"[bold]{experiment.root}[/bold]")
     data = tree.add("data/")
-    data.add('raw/        [dim]immutable inputs — sacred[/dim]')
+    data.add("raw/        [dim]immutable inputs — sacred[/dim]")
     data.add("interim/    [dim]derived intermediates[/dim]")
     data.add("processed/  [dim]analysis-ready products[/dim]")
     outputs = tree.add("outputs/")
@@ -144,7 +144,8 @@ def ingest(
     registered, and ``raw/`` is never modified. Fix a header and re-run — re-ingest updates the
     same row, it does not duplicate.
     """
-    from astrolyze.experiment import Experiment  # deferred (pulls dynaconf / SQLAlchemy)
+    # deferred (pulls dynaconf / SQLAlchemy)
+    from astrolyze.experiment import Experiment
     from astrolyze.experiment import ingest as run_ingest
 
     experiment = Experiment(directory)
@@ -301,7 +302,8 @@ def manifest_list(
     shows what is registered, so you can find datasets by object or species instead of grepping
     filenames.
     """
-    from astrolyze.experiment import Experiment, Manifest  # deferred (dynaconf / SQLAlchemy)
+    # deferred (dynaconf / SQLAlchemy)
+    from astrolyze.experiment import Experiment, Manifest
 
     manifest = Manifest.for_experiment(Experiment(directory))
     filters = {}
@@ -328,9 +330,7 @@ def manifest_list(
         m = record.metadata
         # `is not None`, not truthiness: bool() of an astropy Quantity is ambiguous and raises.
         rest = (
-            f"{m.rest_frequency.to(u.GHz):.6g}"
-            if m.rest_frequency is not None
-            else "—"
+            f"{m.rest_frequency.to(u.GHz):.6g}" if m.rest_frequency is not None else "—"
         )
         table.add_row(
             str(record.id),
@@ -342,6 +342,50 @@ def manifest_list(
             record.doi or "—",
         )
     console.print(table)
+
+
+@app.command()
+def narrate(
+    directory: Path = typer.Argument(
+        ...,
+        exists=True,
+        file_okay=False,
+        help="Experiment directory to write a narrative note for.",
+    ),
+    run: Optional[str] = typer.Option(
+        None,
+        "--run",
+        help="Run id to document (default: the most recent run).",
+    ),
+) -> None:
+    """Offer a human-readable narrative note for a run (ADR-0010).
+
+    Scaffolds (or re-opens) a markdown note in DIRECTORY's ``logs/``, pre-filled with a
+    reference to the run's machine record and the operations it performed, plus empty prose
+    sections for the scientific *why / what I found / what it means*. This is an **offer**, never
+    a requirement: re-running it never overwrites a note you have started editing, and astrolyze
+    never blocks on it. Keep any account you write checkable against the referenced run log.
+    """
+    from astrolyze.experiment import Experiment  # deferred (pulls dynaconf)
+    from astrolyze.experiment import narrate as run_narrate
+
+    experiment = Experiment(directory)
+    if not experiment.logs.is_dir():
+        err_console.print(
+            f"[red]error:[/red] {directory} is not an astrolyze experiment "
+            "(no logs/). Run `astrolyze init` first."
+        )
+        raise typer.Exit(code=1)
+
+    before = set(experiment.logs.glob("*.md"))
+    note = run_narrate(experiment, run_id=run)
+    verb = "opened existing" if note in before else "scaffolded"
+
+    console.print(f"[green]{verb}[/green] narrative note: {note}")
+    console.print(
+        "[dim]optional, never required — write the why/what-you-found in your editor; "
+        "keep it checkable against the run log it references.[/dim]"
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover

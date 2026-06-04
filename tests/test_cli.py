@@ -129,7 +129,9 @@ def test_ingest_reports_accepted_and_rejected(tmp_path):
     assert runner.invoke(app, ["init", str(root)]).exit_code == 0
     # one complete cube (accepted) and one incomplete (rejected, naming the gap)
     _write((root / "data/raw/good.fits"), _base_header_with_rest("K"))
-    _write((root / "data/raw/bad.fits"), _base_header("Jy/beam"))  # no rest freq / vconv
+    _write(
+        (root / "data/raw/bad.fits"), _base_header("Jy/beam")
+    )  # no rest freq / vconv
 
     result = runner.invoke(app, ["ingest", str(root)])
     assert result.exit_code == 0, _all_output(result)
@@ -222,6 +224,56 @@ def test_moment0_missing_context_exits_nonzero_with_clear_message(incomplete_cub
     assert result.exit_code != 0
     out = _all_output(result).lower()
     assert "rest_frequency" in out or "context" in out
+
+
+# --------------------------------------------------------------------------------------
+# narrate: the narrative offer (ADR-0010) — scaffold a note over the run log
+# --------------------------------------------------------------------------------------
+def _open_run_with_a_record(root):
+    """Produce one run-log record in the experiment the ordinary way (as an analysis would)."""
+    from astrolyze.experiment import Experiment, RunLog, emit
+
+    exp = Experiment(root)
+    with RunLog.open(exp):
+        emit("load", inputs=["data/raw/x.fits"])
+    return exp
+
+
+def test_narrate_offers_a_note_referencing_the_run(tmp_path):
+    root = tmp_path / "study"
+    runner.invoke(app, ["init", str(root)])
+    exp = _open_run_with_a_record(root)
+
+    result = runner.invoke(app, ["narrate", str(root)])
+    assert result.exit_code == 0, _all_output(result)
+    assert "narrative" in _all_output(result).lower()
+    notes = list(exp.logs.glob("*.md"))
+    assert len(notes) == 1
+    assert "load" in notes[0].read_text()  # references the op the run recorded
+
+
+def test_narrate_errors_when_not_an_experiment(tmp_path):
+    # A plain directory with no logs/ is not an experiment — fail clearly, don't crash.
+    result = runner.invoke(app, ["narrate", str(tmp_path)])
+    assert result.exit_code != 0
+    out = _all_output(result).lower()
+    assert "logs" in out or "experiment" in out
+
+
+def test_narrate_is_idempotent_and_preserves_edits_via_cli(tmp_path):
+    root = tmp_path / "study"
+    runner.invoke(app, ["init", str(root)])
+    exp = _open_run_with_a_record(root)
+
+    assert runner.invoke(app, ["narrate", str(root)]).exit_code == 0
+    note = next(exp.logs.glob("*.md"))
+    note.write_text("# my findings\n")
+    second = runner.invoke(app, ["narrate", str(root)])
+    assert second.exit_code == 0
+    assert (
+        "my findings" in note.read_text()
+    )  # the offer never clobbers the human's prose
+    assert "opened existing" in _all_output(second).lower()
 
 
 # --------------------------------------------------------------------------------------

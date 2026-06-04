@@ -137,10 +137,19 @@ class RunLog:
 
     def entries(self) -> list[dict]:
         """Parse this run's file back into a list of records (UI-/inspection-friendly)."""
-        if not self.path.exists():
-            return []
-        text = self.path.read_text(encoding="utf-8")
-        return [json.loads(line) for line in text.splitlines() if line.strip()]
+        return read(self.path)
+
+
+def read(path: Path | str) -> list[dict]:
+    """Parse a run-log JSONL file into its list of records (empty if the file is absent).
+
+    The reusable reader behind :meth:`RunLog.entries` and the narrative offer (#14): a run log
+    is plain JSONL, so reading it back is just line-by-line :func:`json.loads`."""
+    path = Path(path)
+    if not path.exists():
+        return []
+    text = path.read_text(encoding="utf-8")
+    return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
 def emit(
@@ -232,9 +241,11 @@ def _software_versions() -> dict[str, str]:
 
 
 def _new_run_id() -> str:
-    """A sortable, collision-resistant run id: a UTC timestamp plus a short random suffix (two
-    runs opened in the same second still get distinct ids/files)."""
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    """A sortable, collision-resistant run id: a microsecond UTC timestamp plus a short random
+    suffix. The microseconds make the id (and so the ``run-<id>.jsonl`` filename) sort
+    chronologically — the narrative offer and any future UI can take the lexicographic max as
+    the latest run — while the random suffix keeps ids distinct across processes."""
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%f")
     return f"{stamp}-{uuid.uuid4().hex[:8]}"
 
 
@@ -242,4 +253,4 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-__all__ = ["RunLog", "emit", "active_run", "RUNLOG_SCHEMA_VERSION"]
+__all__ = ["RunLog", "emit", "active_run", "read", "RUNLOG_SCHEMA_VERSION"]
