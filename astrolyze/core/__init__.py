@@ -19,7 +19,12 @@ from __future__ import annotations
 
 from .cube import Cube, LossyDirectionError
 from .map import Map
-from .noise import NoiseModel, NoiseQuality
+from .noise import (
+    NoiseModel,
+    NoiseQuality,
+    available_estimators,
+    register_estimator,
+)
 from .spectrum import Spectrum
 
 __all__ = [
@@ -29,4 +34,6 @@ __all__ = [
     "NoiseModel",
     "NoiseQuality",
     "Spectrum",
+    "available_estimators",
+    "register_estimator",
 ]

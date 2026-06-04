@@ -1,4 +1,4 @@
-"""The context-carrying ``NoiseModel`` companion + its one default estimator (issue #27).
+"""The context-carrying ``NoiseModel`` companion + its pluggable estimator suite (#27/#28).
 
 A :class:`NoiseModel` is a *companion* object (ADR-0004): it is produced by
 :meth:`Cube.estimate_noise` and exposes a cube's noise as **first-class astrolyze products** —
@@ -31,10 +31,11 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 import astropy.units as u
-from astropy.stats import mad_std
+from astropy.stats import mad_std, sigma_clipped_stats
 
 from astrolyze.io import Metadata
 
@@ -43,7 +44,7 @@ from ._base import _emit
 #: Schema version of the on-disk companion-group layout (provenance, bumped on layout change).
 NOISE_SCHEMA_VERSION = 1
 
-#: The default (and, for issue #27, only) estimator. The pluggable suite is issue #28.
+#: The default estimator (the robust ``mad_std``); the pluggable suite (#28) adds more.
 DEFAULT_METHOD = "mad_std"
 
 #: Number of spectral blocks the separability test measures a spatial σ map in. Each block needs
@@ -277,29 +278,124 @@ class NoiseModel:
             cube, rep, method=method, quality=NoiseQuality(quality), version=version
         )
 
+    # -- survey weight / RMS-map ingest (issue #28) -------------------------------------
+    # Built FROM a published map, not estimated from the cube: a survey commonly ships a noise
+    # (RMS) or weight map, and that is authoritative for σ where it exists. astrolyze adds only
+    # the routing weight->σ (σ = 1/√w) and the quality flag (un-observed pixels carry no σ ->
+    # UNRELIABLE, never a fabricated number; ADR-0003). The spatial σ map is promoted to a
+    # separable model with a flat spectral profile (one σ per pixel, constant across channels):
+    # a published map is a 2D σ field, so the noise is separable by construction.
+    @classmethod
+    def from_rms_map(cls, cube, rms_map) -> "NoiseModel":
+        """Build a :class:`NoiseModel` from a survey **RMS map** (σ is the map itself).
+
+        *rms_map* is the published per-pixel noise σ — a :class:`~astrolyze.core.Map` or a bare
+        array in the cube's intensity unit. The model carries *cube*'s context and exposes σ as
+        the usual first-class products. Pixels that are NaN (un-observed) carry no σ; an entirely
+        un-observed map yields :data:`NoiseQuality.UNRELIABLE` (ADR-0003)."""
+        sigma_xy = _map_values(rms_map, cube.unit)
+        rep, quality = _representation_from_sigma_map(cube, sigma_xy)
+        _emit("estimate_noise", params={"method": "rms_map", "quality": quality.value})
+        return cls(cube, rep, method="rms_map", quality=quality)
+
+    @classmethod
+    def from_weight_map(cls, cube, weight_map) -> "NoiseModel":
+        """Build a :class:`NoiseModel` from a survey **weight map** (σ = 1/√w).
+
+        *weight_map* is the published per-pixel inverse-variance weight — a
+        :class:`~astrolyze.core.Map` or a bare array (its unit is the inverse of the cube
+        variance, e.g. ``K**-2``). σ = ``1/√w``; a zero/negative/NaN weight is an un-observed
+        pixel that carries no σ (left ``NaN``). An entirely un-observed map yields
+        :data:`NoiseQuality.UNRELIABLE` rather than a fabricated σ (ADR-0003)."""
+        # Weights are inverse-variance; the unit is unit(cube)**-2. Read the bare values in that
+        # unit, then σ = 1/√w lands back in the cube's intensity unit.
+        weights = _map_values(weight_map, cube.unit**-2)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            positive = np.isfinite(weights) & (weights > 0.0)
+            sigma_xy = np.full(weights.shape, np.nan)
+            sigma_xy[positive] = 1.0 / np.sqrt(weights[positive])
+        rep, quality = _representation_from_sigma_map(cube, sigma_xy)
+        _emit(
+            "estimate_noise", params={"method": "weight_map", "quality": quality.value}
+        )
+        return cls(cube, rep, method="weight_map", quality=quality)
+
     def __repr__(self) -> str:
         obj = self.metadata.object or "?"
         kind = "separable" if self.is_separable else "full"
         return f"<NoiseModel {obj} {kind} [{self.unit}] {self.quality.value}>"
 
 
-# -- the default estimator -------------------------------------------------------------
-def estimate(cube, *, method: str = DEFAULT_METHOD) -> NoiseModel:
-    """Estimate a :class:`NoiseModel` for *cube* with the given *method* (issue #27).
+# -- pluggable estimator suite (issue #28) ---------------------------------------------
+# An estimator is a callable ``(data: np.ndarray) -> (representation, NoiseQuality)`` where
+# ``data`` is the cube's bare values (nz, ny, nx) in its intensity unit and ``representation``
+# is a SeparableNoise / FullNoise (typically built via _build_representation so the #27
+# separability test selects the branch). The registry below is the PLUGGABILITY seam: a caller
+# registers a new estimator with register_estimator(name, fn) and selects it through
+# estimate_noise(method=name) WITHOUT editing this module — the routing is open, not a closed
+# if/elif ladder (ADR-0004: astrolyze adds the routing + the quality flag, the statistics stay
+# in numpy/astropy.stats).
+Estimator = Callable[[np.ndarray], "tuple[SeparableNoise | FullNoise, NoiseQuality]"]
 
-    One estimator is built — ``"mad_std"`` (the robust median-absolute-deviation σ); the
-    pluggable suite is issue #28. An unknown *method* is refused rather than silently
-    substituted (ADR-0003)."""
-    if method != DEFAULT_METHOD:
+#: The estimator registry: method name -> estimator callable. Built-ins are registered at import
+#: (see bottom of module); caller estimators are added via :func:`register_estimator`.
+_ESTIMATORS: dict[str, Estimator] = {}
+
+
+def register_estimator(name: str, estimator: Estimator) -> None:
+    """Register a noise *estimator* under *name* so ``estimate_noise(method=name)`` selects it.
+
+    The pluggability seam (issue #28). An *estimator* is a callable
+    ``(data) -> (representation, NoiseQuality)`` taking the cube's bare values ``(nz, ny, nx)``
+    and returning a :class:`SeparableNoise` / :class:`FullNoise` plus its
+    :class:`NoiseQuality`. Registering lets a caller add an estimator from outside the package —
+    no core edit. Re-registering a name overrides it (pre-1.0, last write wins)."""
+    if not callable(estimator):
+        raise TypeError(
+            f"estimator for {name!r} must be callable (data) -> (representation, NoiseQuality)"
+        )
+    _ESTIMATORS[name] = estimator
+
+
+def available_estimators() -> tuple[str, ...]:
+    """The registered estimator method names (built-ins plus any caller-supplied)."""
+    return tuple(_ESTIMATORS)
+
+
+def estimate(cube, *, method: str = DEFAULT_METHOD) -> NoiseModel:
+    """Estimate a :class:`NoiseModel` for *cube* with the registered *method* (issue #27/#28).
+
+    The *method* is looked up in the pluggable estimator registry (see
+    :func:`register_estimator`): the default robust ``"mad_std"``, the signal-free-channel
+    ``"rms"``, the σ-clipped ``"mad"``, or any caller-registered estimator. An unknown *method*
+    is refused rather than silently substituted (ADR-0003)."""
+    estimator = _ESTIMATORS.get(method)
+    if estimator is None:
+        known = ", ".join(sorted(_ESTIMATORS)) or "(none registered)"
         raise ValueError(
-            f"unknown noise estimator method {method!r}: issue #27 ships only "
-            f"{DEFAULT_METHOD!r} (the pluggable suite is issue #28); astrolyze never silently "
-            "substitutes an estimator (ADR-0003)"
+            f"unknown noise estimator method {method!r}; registered methods: {known}. "
+            "Add one with astrolyze.core.register_estimator(name, fn); astrolyze never "
+            "silently substitutes an estimator (ADR-0003)"
         )
     data = np.asarray(cube._data_quantity.value, dtype="float64")
-    rep, quality = _estimate_mad_std(data)
+    rep, quality = estimator(data)
     _emit("estimate_noise", params={"method": method, "quality": quality.value})
     return NoiseModel(cube, rep, method=method, quality=quality)
+
+
+def _unreliable_representation(shape) -> SeparableNoise:
+    """A NaN-filled representation for the no-usable-data case (ADR-0003: never fabricate σ).
+
+    Shared by every estimator so "no signal-free data" looks identical whichever method asked —
+    σ is left ``NaN`` and the caller flags the model :data:`NoiseQuality.UNRELIABLE`."""
+    nz = shape[0]
+    shape_xy = shape[1:]
+    return SeparableNoise(
+        sigma_xy=np.full(shape_xy, np.nan),
+        sigma_v=np.full(nz, np.nan),
+        scalar=np.nan,
+        acf=np.array([np.nan]),
+    )
 
 
 def _estimate_mad_std(data: np.ndarray):
@@ -307,18 +403,9 @@ def _estimate_mad_std(data: np.ndarray):
 
     Returns ``(representation, quality)``. With no usable (finite) data the quality is
     :data:`NoiseQuality.UNRELIABLE` and σ is left ``NaN`` — never fabricated (ADR-0003)."""
-    finite = np.isfinite(data)
-    if not finite.any():
+    if not np.isfinite(data).any():
         # No usable signal-free data: refuse to invent a σ (ADR-0003).
-        shape_xy = data.shape[1:]
-        nz = data.shape[0]
-        rep = SeparableNoise(
-            sigma_xy=np.full(shape_xy, np.nan),
-            sigma_v=np.full(nz, np.nan),
-            scalar=np.nan,
-            acf=np.array([np.nan]),
-        )
-        return rep, NoiseQuality.UNRELIABLE
+        return _unreliable_representation(data.shape), NoiseQuality.UNRELIABLE
 
     # Robust scatter on each axis-collapse (NaN-ignoring): spatial σ per pixel (over v),
     # spectral σ per channel (over the plane), and a single scalar over the whole cube.
@@ -329,6 +416,119 @@ def _estimate_mad_std(data: np.ndarray):
 
     rep = _build_representation(data, sigma_xy, sigma_v, scalar, acf)
     return rep, NoiseQuality.MEASURED
+
+
+#: σ-clip threshold (n·σ) and iteration count for the robust ``"mad"`` estimator. A few clips at
+#: 3σ rejects line/source voxels before the per-axis σ is measured; this is the conventional
+#: radio-line default (DECISION, issue #28, pre-1.0) and keeps astrolyze thin over astropy.stats.
+SIGMA_CLIP_SIGMA = 3.0
+SIGMA_CLIP_ITERS = 5
+
+
+def _estimate_mad_sigma_clip(data: np.ndarray):
+    """Robust σ via iterative σ-clipping (:func:`astropy.stats.sigma_clipped_stats`).
+
+    Built on astropy.stats (stay thin): σ-clipping rejects bright line/source voxels, so the
+    measured σ reflects the underlying noise even when the cube is not signal-free. The per-axis
+    σ_xy / σ_v use the σ-clipped MAD std on each collapse; the scalar is the whole-cube
+    σ-clipped std. No usable finite data ⇒ :data:`NoiseQuality.UNRELIABLE` (ADR-0003)."""
+    if not np.isfinite(data).any():
+        return _unreliable_representation(data.shape), NoiseQuality.UNRELIABLE
+
+    sigma_xy = _sigma_clipped_std_along(data, axis=0)
+    sigma_v = _sigma_clipped_std_along(data.reshape(data.shape[0], -1), axis=1)
+    _, _, scalar = sigma_clipped_stats(
+        data, sigma=SIGMA_CLIP_SIGMA, maxiters=SIGMA_CLIP_ITERS, stdfunc="mad_std"
+    )
+    acf = _spectral_acf(data)
+
+    rep = _build_representation(data, sigma_xy, sigma_v, float(scalar), acf)
+    return rep, NoiseQuality.MEASURED
+
+
+def _sigma_clipped_std_along(data: np.ndarray, *, axis: int) -> np.ndarray:
+    """The σ-clipped robust std along *axis* (the per-pixel/per-channel σ for the ``"mad"`` path).
+
+    :func:`astropy.stats.sigma_clipped_stats` returns ``(mean, median, std)``; we keep the std,
+    measured with ``mad_std`` so it is the robust scatter after the clip."""
+    _, _, std = sigma_clipped_stats(
+        data,
+        sigma=SIGMA_CLIP_SIGMA,
+        maxiters=SIGMA_CLIP_ITERS,
+        stdfunc="mad_std",
+        axis=axis,
+    )
+    return np.asarray(std, dtype="float64")
+
+
+#: How many extreme channels (by per-channel level) the signal-free RMS estimator rejects as
+#: line-contaminated before taking the RMS over the survivors. A robust, parameter-light default
+#: (DECISION, issue #28, pre-1.0): channels whose robust level sits far above the median channel
+#: level carry signal; clipping them leaves the line-free band. Threshold is in robust σ.
+RMS_SIGNAL_FREE_SIGMA = 3.0
+
+
+def _estimate_rms(data: np.ndarray):
+    """Signal-free-channel RMS: the per-voxel RMS over channels that carry no line signal.
+
+    A channel's robust level (its σ-clipped mean intensity over the plane) tells line from
+    line-free: channels whose level sits more than ``RMS_SIGNAL_FREE_SIGMA`` robust-σ above the
+    median channel level are flagged signal-bearing and dropped. The RMS is then taken (with
+    numpy) over the surviving signal-free channels only — so a bright line does not inflate σ.
+    No usable signal-free channel ⇒ :data:`NoiseQuality.UNRELIABLE` (ADR-0003)."""
+    if not np.isfinite(data).any():
+        return _unreliable_representation(data.shape), NoiseQuality.UNRELIABLE
+
+    free = _signal_free_channels(data)
+    if not free.any():
+        # Every channel looks signal-bearing: there is no line-free data to take an RMS over.
+        return _unreliable_representation(data.shape), NoiseQuality.UNRELIABLE
+
+    free_data = data[free]
+    # Per-voxel RMS uses only the signal-free channels. The spatial σ_xy(x,y) is the RMS over
+    # those channels per pixel; σ_v(v) is the per-channel RMS over the plane (every channel,
+    # so the spectral profile spans the full axis); the scalar is the RMS over all free voxels.
+    sigma_xy = _rms(free_data, axis=0)
+    sigma_v = _rms(data.reshape(data.shape[0], -1), axis=1)
+    scalar = float(_rms(free_data, axis=None))
+    acf = _spectral_acf(data)
+
+    rep = _build_representation(data, sigma_xy, sigma_v, scalar, acf)
+    return rep, NoiseQuality.MEASURED
+
+
+def _rms(data: np.ndarray, *, axis) -> np.ndarray | float:
+    """NaN-ignoring root-mean-square along *axis* (``numpy`` only — astrolyze stays thin)."""
+    return np.sqrt(np.nanmean(np.square(data), axis=axis))
+
+
+def _signal_free_channels(data: np.ndarray) -> np.ndarray:
+    """A boolean per-channel mask: ``True`` where the channel carries no line signal.
+
+    Each channel's robust level is its σ-clipped mean over the plane. A channel is line-bearing
+    when that level sits more than ``RMS_SIGNAL_FREE_SIGMA`` robust-σ above the median channel
+    level; the rest are signal-free. Channels with no finite data are not signal-free."""
+    nz = data.shape[0]
+    flat = data.reshape(nz, -1)
+    levels = np.full(nz, np.nan)
+    for k in range(nz):
+        column = flat[k]
+        if not np.isfinite(column).any():
+            continue
+        mean, _, _ = sigma_clipped_stats(
+            column, sigma=SIGMA_CLIP_SIGMA, maxiters=SIGMA_CLIP_ITERS, stdfunc="mad_std"
+        )
+        levels[k] = mean
+    finite = np.isfinite(levels)
+    if not finite.any():
+        return np.zeros(nz, dtype=bool)
+    median_level = np.nanmedian(levels)
+    spread = mad_std(levels, ignore_nan=True)
+    if not np.isfinite(spread) or spread == 0.0:
+        # No channel-to-channel spread (e.g. flat noise, no line): every finite channel is free.
+        return finite
+    threshold = median_level + RMS_SIGNAL_FREE_SIGMA * spread
+    return finite & (levels <= threshold)
 
 
 def _block_sigma_maps(data: np.ndarray, nblocks: int) -> np.ndarray:
@@ -461,12 +661,66 @@ def _representation_from_field(field: np.ndarray, like) -> SeparableNoise | Full
     )
 
 
+# -- map-ingest helpers (issue #28) ----------------------------------------------------
+def _map_values(map_or_array, unit: u.UnitBase) -> np.ndarray:
+    """The bare 2D values of *map_or_array* in *unit* (a :class:`Map`, ``Quantity``, or array).
+
+    Accepts a first-class :class:`~astrolyze.core.Map` (``.data``), a bare ``Quantity``, or a
+    plain ndarray (assumed already in *unit*). Converting to *unit* keeps the no-silent-physics
+    contract: a survey map in mismatched units is converted, not silently misread."""
+    data = getattr(map_or_array, "data", map_or_array)
+    if isinstance(data, u.Quantity):
+        return np.asarray(data.to_value(unit), dtype="float64")
+    return np.asarray(data, dtype="float64")
+
+
+def _representation_from_sigma_map(cube, sigma_xy: np.ndarray):
+    """A separable representation from a 2D σ map ``sigma_xy`` (the survey-map ingest path).
+
+    A published σ map is a 2D field: σ is constant along the spectral axis, so the model is
+    separable by construction — σ_v is flat at the scalar level and the reconstructed σ-cube is
+    ``σ_xy`` broadcast over every channel. With no finite pixel the map carries no σ and the
+    quality is :data:`NoiseQuality.UNRELIABLE` (ADR-0003)."""
+    sigma_xy = np.asarray(sigma_xy, dtype="float64")
+    nz = cube.shape[0]
+    if not np.isfinite(sigma_xy).any():
+        return _unreliable_representation(cube.shape), NoiseQuality.UNRELIABLE
+
+    scalar = float(np.nanmean(sigma_xy))
+    sigma_v = np.full(
+        nz, scalar
+    )  # flat spectral profile: one σ per pixel, all channels
+    # ACF of pure (white, channel-independent) noise: a unit spike at zero lag.
+    acf = np.zeros(nz)
+    acf[0] = 1.0
+    rep = SeparableNoise(
+        sigma_xy=sigma_xy,
+        sigma_v=sigma_v,
+        scalar=scalar,
+        acf=acf,
+    )
+    return rep, NoiseQuality.MEASURED
+
+
+# -- built-in estimator registration ---------------------------------------------------
+# Registering rather than hard-coding an if/elif keeps the routing open: a caller adds an
+# estimator via register_estimator() and it is selectable by estimate_noise(method=...) with no
+# core edit (the pluggability seam, issue #28).
+register_estimator(
+    DEFAULT_METHOD, _estimate_mad_std
+)  # "mad_std" — robust default (#27)
+register_estimator("rms", _estimate_rms)  # signal-free-channel RMS
+register_estimator("mad", _estimate_mad_sigma_clip)  # robust σ-clipped MAD
+
+
 __all__ = [
     "NoiseModel",
     "NoiseQuality",
     "SeparableNoise",
     "FullNoise",
     "estimate",
+    "register_estimator",
+    "available_estimators",
     "NOISE_SCHEMA_VERSION",
     "DEFAULT_METHOD",
 ]

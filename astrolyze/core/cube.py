@@ -148,10 +148,13 @@ class Cube(ContextCarrier):
         Returns a companion (ADR-0004) exposing first-class σ products — a σ ``Cube`` / ``Map`` /
         ``Spectrum``, the spectral autocorrelation, and a single robust σ ``Quantity`` — built by
         reusing this cube's own type transitions, so they carry the beam + rest frequency +
-        velocity convention. The default (and, for issue #27, only) estimator is the robust
-        ``mad_std``; the pluggable suite is issue #28. No silent physics (ADR-0003): a cube with
-        no usable signal-free data is flagged :data:`~astrolyze.core.NoiseQuality.UNRELIABLE`
-        rather than given a fabricated σ."""
+        velocity convention. *method* selects a registered estimator (issue #28): the default
+        robust ``"mad_std"``, the signal-free-channel ``"rms"``, the σ-clipped ``"mad"``, or any
+        caller-registered estimator (see :func:`~astrolyze.core.register_estimator`). A survey's
+        published noise/weight map is ingested instead via
+        :meth:`~astrolyze.core.NoiseModel.from_rms_map` / ``from_weight_map``. No silent physics
+        (ADR-0003): a cube with no usable signal-free data is flagged
+        :data:`~astrolyze.core.NoiseQuality.UNRELIABLE` rather than given a fabricated σ."""
         from .noise import DEFAULT_METHOD, estimate
 
         return estimate(self, method=method if method is not None else DEFAULT_METHOD)
