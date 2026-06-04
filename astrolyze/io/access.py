@@ -49,6 +49,7 @@ def load(path) -> LoadedData:
         hdu = next((h for h in hdul if h.data is not None), hdul[0])
         header = hdu.header.copy()
         data = None if hdu.data is None else np.array(hdu.data)
+    _emit("load", inputs=[path])
     return LoadedData(
         data=data,
         header=header,
@@ -79,7 +80,20 @@ def save(
     out_path = directory / project(metadata, extension=extension)
     header = metadata.to_header(base_header)
     fits.writeto(out_path, data, header, overwrite=overwrite)
+    _emit("save", params={"extension": extension}, outputs=[out_path])
     return out_path
+
+
+def _emit(op, **fields) -> None:
+    """Append a run-log record for *op* through the always-on run-log seam (ADR-0010).
+
+    The import is deferred to call time so ``io`` stays light — the seam lives in
+    :mod:`astrolyze.experiment.runlog`, which pulls only the stdlib + the schema version (never
+    SQLAlchemy/matplotlib). When no run is active the seam is a no-op, so ``load``/``save``
+    behave identically outside an experiment."""
+    from astrolyze.experiment.runlog import emit
+
+    emit(op, **fields)
 
 
 __all__ = ["LoadedData", "load", "save"]

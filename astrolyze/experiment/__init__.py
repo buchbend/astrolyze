@@ -2,8 +2,8 @@
 
 An *experiment* is the fixed home of one analysis: a predictable skeleton on disk, a merciless
 ingest gate, a DB-backed manifest, and an always-on run log. The surface grows as the slices
-land — :mod:`layout` (the skeleton, #10), :mod:`manifest` (the dataset registry, #11) and
-:mod:`ingest` (the merciless gate, #12) are here now.
+land — :mod:`layout` (the skeleton, #10), :mod:`manifest` (the dataset registry, #11),
+:mod:`ingest` (the merciless gate, #12) and :mod:`runlog` (the always-on run log, #13).
 
 Public surface::
 
@@ -17,19 +17,26 @@ Public surface::
     IngestReport                # accepted / rejected partition of one ingest pass
     AcceptedDataset             # a registered raw file (+ its DatasetRecord)
     RejectedDataset             # a refused raw file (+ the missing fields / read error)
+    RunLog.open(experiment)     # start a run; per-run append-only JSONL in logs/
+    emit(op, …)                 # the seam the operations call (no-op when no run is active)
 
 Importing this subpackage pulls dynaconf (for the config seam) and SQLAlchemy (for the
 manifest) but not matplotlib or spectral-cube; the CLI still defers the import into the command
-body to keep ``--help`` fast.
+body to keep ``--help`` fast. The run-log seam (:mod:`runlog`) is light on its own (stdlib +
+the io schema version) — but the operations reach it through ``from astrolyze.experiment.runlog
+import emit``, which runs this ``__init__`` and so pays the manifest/ingest import once, on the
+first logged operation, not at ``import astrolyze.io`` time (the deferred-import pattern keeps
+import-time side-effect-free; see ``io.access._emit`` / ``core/_base._emit``).
 """
 
 from __future__ import annotations
 
 from . import ingest as ingest_module
-from . import layout, manifest
+from . import layout, manifest, runlog
 from .ingest import AcceptedDataset, IngestReport, RejectedDataset, ingest
 from .layout import Experiment, Role, role_of
 from .manifest import DatasetRecord, Manifest
+from .runlog import RunLog, active_run, emit
 
 __all__ = [
     "Experiment",
@@ -41,7 +48,11 @@ __all__ = [
     "IngestReport",
     "AcceptedDataset",
     "RejectedDataset",
+    "RunLog",
+    "emit",
+    "active_run",
     "layout",
     "manifest",
     "ingest_module",
+    "runlog",
 ]

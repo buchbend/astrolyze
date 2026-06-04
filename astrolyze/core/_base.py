@@ -96,6 +96,7 @@ class ContextCarrier:
             beam=beam if beam is not None else self.metadata.beam,
             temperature_scale=temperature_scale,
         )
+        _emit("to", params={"unit": str(unit), "temperature_scale": temperature_scale})
         return self._with_data(converted)
 
     # -- the display seam (ADR-0005): thin sugar over the free viz engine ---------------
@@ -112,7 +113,9 @@ class ContextCarrier:
             raise NotImplementedError(
                 f"plotting needs the viz layer ({self._viz_function}); it arrives in issue #6"
             )
-        return plotter(self, **kwargs)
+        result = plotter(self, **kwargs)
+        _emit("plot", params={"viz_function": self._viz_function})
+        return result
 
     # -- subclass seam ------------------------------------------------------------------
     @property
@@ -130,3 +133,14 @@ class ContextCarrier:
         """This object's metadata with ``bunit`` set to ``unit`` (used after a conversion or a
         moment changes the physical unit)."""
         return replace(self.metadata, bunit=u.Unit(unit))
+
+
+def _emit(op, **fields) -> None:
+    """Append a run-log record for *op* through the always-on run-log seam (ADR-0010).
+
+    Deferred to call time so ``core`` stays free of the experiment package on import; the seam
+    (:mod:`astrolyze.experiment.runlog`) is a no-op when no run is active, so ``.to``/``.plot``
+    behave identically outside an experiment."""
+    from astrolyze.experiment.runlog import emit
+
+    emit(op, **fields)
