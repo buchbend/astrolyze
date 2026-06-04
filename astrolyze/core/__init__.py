@@ -19,6 +19,14 @@ from __future__ import annotations
 
 from .cube import Cube, LossyDirectionError
 from .map import Map
+from .noise import NoiseModel, NoiseQuality
 from .spectrum import Spectrum
 
-__all__ = ["Cube", "LossyDirectionError", "Map", "Spectrum"]
+__all__ = [
+    "Cube",
+    "LossyDirectionError",
+    "Map",
+    "NoiseModel",
+    "NoiseQuality",
+    "Spectrum",
+]

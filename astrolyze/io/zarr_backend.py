@@ -51,6 +51,16 @@ ATTR_WCS_HEADER = "fits_wcs_header"
 ATTR_PROVENANCE = "provenance"
 PROVENANCE_BACKEND = "zarr"
 
+# -- NoiseModel companion group (issue #27) --------------------------------------------
+# The noise model rides as a *subgroup* of the cube store, so a cube and its σ travel together
+# on disk. astrolyze stays thin: the representation arrays are plain xarray data variables; we
+# add only the method + schema-version provenance and which representation branch to rebuild.
+NOISE_GROUP = "noise"
+ATTR_NOISE_METHOD = "method"
+ATTR_NOISE_VERSION = "version"
+ATTR_NOISE_QUALITY = "quality"
+ATTR_NOISE_REPRESENTATION = "representation"
+
 
 def _save_zarr(
     data: np.ndarray,
@@ -233,6 +243,84 @@ def _encoding(*, chunks, shards, compressors) -> dict:
     return {DATA_VAR: var_encoding} if var_encoding else {}
 
 
+# -- NoiseModel companion group round-trip (issue #27) ---------------------------------
+def _save_noise_companion(model, store) -> Path:
+    """Write *model* (a :class:`~astrolyze.core.NoiseModel`) as a companion *group* in *store*.
+
+    The cube's Zarr store (issue #23) is reused as the on-disk home: the model lands in a
+    ``noise`` subgroup carrying the estimator method + schema version + quality + representation
+    branch as ``attrs`` (provenance), and the representation arrays as data variables. The
+    separable form stores σ_xy / σ_v / scalar / ACF; the full form additionally stores the dense
+    σ-field. astrolyze adds the projection, not a storage layer (xarray/zarr own the bytes).
+    """
+    from astrolyze.core.noise import SeparableNoise
+
+    store = Path(store)
+    rep = model._rep
+    data_vars = {
+        "sigma_xy": (("sky_y", "sky_x"), np.asarray(rep.sigma_xy, dtype="float64")),
+        "sigma_v": ((SPECTRAL_DIM,), np.asarray(rep.sigma_v, dtype="float64")),
+        "acf": (("lag",), np.asarray(rep.acf, dtype="float64")),
+    }
+    representation = "separable" if isinstance(rep, SeparableNoise) else "full"
+    if representation == "full":
+        # The dense per-voxel σ field (store order sky_y, sky_x, freq — same as the cube var).
+        field = np.transpose(np.asarray(rep.sigma_field, dtype="float64"), (1, 2, 0))
+        data_vars["sigma_field"] = (CUBE_DIMS, field)
+    attrs = {
+        ATTR_NOISE_METHOD: model.method,
+        ATTR_NOISE_VERSION: int(model.version),
+        ATTR_NOISE_QUALITY: model.quality.value,
+        ATTR_NOISE_REPRESENTATION: representation,
+        # scalar may be NaN (UNRELIABLE) — JSON cannot carry NaN, so store as a string token and
+        # parse back, never fabricating a finite value (ADR-0003).
+        "scalar": repr(float(rep.scalar)),
+    }
+    dataset = xr.Dataset(data_vars, attrs=attrs)
+    dataset.to_zarr(
+        store, group=NOISE_GROUP, mode="a", zarr_format=3, consolidated=False
+    )
+    _emit("save", params={"format": "zarr", "group": NOISE_GROUP}, outputs=[store])
+    return store / NOISE_GROUP
+
+
+def _load_noise_companion(store):
+    """Reconstruct a noise representation + provenance from the ``noise`` companion group.
+
+    Returns ``(representation, method, quality, version)``; the caller (the
+    :class:`~astrolyze.core.NoiseModel` classmethod) re-attaches the parent cube so the products
+    are again context-carrying. The inverse of :func:`_save_noise_companion`."""
+    from astrolyze.core.noise import FullNoise, SeparableNoise
+
+    store = Path(store)
+    dataset = xr.open_zarr(store, group=NOISE_GROUP, zarr_format=3, consolidated=False)
+    attrs = dict(dataset.attrs)
+    scalar = float(attrs["scalar"])
+    sigma_xy = np.asarray(dataset["sigma_xy"].data)
+    sigma_v = np.asarray(dataset["sigma_v"].data)
+    acf = np.asarray(dataset["acf"].data)
+
+    if attrs.get(ATTR_NOISE_REPRESENTATION) == "full":
+        # Restore the dense σ-field to FITS array order (freq, sky_y, sky_x).
+        field = np.transpose(np.asarray(dataset["sigma_field"].data), (2, 0, 1))
+        rep = FullNoise(
+            sigma_field=field,
+            sigma_xy=sigma_xy,
+            sigma_v=sigma_v,
+            scalar=scalar,
+            acf=acf,
+        )
+    else:
+        rep = SeparableNoise(sigma_xy=sigma_xy, sigma_v=sigma_v, scalar=scalar, acf=acf)
+    _emit("load", inputs=[store / NOISE_GROUP])
+    return (
+        rep,
+        attrs[ATTR_NOISE_METHOD],
+        attrs[ATTR_NOISE_QUALITY],
+        int(attrs[ATTR_NOISE_VERSION]),
+    )
+
+
 def _emit(op, **fields) -> None:
     """Append a run-log record through the always-on run-log seam (ADR-0010); a no-op outside
     an experiment. Deferred to call time so ``io`` stays light on import."""
@@ -241,4 +329,4 @@ def _emit(op, **fields) -> None:
     emit(op, **fields)
 
 
-__all__ = ["_save_zarr", "_load_zarr"]
+__all__ = ["_save_zarr", "_load_zarr", "_save_noise_companion", "_load_noise_companion"]
