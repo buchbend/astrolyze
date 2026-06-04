@@ -37,7 +37,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.5", "black>=24"]
+# ruff is the single linter *and* formatter (no black) — `ruff check` + `ruff format`.
+dev = ["pytest>=8", "ruff>=0.5"]
 # Tooling to run the interactive tutorial (examples/tutorial.ipynb).
 notebook = ["jupyterlab>=4", "ipykernel>=6"]
 
@@ -57,6 +58,12 @@ astrolyze = ["viz/*.mplstyle"]
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+
+[tool.ruff.lint.per-file-ignores]
+# Notebooks legitimately run setup before importing — a matplotlib backend, warnings filters,
+# an %matplotlib magic — so E402 ("module import not at top of cell") fights the idiom. Allow
+# it in .ipynb only; library/test .py still hold imports at the top.
+"*.ipynb" = ["E402"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -72,7 +72,9 @@ def test_init_preserves_an_existing_config(tmp_path):
     """Re-running init must not overwrite a config.toml the user has already edited —
     idempotent means the user's settings survive a second scaffold."""
     experiment = Experiment.init(tmp_path / "study")
-    experiment.config.write_text('# edited by hand\n[manifest]\ndb_url = "sqlite:///mine.db"\n')
+    experiment.config.write_text(
+        '# edited by hand\n[manifest]\ndb_url = "sqlite:///mine.db"\n'
+    )
     Experiment.init(experiment.root)
     assert "mine.db" in experiment.config.read_text()
 
@@ -134,7 +136,9 @@ def test_settings_load_from_config(tmp_path):
 def test_settings_reflect_edited_config(tmp_path):
     experiment = Experiment.init(tmp_path / "study")
     experiment.config.write_text('[manifest]\ndb_url = "sqlite:///custom.db"\n')
-    assert "custom.db" in str(Experiment(experiment.root).settings.get("manifest.db_url", ""))
+    assert "custom.db" in str(
+        Experiment(experiment.root).settings.get("manifest.db_url", "")
+    )
 
 
 # --------------------------------------------------------------------------------------

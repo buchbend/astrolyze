@@ -129,7 +129,9 @@ def test_accepted_record_is_retrievable_by_id(tmp_path):
     exp = _experiment(tmp_path)
     _write(exp.raw / "good.fits", _complete_header(), (2, 3, 3))
     record = ingest(exp).accepted[0].record
-    assert Manifest.for_experiment(exp).get(record.id).source_path == "data/raw/good.fits"
+    assert (
+        Manifest.for_experiment(exp).get(record.id).source_path == "data/raw/good.fits"
+    )
 
 
 # --------------------------------------------------------------------------------------
@@ -163,10 +165,7 @@ def test_ingest_does_not_modify_or_rename_raw(tmp_path):
     good = _write(exp.raw / "good.fits", _complete_header(), (2, 3, 3))
     bad = _write(exp.raw / "bad.fits", _incomplete_header(), (3, 3))
 
-    before = {
-        p: (p.read_bytes(), os.stat(p).st_mtime)
-        for p in (good, bad)
-    }
+    before = {p: (p.read_bytes(), os.stat(p).st_mtime) for p in (good, bad)}
     names_before = sorted(p.name for p in exp.raw.rglob("*") if p.is_file())
 
     ingest(exp)
@@ -285,4 +284,6 @@ def test_corrupt_fits_is_rejected_with_a_reason(tmp_path):
     assert [a.source_path for a in report.accepted] == ["data/raw/good.fits"]
     junk = [r for r in report.rejected if r.source_path == "data/raw/junk.fits"]
     assert len(junk) == 1
-    assert junk[0].error is not None  # the unreadable file is flagged, the pass continues
+    assert (
+        junk[0].error is not None
+    )  # the unreadable file is flagged, the pass continues
