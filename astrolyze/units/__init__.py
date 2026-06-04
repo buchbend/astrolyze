@@ -15,8 +15,11 @@ from __future__ import annotations
 from . import aliases, equivalencies
 from ._context import (
     BrightnessTemperatureScale,
+    CalibrationScale,
     MissingContextError,
     VelocityConvention,
+    coerce_calibration_scale,
+    coerce_temperature_scale,
     coerce_velocity_convention,
 )
 from ._insufficiency import ContextGap, Insufficiency
@@ -36,8 +39,11 @@ __all__ = [
     # explicit-context types
     "VelocityConvention",
     "BrightnessTemperatureScale",
+    "CalibrationScale",
     "MissingContextError",
     "coerce_velocity_convention",
+    "coerce_calibration_scale",
+    "coerce_temperature_scale",
     # typed-insufficiency descriptor (issue #29)
     "Insufficiency",
     "ContextGap",

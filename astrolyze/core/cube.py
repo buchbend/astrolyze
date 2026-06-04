@@ -17,11 +17,22 @@ from radio_beam.utils import BeamError
 from spectral_cube import SpectralCube
 
 from astrolyze.io import Metadata
+from astrolyze.units import (
+    BrightnessTemperatureScale,
+    CalibrationScale,
+    MissingContextError,
+    coerce_calibration_scale,
+    coerce_temperature_scale,
+    convert,
+)
 
 from . import _coords
 from ._base import ContextCarrier, _emit
 from .map import Map
 from .spectrum import Spectrum
+
+#: The authoritative surface-brightness representation a harmonised cube lands in (I_ν).
+_SURFACE_BRIGHTNESS_UNIT = u.MJy / u.sr
 
 #: Gaussian FWHM <-> sigma. Spectral smoothing kernels are specified by sigma; users state a
 #: resolution (a width = FWHM), which is the natural, observable quantity.
@@ -215,6 +226,168 @@ class Cube(ContextCarrier):
         _emit("match_to", params={"beam": str(common), "reproject": reproject})
         return matched_self, matched_other
 
+    # -- surface-brightness harmonisation (issue #25) -----------------------------------
+    # I_ν (MJy/sr) is the one representation every input maps onto, because specific
+    # intensity is beam- and calibration-scale-independent (a physical quantity of the sky,
+    # not of the instrument). The new physics here is the calibration TEMPERATURE SCALE: a
+    # Kelvin cube must DECLARE whether it is T_mb / T_A* / T_R* before we may treat it as a
+    # brightness temperature (K is not silently T_mb, ADR-0003), and T_A* additionally needs
+    # eta_mb to reach the main-beam scale. The unit maths is reused from units.convert; this
+    # adds only that calibration gate plus the per-channel evaluation.
+    def harmonize_to_surface_brightness(self) -> "Cube":
+        """Harmonise this cube to specific intensity I_ν in MJy/sr — the authoritative,
+        instrument-independent representation (issue #25, ADR-0003/0004).
+
+        The conversion is routed by the source unit:
+
+        - **temperature (K)** — requires a declared :attr:`calibration_scale` (``T_mb`` /
+          ``T_A*`` / ``T_R*``); ``K`` is never silently assumed to be ``T_mb``. ``T_A*`` also
+          requires :attr:`eta_mb`, applied as ``T_mb = T_A*/eta_mb`` before the brightness
+          conversion. K↔I_ν is the **per-channel** Rayleigh-Jeans relation
+          ``I_ν = 2kν²/c²·T_mb`` evaluated at each channel's own absolute frequency (not the
+          band centre);
+        - **per-beam flux (Jy/beam)** — pure beam geometry via the beam solid angle;
+        - **surface brightness (Jy/sr / MJy/sr)** — a plain unit rescale.
+
+        Returns a new :class:`Cube` in MJy/sr carrying this object's context (ADR-0004); the
+        calibration scale + efficiency are recorded so the derived K view is reversible. Raises
+        :class:`~astrolyze.units.MissingContextError` for any absent required context."""
+        src = self.unit
+        if _is_temperature_unit(src):
+            data = self._main_beam_temperature()  # applies T_A*/eta_mb when needed
+            # K -> I_ν is the per-channel RJ relation: I_ν = factor(ν)·T_mb. Multiplying by
+            # the per-channel factor (and dividing by it in as_kelvin) is the exact inverse
+            # pair, so the K -> I_ν -> K round trip is bit-stable per channel (issue #25).
+            factor = self._per_channel_rj_factor()
+            harmonized = (data.to_value(u.K) * factor) * _SURFACE_BRIGHTNESS_UNIT
+        else:
+            # Jy/beam (geometry) or Jy/sr->MJy/sr (rescale): frequency-independent, so the
+            # whole array converts in one call with the object's beam supplied where needed.
+            harmonized = convert(
+                self._data_quantity,
+                _SURFACE_BRIGHTNESS_UNIT,
+                beam=self.metadata.beam,
+            )
+        _emit(
+            "harmonize_to_surface_brightness",
+            params={"unit": str(_SURFACE_BRIGHTNESS_UNIT)},
+        )
+        return Cube(
+            _build_cube(harmonized, self._sc.wcs, self.metadata.beam),
+            self._metadata_with_unit(_SURFACE_BRIGHTNESS_UNIT),
+        )
+
+    def as_kelvin(self, *, temperature_scale=None) -> "Cube":
+        """Derived **view** of the authoritative I_ν cube as main-beam brightness temperature.
+
+        A non-mutating accessor (issue #25): it converts I_ν -> K per channel at each channel's
+        own absolute frequency and returns a *new* :class:`Cube`, leaving this I_ν cube
+        untouched. ``temperature_scale`` (the RJ-vs-Planck brightness *law*) is mandatory and
+        never defaulted — it is the genuinely-ambiguous choice the cube cannot make for you
+        (ADR-0003); omitting it raises :class:`~astrolyze.units.MissingContextError`."""
+        if temperature_scale is None:
+            raise MissingContextError(
+                "temperature_scale is required (rayleigh_jeans | planck) for the Kelvin view: "
+                "RJ-vs-Planck is the top silent-error trap in radio/sub-mm work, so astrolyze "
+                "never assumes it"
+            )
+        intensity = self._data_quantity.to(_SURFACE_BRIGHTNESS_UNIT)
+        if (
+            coerce_temperature_scale(temperature_scale)
+            is BrightnessTemperatureScale.RAYLEIGH_JEANS
+        ):
+            # RJ is linear: divide by the per-channel factor used on the way in — the exact
+            # inverse of harmonisation, so I_ν -> K -> I_ν is bit-stable per channel.
+            factor = self._per_channel_rj_factor()
+            data = (intensity.to_value(_SURFACE_BRIGHTNESS_UNIT) / factor) * u.K
+        else:
+            # Planck is nonlinear; convert per channel at its own absolute frequency.
+            data = self._per_channel_convert(intensity, u.K, temperature_scale="planck")
+        return Cube(
+            _build_cube(data, self._sc.wcs, self.metadata.beam),
+            self._metadata_with_unit(u.K),
+        )
+
+    def as_jy_per_beam(self) -> "Cube":
+        """Derived **view** of the authoritative I_ν cube as per-beam flux (Jy/beam).
+
+        A non-mutating accessor (issue #25): pure beam geometry (I_ν is frequency-independent
+        here), returning a *new* :class:`Cube` and leaving this I_ν cube untouched. Requires a
+        beam; without one it raises rather than guess a beam shape (ADR-0003)."""
+        data = convert(self._data_quantity, u.Jy / u.beam, beam=self.metadata.beam)
+        return Cube(
+            _build_cube(data, self._sc.wcs, self.metadata.beam),
+            self._metadata_with_unit(u.Jy / u.beam),
+        )
+
+    # -- harmonisation helpers ----------------------------------------------------------
+    def _main_beam_temperature(self) -> u.Quantity:
+        """The data as main-beam brightness temperature T_mb, demanding the calibration scale.
+
+        K is never silently T_mb: the cube must declare :attr:`calibration_scale`. ``T_A*`` is
+        divided by :attr:`eta_mb` (required) to reach the main-beam scale; ``T_mb`` / ``T_R*``
+        are already on it (ADR-0003)."""
+        scale = self.metadata.calibration_scale
+        if scale is None:
+            raise MissingContextError(
+                "a calibration_scale (T_mb | T_A* | T_R*) is required to treat this Kelvin "
+                "cube as a brightness temperature; astrolyze never silently assumes K = T_mb "
+                "(ADR-0003) — declare the scale on the header/metadata"
+            )
+        scale = coerce_calibration_scale(scale)
+        data = self._data_quantity
+        if scale is CalibrationScale.T_A_STAR:
+            if self.metadata.eta_mb is None:
+                raise MissingContextError(
+                    "eta_mb (main-beam efficiency) is required for a T_A* cube: T_mb = "
+                    "T_A*/eta_mb must be applied before converting to surface brightness; "
+                    "astrolyze never assumes an efficiency"
+                )
+            data = data / float(self.metadata.eta_mb)
+        return data
+
+    def _per_channel_rj_factor(self) -> np.ndarray:
+        """The per-channel Rayleigh-Jeans factor ``I_ν/T_mb`` (MJy/sr per K), one per channel.
+
+        K↔I_ν depends on ν, and a PPV cube spans a range of frequencies, so a single
+        band-centre frequency would bias every off-centre channel. Each factor is evaluated at
+        that channel's **own** authoritative absolute frequency (``coordinates.frequency``,
+        derived under the object's stated convention + rest frequency — absent, it raises;
+        ADR-0003). It is shaped to broadcast over the (y, x) plane, so ``T·factor`` (harmonise)
+        and ``I_ν/factor`` (the K view) are an exact inverse pair — bit-stable per channel."""
+        frequencies = (
+            self.coordinates.frequency
+        )  # authoritative; raises if context absent
+        factor = np.array(
+            [
+                convert(
+                    1.0 * u.K,
+                    _SURFACE_BRIGHTNESS_UNIT,
+                    rest_frequency=nu,
+                    temperature_scale="rayleigh_jeans",
+                ).to_value(_SURFACE_BRIGHTNESS_UNIT)
+                for nu in frequencies
+            ],
+            dtype="float64",
+        )
+        return factor[:, np.newaxis, np.newaxis]  # broadcast over (channel, y, x)
+
+    def _per_channel_convert(self, data, target, *, temperature_scale):
+        """Convert ``data`` (a 3D Quantity) to ``target`` channel by channel at each channel's
+        own absolute frequency — the general (e.g. nonlinear Planck) path. Delegates the
+        brightness maths to ``units.convert``; only the per-channel ν is added here."""
+        frequencies = self.coordinates.frequency
+        out = np.empty(data.shape, dtype="float64")
+        target_unit = u.Unit(target)
+        for k, nu in enumerate(frequencies):
+            out[k] = convert(
+                data[k],
+                target_unit,
+                rest_frequency=nu,
+                temperature_scale=temperature_scale,
+            ).to_value(target_unit)
+        return out * target_unit
+
     # -- matching helpers ---------------------------------------------------------------
     def _require_larger_beam(self, beam: radio_beam.Beam) -> None:
         """Raise unless *beam* is reachable from the current beam by convolution (i.e. larger).
@@ -398,3 +571,8 @@ def _build_cube(data: u.Quantity, wcs, beam) -> SpectralCube:
     if beam is not None:
         return SpectralCube(data=data, wcs=wcs, beam=beam)
     return SpectralCube(data=data, wcs=wcs)
+
+
+def _is_temperature_unit(unit) -> bool:
+    """Whether *unit* is a brightness temperature (K-equivalent) — routes harmonisation."""
+    return u.Unit(unit).is_equivalent(u.K)

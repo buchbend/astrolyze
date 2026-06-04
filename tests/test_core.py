@@ -459,3 +459,202 @@ def test_spectrum_exposes_the_spectral_coordinate_subset(cube):
     assert u.isclose(coords.frequency[0], REST, rtol=1e-9)
     # ...and no sky/pixel subset on a 1D spectrum.
     assert not hasattr(coords, "longitude") or coords.longitude is None
+
+
+# ======================================================================================
+# Issue #25 — Cube.harmonize_to_surface_brightness() → I_ν in MJy/sr as the authoritative
+# representation, with derived-view accessors for K and Jy/beam, and the new physics: the
+# calibration TEMPERATURE SCALE (T_mb / T_A* / T_R*) astrolyze did not model.
+#
+# Correctness obligation:
+#   - harmonize returns a Cube in MJy/sr (specific intensity I_ν), context preserved;
+#   - K↔I_ν is the PER-CHANNEL Rayleigh-Jeans relation I_ν = 2kν²/c²·T_mb at the per-channel
+#     ν (NOT band-center), and K → I_ν → K is bit-stable per channel;
+#   - a Kelvin cube with NO declared calibration_scale RAISES (no silent K = T_mb);
+#   - T_A* without eta_mb RAISES; with eta_mb it applies T_mb = T_A*/eta_mb then converts;
+#   - derived accessors return K (needs the scale + RJ/Planck law) and Jy/beam (needs a beam)
+#     WITHOUT mutating the authoritative I_ν cube;
+#   - a flux↔temperature crossing without the required context raises MissingContextError.
+# ======================================================================================
+def _kelvin_header(calibration_scale=None, eta_mb=None):
+    """The reference cube header, but in Kelvin (a temperature-valued cube)."""
+    h = _cube_header()
+    h["BUNIT"] = "K"
+    if calibration_scale is not None:
+        h["HIERARCH ASTROLYZE CALSCALE"] = calibration_scale
+    if eta_mb is not None:
+        h["HIERARCH ASTROLYZE ETAMB"] = eta_mb
+    return h
+
+
+def _kelvin_cube(tmp_path, *, calibration_scale=None, eta_mb=None, fill=12.0):
+    path = tmp_path / "ngc0628_co21_K.fits"
+    data = np.full((4, 3, 3), fill, dtype="float64")
+    fits.writeto(path, data, _kelvin_header(calibration_scale, eta_mb), overwrite=True)
+    return Cube.from_loaded(load(path))
+
+
+def _per_channel_MJy_sr(temperatures, frequencies):
+    """The expected per-channel RJ I_ν for a stack of per-channel T_mb values, computed
+    independently through the unit layer at EACH channel's own absolute frequency."""
+    out = np.empty_like(np.asarray(temperatures, dtype="float64"))
+    for k, nu in enumerate(frequencies):
+        out[k] = convert(
+            temperatures[k] * u.K,
+            u.MJy / u.sr,
+            rest_frequency=nu,
+            temperature_scale="rayleigh_jeans",
+        ).to_value(u.MJy / u.sr)
+    return out * (u.MJy / u.sr)
+
+
+# --------------------------------------------------------------------------------------
+# AC: harmonize returns a Cube in MJy/sr (I_ν), context preserved
+# --------------------------------------------------------------------------------------
+def test_harmonize_returns_cube_in_MJy_sr_with_context(tmp_path):
+    cube = _kelvin_cube(tmp_path, calibration_scale="T_mb")
+    harmonized = cube.harmonize_to_surface_brightness()
+    assert isinstance(harmonized, Cube)
+    assert harmonized.unit.is_equivalent(u.MJy / u.sr)
+    assert harmonized.unit == u.MJy / u.sr
+    # physical context travels through the harmonisation.
+    assert u.isclose(harmonized.rest_frequency, REST, rtol=1e-12)
+    assert harmonized.velocity_convention is VelocityConvention.RADIO
+    assert u.isclose(harmonized.beam.major, BEAM.major, rtol=1e-12)
+    assert harmonized.shape == cube.shape
+
+
+# --------------------------------------------------------------------------------------
+# AC: K↔I_ν uses the PER-CHANNEL RJ relation at the per-channel ν (not band-center)
+# --------------------------------------------------------------------------------------
+def test_harmonize_uses_per_channel_frequency_not_band_center(tmp_path):
+    cube = _kelvin_cube(tmp_path, calibration_scale="T_mb", fill=12.0)
+    harmonized = cube.harmonize_to_surface_brightness()
+
+    freqs = cube.coordinates.frequency  # authoritative per-channel ν
+    expected = _per_channel_MJy_sr([12.0] * 4, freqs)
+    got = harmonized._data_quantity.to(u.MJy / u.sr)
+    for k in range(4):
+        assert u.allclose(got[k], expected[k], rtol=1e-12)
+
+    # The channels are at DIFFERENT frequencies, so a per-channel (not band-center) law
+    # gives DIFFERENT I_ν for the same 12 K — prove the per-channel ν is actually used.
+    assert not np.isclose(
+        expected[0].to_value(u.MJy / u.sr), expected[3].to_value(u.MJy / u.sr)
+    )
+
+
+def test_harmonize_K_to_Inu_to_K_round_trip_is_bit_stable_per_channel(tmp_path):
+    cube = _kelvin_cube(tmp_path, calibration_scale="T_mb", fill=8.0)
+    harmonized = cube.harmonize_to_surface_brightness()
+    back = harmonized.as_kelvin(temperature_scale="rayleigh_jeans")
+    # bit-stable per channel: harmonisation multiplies K by the per-channel RJ factor and the
+    # Kelvin view divides I_ν by the SAME per-channel factor, so the round-trip recovers the
+    # original Kelvin values exactly (np.array_equal, not just close) — issue #25.
+    original = cube._data_quantity.to_value(u.K)
+    recovered = back._data_quantity.to_value(u.K)
+    assert np.array_equal(recovered, original)
+
+
+# --------------------------------------------------------------------------------------
+# AC: a temperature cube with NO declared calibration_scale RAISES (no silent K = T_mb)
+# --------------------------------------------------------------------------------------
+def test_harmonize_temperature_cube_without_calibration_scale_raises(tmp_path):
+    cube = _kelvin_cube(tmp_path, calibration_scale=None)
+    assert cube.unit == u.K
+    with pytest.raises(MissingContextError, match="calibration_scale"):
+        cube.harmonize_to_surface_brightness()
+
+
+# --------------------------------------------------------------------------------------
+# AC: T_A* without eta_mb RAISES; with eta_mb it applies T_mb = T_A*/eta_mb then converts
+# --------------------------------------------------------------------------------------
+def test_harmonize_Tastar_without_eta_mb_raises(tmp_path):
+    cube = _kelvin_cube(tmp_path, calibration_scale="T_A*", eta_mb=None)
+    with pytest.raises(MissingContextError, match="eta_mb"):
+        cube.harmonize_to_surface_brightness()
+
+
+def test_harmonize_Tastar_with_eta_mb_applies_main_beam_correction(tmp_path):
+    eta = 0.8
+    ta_star = 12.0
+    cube = _kelvin_cube(tmp_path, calibration_scale="T_A*", eta_mb=eta, fill=ta_star)
+    harmonized = cube.harmonize_to_surface_brightness()
+
+    # T_mb = T_A*/eta_mb is applied BEFORE the per-channel RJ conversion.
+    freqs = cube.coordinates.frequency
+    expected = _per_channel_MJy_sr([ta_star / eta] * 4, freqs)
+    got = harmonized._data_quantity.to(u.MJy / u.sr)
+    for k in range(4):
+        assert u.allclose(got[k], expected[k], rtol=1e-12)
+
+    # And it is genuinely the corrected (larger) value, not the raw T_A*.
+    raw = _per_channel_MJy_sr([ta_star] * 4, freqs)
+    assert np.all(got[0] > raw[0])
+
+
+# --------------------------------------------------------------------------------------
+# AC: derived accessors (K, Jy/beam) view the authoritative I_ν WITHOUT mutating it
+# --------------------------------------------------------------------------------------
+def test_derived_accessors_do_not_mutate_the_authoritative_Inu_cube(tmp_path):
+    cube = _kelvin_cube(tmp_path, calibration_scale="T_mb", fill=12.0)
+    harmonized = cube.harmonize_to_surface_brightness()
+    before = harmonized._data_quantity.to_value(u.MJy / u.sr).copy()
+
+    k_view = harmonized.as_kelvin(temperature_scale="rayleigh_jeans")
+    jb_view = harmonized.as_jy_per_beam()
+
+    assert isinstance(k_view, Cube)
+    assert k_view.unit.is_equivalent(u.K)
+    assert isinstance(jb_view, Cube)
+    assert jb_view.unit.is_equivalent(u.Jy / u.beam)
+
+    # The authoritative I_ν cube is unchanged by either derived view.
+    assert harmonized.unit == u.MJy / u.sr
+    assert np.array_equal(harmonized._data_quantity.to_value(u.MJy / u.sr), before)
+
+
+def test_as_kelvin_requires_the_brightness_temperature_law(tmp_path):
+    # The K view needs the RJ-vs-Planck law stated; the I_ν cube has no schema field for it
+    # (it is the genuinely-ambiguous one), so omitting it RAISES rather than defaulting.
+    cube = _kelvin_cube(tmp_path, calibration_scale="T_mb")
+    harmonized = cube.harmonize_to_surface_brightness()
+    with pytest.raises(MissingContextError, match="temperature_scale"):
+        harmonized.as_kelvin()
+
+
+def test_as_jy_per_beam_requires_a_beam(tmp_path):
+    # The Jy/beam view needs a beam; an I_ν cube with no beam must refuse rather than guess.
+    cube = _kelvin_cube(tmp_path, calibration_scale="T_mb")
+    harmonized = cube.harmonize_to_surface_brightness()
+    # Strip the beam from the harmonized cube's metadata to model a beam-less map.
+    from dataclasses import replace
+
+    no_beam = Cube(harmonized._sc, replace(harmonized.metadata, beam=None))
+    with pytest.raises(MissingContextError, match="beam"):
+        no_beam.as_jy_per_beam()
+
+
+# --------------------------------------------------------------------------------------
+# AC: a flux↔temperature crossing without the required context raises MissingContextError
+# --------------------------------------------------------------------------------------
+def test_harmonize_Jy_beam_cube_uses_beam_geometry(cube):
+    # The reference fixture cube is Jy/beam: harmonising it to I_ν is pure beam geometry
+    # (no temperature scale needed) and yields MJy/sr.
+    harmonized = cube.harmonize_to_surface_brightness()
+    assert harmonized.unit == u.MJy / u.sr
+    expected = convert(0.5 * u.Jy / u.beam, u.MJy / u.sr, beam=BEAM)  # value irrelevant
+    assert expected.unit.is_equivalent(u.MJy / u.sr)
+
+
+def test_harmonize_temperature_cube_without_rest_frequency_raises(tmp_path):
+    # Crossing temperature -> surface brightness needs the rest frequency for the law; an
+    # archival Kelvin cube without it must raise MissingContextError, not guess.
+    h = _kelvin_header(calibration_scale="T_mb")
+    del h["RESTFRQ"]
+    del h["HIERARCH ASTROLYZE VCONV"]
+    path = tmp_path / "ngc0628_K_no_rest.fits"
+    fits.writeto(path, np.full((4, 3, 3), 12.0), h)
+    cube = Cube.from_loaded(load(path))
+    with pytest.raises(MissingContextError):
+        cube.harmonize_to_surface_brightness()

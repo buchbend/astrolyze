@@ -20,6 +20,7 @@ import radio_beam
 from astropy.io import fits
 
 from astrolyze.io import (
+    CalibrationScale,
     LoadedData,
     Metadata,
     MissingContextError,
@@ -62,6 +63,8 @@ def _full_header():
     h["HIERARCH ASTROLYZE DISTUNIT"] = "Mpc"
     h["HIERARCH ASTROLYZE CALERR"] = 0.1
     h["HIERARCH ASTROLYZE NAMETAG"] = "mom0"
+    h["HIERARCH ASTROLYZE CALSCALE"] = "T_mb"
+    h["HIERARCH ASTROLYZE ETAMB"] = 0.8
     return h
 
 
@@ -114,6 +117,9 @@ def test_parse_required_keywords_from_synthetic_fits(full_fits):
     assert u.isclose(m.distance, 9.84 * u.Mpc, rtol=1e-9)
     assert m.calibration_error == pytest.approx(0.1)
     assert m.name_tag == "mom0"
+    # The calibration TEMPERATURE SCALE + main-beam efficiency (issue #25).
+    assert m.calibration_scale is CalibrationScale.T_MB
+    assert m.eta_mb == pytest.approx(0.8)
 
     assert m.is_complete is True
     assert m.missing == []
@@ -169,7 +175,23 @@ def test_roundtrip_load_save_load_preserves_all_fields(full_fits, tmp_path):
     assert u.isclose(m1.distance, m0.distance, rtol=1e-12)
     assert m1.calibration_error == pytest.approx(m0.calibration_error)
     assert m1.name_tag == m0.name_tag
+    assert m1.calibration_scale is m0.calibration_scale
+    assert m1.eta_mb == pytest.approx(m0.eta_mb)
     assert m1.is_complete is True
+
+
+def test_calibration_scale_and_eta_mb_round_trip_through_the_header(
+    full_fits, tmp_path
+):
+    # The new calibration TEMPERATURE SCALE + eta_mb survive load -> save -> load through the
+    # FITS header projection (issue #25), as the enum (not a bare string) and the float.
+    loaded = load(full_fits)
+    written = save(
+        loaded.data, loaded.metadata, tmp_path / "cal", base_header=loaded.header
+    )
+    m = load(written).metadata
+    assert m.calibration_scale is CalibrationScale.T_MB
+    assert m.eta_mb == pytest.approx(0.8)
 
 
 def test_distance_roundtrips_with_its_unit(full_fits, tmp_path):

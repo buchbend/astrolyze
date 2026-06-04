@@ -27,10 +27,12 @@ import radio_beam
 from astropy.io import fits
 
 from astrolyze.units import (
+    CalibrationScale,
     ContextGap,
     Insufficiency,
     MissingContextError,
     VelocityConvention,
+    coerce_calibration_scale,
     coerce_velocity_convention,
 )
 
@@ -63,6 +65,10 @@ KEY_LINE_PREFIX = "ASTROLYZE LINE"
 KEY_NLINES = (
     "ASTROLYZE NLINES"  # number of line entries (read bound for the indexed cards)
 )
+# The calibration TEMPERATURE SCALE (T_mb/T_A*/T_R*) + main-beam efficiency (issue #25):
+# the physical context astrolyze needs to harmonise a Kelvin cube to surface brightness.
+KEY_CALSCALE = "ASTROLYZE CALSCALE"
+KEY_ETAMB = "ASTROLYZE ETAMB"
 
 SCHEMA_VERSION = 1
 DEFAULT_DISTANCE_UNIT = u.Mpc
@@ -118,6 +124,13 @@ class Metadata:
     #: Extensible line list (issue #24): one :class:`Line` for a single-line cube, many for
     #: broadband. The primary line mirrors :attr:`rest_frequency` (the optional primary line).
     lines: list[Line] = field(default_factory=list)
+    #: Calibration TEMPERATURE SCALE the (Kelvin) data is on — T_mb/T_A*/T_R* (issue #25).
+    #: Distinct from the RJ-vs-Planck brightness *law*: it says whether a beam-efficiency
+    #: correction is owed before the data is a main-beam brightness temperature. Kelvin is
+    #: ambiguous about this, so harmonising a temperature cube demands it (ADR-0003).
+    calibration_scale: CalibrationScale | None = None
+    #: Main-beam efficiency eta_mb, required to move T_A* onto the T_mb scale (issue #25).
+    eta_mb: float | None = None
     #: Provenance seam (ADR-0006 (c)): unused in v1, reserved so the heterogeneity-tracking
     #: layer can attach without breaking the header contract.
     provenance: object | None = field(default=None, repr=False)
@@ -179,6 +192,8 @@ class Metadata:
             spectral_frame=_read_spectral_frame(header),
             systemic_velocity=_read_systemic_velocity(header),
             lines=_read_lines(header),
+            calibration_scale=_read_calibration_scale(header.get(KEY_CALSCALE)),
+            eta_mb=_opt_float(header.get(KEY_ETAMB)),
         )
 
     def to_header(self, base: fits.Header | None = None) -> fits.Header:
@@ -228,6 +243,10 @@ class Metadata:
                         f"{base} RESTFRQ",
                         (line.rest_frequency.to_value(u.Hz), "Hz"),
                     )
+        if self.calibration_scale is not None:
+            _put(header, KEY_CALSCALE, CalibrationScale(self.calibration_scale).value)
+        if self.eta_mb is not None:
+            _put(header, KEY_ETAMB, float(self.eta_mb))
         return header
 
     # -- attrs (de)serialisation -------------------------------------------------------
@@ -288,6 +307,10 @@ class Metadata:
                 }
                 for line in self.lines
             ]
+        if self.calibration_scale is not None:
+            attrs["calibration_scale"] = CalibrationScale(self.calibration_scale).value
+        if self.eta_mb is not None:
+            attrs["eta_mb"] = float(self.eta_mb)
         return attrs
 
     @classmethod
@@ -328,6 +351,8 @@ class Metadata:
                 )
                 for entry in attrs.get("lines", [])
             ],
+            calibration_scale=_read_calibration_scale(attrs.get("calibration_scale")),
+            eta_mb=_opt_float(attrs.get("eta_mb")),
         )
 
 
@@ -368,6 +393,12 @@ def _read_convention(header: fits.Header) -> VelocityConvention | None:
 
 def _read_unit(value) -> u.UnitBase | None:
     return u.Unit(value) if value else None
+
+
+def _read_calibration_scale(value) -> CalibrationScale | None:
+    """Coerce a stored calibration-scale token (header card / attrs string) to the enum;
+    ``None`` (the absent case) passes through unchanged (lazy enforcement, ADR-0006 ii)."""
+    return coerce_calibration_scale(value) if value is not None else None
 
 
 def _read_distance(header: fits.Header) -> u.Quantity | None:
