@@ -11,6 +11,7 @@ import astropy.units as u
 
 from astrolyze.io import Metadata
 
+from . import _coords
 from ._base import ContextCarrier
 
 
@@ -38,6 +39,23 @@ class Map(ContextCarrier):
 
     def _with_data(self, new_quantity: u.Quantity) -> "Map":
         return Map(new_quantity, self._wcs, self._metadata_with_unit(new_quantity.unit))
+
+    # -- coordinate-array + validity emission (issue #26) -------------------------------
+    @property
+    def coordinates(self) -> _coords.AxisCoordinates:
+        """The sky / pixel coordinate subset, read from the stored WCS (no reparse). A 2D map
+        has no spectral axis, so ``frequency`` / ``delta_v`` are ``None``."""
+        longitude, latitude = _coords.sky_maps_from_wcs(self._wcs, self.shape)
+        return _coords.AxisCoordinates(
+            longitude=longitude,
+            latitude=latitude,
+            pixel_scale=_coords.pixel_scale(self._wcs),
+        )
+
+    @property
+    def validity(self) -> _coords.Validity:
+        """Validity descriptor: blanked voxels as ``NaN`` + a boolean finite-data mask."""
+        return _coords.validity_of(self._data)
 
     # -- thin passthroughs --------------------------------------------------------------
     @property

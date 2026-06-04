@@ -18,6 +18,7 @@ from spectral_cube import SpectralCube
 
 from astrolyze.io import Metadata
 
+from . import _coords
 from ._base import ContextCarrier, _emit
 from .map import Map
 from .spectrum import Spectrum
@@ -247,6 +248,39 @@ class Cube(ContextCarrier):
     def _with_data(self, new_quantity: u.Quantity) -> "Cube":
         sc = _build_cube(new_quantity, self._sc.wcs, self.metadata.beam)
         return Cube(sc, self._metadata_with_unit(new_quantity.unit))
+
+    # -- coordinate-array + validity emission (issue #26) -------------------------------
+    @property
+    def coordinates(self) -> _coords.AxisCoordinates:
+        """Per-axis physical coordinate arrays as ``Quantity``, read from the WCS / spectral
+        axis already parsed (no reparse). The absolute frequency is authoritative; the
+        per-line Δv is derived from it under the object's convention + rest frequency, and
+        raises if that context is absent (no silent guess — ADR-0003)."""
+        longitude, latitude = _coords.sky_coordinate_maps(
+            self._sc.spatial_coordinate_map
+        )
+        return _coords.AxisCoordinates(
+            frequency=_coords.absolute_frequency(
+                self.spectral_axis,
+                rest_frequency=self.rest_frequency,
+                convention=self.velocity_convention,
+            ),
+            delta_v=_coords.delta_v(
+                self.spectral_axis,
+                rest_frequency=self.rest_frequency,
+                convention=self.velocity_convention,
+            ),
+            longitude=longitude,
+            latitude=latitude,
+            pixel_scale=_coords.pixel_scale(self._sc.wcs),
+        )
+
+    @property
+    def validity(self) -> _coords.Validity:
+        """Validity descriptor: blanked / edge / outside-coverage voxels as ``NaN`` + a
+        boolean finite-data mask. Derived from the data, so it travels through a subcube
+        slice (mask-of-a-slice == slice-of-the-mask)."""
+        return _coords.validity_of(self._data_quantity)
 
     # -- thin passthroughs --------------------------------------------------------------
     @property
