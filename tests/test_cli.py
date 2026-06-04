@@ -60,8 +60,16 @@ def _base_header(bunit):
     return h
 
 
+def _base_header_with_rest(bunit):
+    """A schema-complete cube header (radio convention + rest frequency)."""
+    h = _base_header(bunit)
+    h["RESTFRQ"] = (REST_HZ, "Hz")
+    return h
+
+
 def _write(path, header, shape=(5, 6, 6)):
     """A small synthetic cube with a gradient so the moment-0 image has real range."""
+    path.parent.mkdir(parents=True, exist_ok=True)
     data = np.arange(np.prod(shape), dtype="float32").reshape(shape)
     fits.writeto(path, data, header)
     return path
@@ -111,6 +119,60 @@ def test_init_is_idempotent_via_cli(tmp_path):
     # a second run on the same dir must also succeed (no clobber, no error)
     result = runner.invoke(app, ["init", str(root)])
     assert result.exit_code == 0, _all_output(result)
+
+
+# --------------------------------------------------------------------------------------
+# ingest: the merciless gate + manifest list (ADR-0009)
+# --------------------------------------------------------------------------------------
+def test_ingest_reports_accepted_and_rejected(tmp_path):
+    root = tmp_path / "study"
+    assert runner.invoke(app, ["init", str(root)]).exit_code == 0
+    # one complete cube (accepted) and one incomplete (rejected, naming the gap)
+    _write((root / "data/raw/good.fits"), _base_header_with_rest("K"))
+    _write((root / "data/raw/bad.fits"), _base_header("Jy/beam"))  # no rest freq / vconv
+
+    result = runner.invoke(app, ["ingest", str(root)])
+    assert result.exit_code == 0, _all_output(result)
+    out = _all_output(result)
+    assert "good.fits" in out and "bad.fits" in out
+    assert "rest_frequency" in out  # the rejected file's missing field is named
+    low = out.lower()
+    assert "accept" in low and "reject" in low
+
+
+def test_ingest_errors_when_not_an_experiment(tmp_path):
+    # A plain directory with no data/raw/ is not an experiment — fail clearly, don't crash.
+    result = runner.invoke(app, ["ingest", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "raw" in _all_output(result).lower()
+
+
+def test_manifest_list_shows_registered_after_ingest(tmp_path):
+    root = tmp_path / "study"
+    runner.invoke(app, ["init", str(root)])
+    _write((root / "data/raw/good.fits"), _base_header_with_rest("K"))
+    runner.invoke(app, ["ingest", str(root)])
+
+    result = runner.invoke(app, ["manifest", "list", str(root)])
+    assert result.exit_code == 0, _all_output(result)
+    out = _all_output(result)
+    assert "NGC0628" in out
+    assert "good.fits" in out
+
+
+def test_manifest_list_filters_by_object(tmp_path):
+    root = tmp_path / "study"
+    runner.invoke(app, ["init", str(root)])
+    _write((root / "data/raw/good.fits"), _base_header_with_rest("K"))
+    runner.invoke(app, ["ingest", str(root)])
+
+    hit = runner.invoke(app, ["manifest", "list", str(root), "--object", "NGC0628"])
+    assert hit.exit_code == 0
+    assert "good.fits" in _all_output(hit)
+
+    miss = runner.invoke(app, ["manifest", "list", str(root), "--object", "UNKNOWN"])
+    assert miss.exit_code == 0
+    assert "good.fits" not in _all_output(miss)
 
 
 # --------------------------------------------------------------------------------------

@@ -37,6 +37,12 @@ app = typer.Typer(
     no_args_is_help=True,
     help="astrolyze — radio/sub-mm PPV cubes and spectra, the house way.",
 )
+# `astrolyze manifest …` — read-only inspection of an experiment's dataset registry. The
+# registry is *generated* by `ingest`; this group only queries it (no hand-editing path).
+manifest_app = typer.Typer(
+    no_args_is_help=True, help="Inspect an experiment's dataset manifest."
+)
+app.add_typer(manifest_app, name="manifest")
 console = Console()
 err_console = Console(stderr=True)
 
@@ -118,6 +124,67 @@ def init(
 
     verb = "ready" if existed else "created"
     console.print(f"[green]{verb}[/green] experiment at {experiment.root}")
+
+
+@app.command()
+def ingest(
+    directory: Path = typer.Argument(
+        ...,
+        exists=True,
+        file_okay=False,
+        help="Experiment directory to ingest (its data/raw/ is scanned).",
+    ),
+) -> None:
+    """Validate every dataset in DIRECTORY's ``data/raw/`` and register what is complete.
+
+    The merciless gate (ADR-0009): each raw file's header is checked against the metadata
+    schema. Files carrying the mandatory physical context (rest frequency, velocity
+    convention) are *accepted* and recorded in the manifest; files missing it are *rejected*,
+    with the exact missing fields named so you know what to fix. Rejected files are never
+    registered, and ``raw/`` is never modified. Fix a header and re-run — re-ingest updates the
+    same row, it does not duplicate.
+    """
+    from astrolyze.experiment import Experiment  # deferred (pulls dynaconf / SQLAlchemy)
+    from astrolyze.experiment import ingest as run_ingest
+
+    experiment = Experiment(directory)
+    if not experiment.raw.is_dir():
+        err_console.print(
+            f"[red]error:[/red] {directory} is not an astrolyze experiment "
+            "(no data/raw/). Run `astrolyze init` first."
+        )
+        raise typer.Exit(code=1)
+
+    report = run_ingest(experiment)
+
+    if report.accepted:
+        accepted = Table(title="accepted — registered in the manifest")
+        accepted.add_column("dataset", style="bold")
+        accepted.add_column("object")
+        accepted.add_column("species")
+        for item in report.accepted:
+            m = item.record.metadata
+            accepted.add_row(item.source_path, m.object or "—", m.species or "—")
+        console.print(accepted)
+
+    if report.rejected:
+        rejected = Table(title="rejected — not registered")
+        rejected.add_column("dataset", style="bold")
+        rejected.add_column("reason")
+        for item in report.rejected:
+            reason = (
+                f"unreadable: {item.error}"
+                if item.error is not None
+                else "missing mandatory context: " + ", ".join(item.missing)
+            )
+            rejected.add_row(item.source_path, reason)
+        console.print(rejected)
+
+    colour = "green" if report.n_rejected == 0 else "yellow"
+    console.print(
+        f"[{colour}]ingested[/{colour}] {experiment.root}: "
+        f"{report.n_accepted} accepted, {report.n_rejected} rejected"
+    )
 
 
 @app.command()
@@ -211,6 +278,70 @@ def moment0(
 
     fig.savefig(out_path, bbox_inches="tight", dpi=150)
     console.print(f"[green]wrote[/green] {out_path}  ({converted.unit})")
+
+
+@manifest_app.command("list")
+def manifest_list(
+    directory: Path = typer.Argument(
+        ...,
+        exists=True,
+        file_okay=False,
+        help="Experiment directory whose manifest to list.",
+    ),
+    obj: Optional[str] = typer.Option(
+        None, "--object", "-O", help="Filter by object (e.g. NGC0628)."
+    ),
+    species: Optional[str] = typer.Option(
+        None, "--species", "-s", help="Filter by species (e.g. CO21)."
+    ),
+) -> None:
+    """List the datasets registered in DIRECTORY's manifest (optionally filtered).
+
+    Read-only: the manifest is generated and kept in sync by ``astrolyze ingest`` — this just
+    shows what is registered, so you can find datasets by object or species instead of grepping
+    filenames.
+    """
+    from astrolyze.experiment import Experiment, Manifest  # deferred (dynaconf / SQLAlchemy)
+
+    manifest = Manifest.for_experiment(Experiment(directory))
+    filters = {}
+    if obj is not None:
+        filters["object"] = obj
+    if species is not None:
+        filters["species"] = species
+    records = manifest.query(**filters) if filters else manifest.all()
+
+    if not records:
+        scope = " matching the filter" if filters else ""
+        console.print(f"[yellow]no datasets registered{scope}[/yellow] in {directory}")
+        return
+
+    table = Table(title=f"dataset manifest — {directory}")
+    table.add_column("id", justify="right")
+    table.add_column("dataset", style="bold")
+    table.add_column("object")
+    table.add_column("telescope")
+    table.add_column("species")
+    table.add_column("rest freq")
+    table.add_column("doi")
+    for record in sorted(records, key=lambda r: r.id):
+        m = record.metadata
+        # `is not None`, not truthiness: bool() of an astropy Quantity is ambiguous and raises.
+        rest = (
+            f"{m.rest_frequency.to(u.GHz):.6g}"
+            if m.rest_frequency is not None
+            else "—"
+        )
+        table.add_row(
+            str(record.id),
+            record.source_path,
+            m.object or "—",
+            m.telescope or "—",
+            m.species or "—",
+            rest,
+            record.doi or "—",
+        )
+    console.print(table)
 
 
 if __name__ == "__main__":  # pragma: no cover
