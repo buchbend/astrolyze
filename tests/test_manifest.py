@@ -139,7 +139,10 @@ def test_query_unknown_filter_raises(manifest):
 def test_all_returns_every_registered_dataset(manifest):
     manifest.register(_complete_metadata(), "data/raw/a.fits")
     manifest.register(_complete_metadata(), "data/raw/b.fits")
-    assert {r.source_path for r in manifest.all()} == {"data/raw/a.fits", "data/raw/b.fits"}
+    assert {r.source_path for r in manifest.all()} == {
+        "data/raw/a.fits",
+        "data/raw/b.fits",
+    }
 
 
 # --------------------------------------------------------------------------------------
@@ -147,7 +150,9 @@ def test_all_returns_every_registered_dataset(manifest):
 # --------------------------------------------------------------------------------------
 def test_reregister_same_path_does_not_duplicate(manifest):
     first = manifest.register(_complete_metadata(), "data/raw/a.fits", doi="10.1/first")
-    second = manifest.register(_complete_metadata(), "data/raw/a.fits", doi="10.2/second")
+    second = manifest.register(
+        _complete_metadata(), "data/raw/a.fits", doi="10.2/second"
+    )
 
     assert second.id == first.id  # stable id across re-ingest
     assert len(manifest.all()) == 1
@@ -185,7 +190,9 @@ def test_partial_metadata_persists_optional_fields_as_none(manifest):
 # --------------------------------------------------------------------------------------
 def test_file_backend_persists_across_instances(tmp_path):
     url = f"sqlite:///{tmp_path / 'manifest.db'}"
-    record = Manifest(url).register(_complete_metadata(), "data/raw/a.fits", doi="10.3/x")
+    record = Manifest(url).register(
+        _complete_metadata(), "data/raw/a.fits", doi="10.3/x"
+    )
 
     reopened = Manifest(url)  # fresh instance, same DB file on disk
     got = reopened.get(record.id)
@@ -207,13 +214,18 @@ def test_for_experiment_places_db_inside_the_experiment(tmp_path):
     # The default config db_url is relative (sqlite:///manifest.db); it must land inside the
     # experiment regardless of the process CWD, and round-trip on reopen.
     assert (experiment.root / "manifest.db").is_file()
-    assert Manifest.for_experiment(experiment).get(record.id).source_path == "data/raw/a.fits"
+    assert (
+        Manifest.for_experiment(experiment).get(record.id).source_path
+        == "data/raw/a.fits"
+    )
 
 
 def test_for_experiment_honours_an_edited_config_db_url(tmp_path):
     experiment = Experiment.init(tmp_path / "study")
     experiment.config.write_text('[manifest]\ndb_url = "sqlite:///registry.db"\n')
-    Manifest.for_experiment(experiment).register(_complete_metadata(), "data/raw/a.fits")
+    Manifest.for_experiment(experiment).register(
+        _complete_metadata(), "data/raw/a.fits"
+    )
     assert (experiment.root / "registry.db").is_file()
 
 
