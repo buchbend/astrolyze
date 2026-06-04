@@ -14,7 +14,7 @@ from spectral_cube import SpectralCube
 
 from astrolyze.io import Metadata
 
-from ._base import ContextCarrier
+from ._base import ContextCarrier, _emit
 from .map import Map
 from .spectrum import Spectrum
 
@@ -52,6 +52,7 @@ class Cube(ContextCarrier):
         The moment changes the physical unit (e.g. Jy/beam -> Jy/beam km/s); the beam, rest
         frequency and convention are preserved on the resulting :class:`Map`."""
         proj = self._sc.moment(order=order, axis=axis)
+        _emit("moment", params={"order": order, "axis": axis})
         return Map(
             proj, getattr(proj, "wcs", None), self._metadata_with_unit(proj.unit)
         )

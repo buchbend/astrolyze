@@ -127,9 +127,9 @@ exp.raw, exp.interim, exp.figures         # resolved skeleton paths
 role_of(exp, exp.raw / "archival.fits")   # -> Role.RAW  (interim / processed / output / None)
 ```
 
-The **dataset manifest** and the merciless **`ingest`** gate (both below) build on this
-skeleton. Saving derived products with header-derived names and the always-on run log follow in
-later slices (ADR-0009/0010).
+The **dataset manifest**, the merciless **`ingest`** gate, and the always-on **run log** (all
+below) build on this skeleton. Saving derived products with header-derived names follows in a
+later slice (ADR-0006).
 
 ### The dataset manifest
 
@@ -238,6 +238,54 @@ The mandatory-context set defaults to the schema baseline (`rest_frequency`,
 `velocity_convention`) and is **overridable** — explicitly with `ingest(exp, required=(…))`, or
 per-experiment via `[ingest] required_context` in `config.toml` (e.g. add `"beam"` for a study
 that requires a resolved beam). An override naming a non-schema field is a clear error.
+
+### The always-on run log
+
+"What ran" is captured **automatically** — you never write a log by hand, and an agent never
+has to *remember* to (ADR-0010). Open a run, and from then on every astrolyze operation appends
+a record:
+
+```python
+from astrolyze.experiment import Experiment, RunLog
+from astrolyze.core import Cube
+from astrolyze.io import load
+
+exp = Experiment.init("study")
+with RunLog.open(exp) as run:                       # per-run append-only JSONL in logs/
+    cube = Cube.from_loaded(load(exp.raw / "ngc0628_co21.fits"))
+    mom0 = cube.moment0().to("K km/s")
+    fig, ax = mom0.plot()
+    print(run.path)                                 # study/logs/run-<id>.jsonl
+```
+
+Each `load` / `save` / `moment*` / `.to` / `.plot` writes one JSON line carrying the operation,
+its params, inputs/outputs (paths/ids), the software versions (astrolyze + key deps), the data
+version (the `io` schema version + any manifest ids), and a UTC timestamp:
+
+```json
+{"schema": 1, "run_id": "20260604T093737-dc781abb", "timestamp": "2026-06-04T09:37:37.057+00:00",
+ "op": "moment", "params": {"order": 0, "axis": 0}, "inputs": [], "outputs": [],
+ "software": {"astrolyze": "0.1.0.dev0", "astropy": "7.2.0", …}, "data": {"schema_version": 1, "manifest_ids": []}}
+```
+
+- **Per-run file/id.** Every `RunLog.open` gets its own id and `run-<id>.jsonl`, so separate
+  sessions never tangle. The file is **append-only** (records are never overwritten) — read it
+  back with `run.entries()` (a list of parsed records) or just parse the JSONL.
+- **A no-op outside an experiment.** With no run open, the emit seam does nothing — the library
+  (and the tracer spine) runs unchanged for quick one-off use. There is no "log" command and no
+  flag to remember: opening a run is the only switch.
+- **Narrative is offered, never enforced** (ADR-0010): the run log records *what* ran; the
+  human "why / what it means" account is voluntary, and any narrative you write should point at
+  real run-log/figure artifacts (the natural place to compose it is the future UI — not built).
+
+```python
+from astrolyze.experiment import RunLog, emit
+
+with RunLog.open(exp) as run:
+    ...                                  # operations emit automatically
+    emit("note", params={"why": "first look at the inner ring"})   # add your own record too
+records = run.entries()                  # [{op: "load", …}, {op: "moment", …}, …]
+```
 
 ## Try it on real data
 
