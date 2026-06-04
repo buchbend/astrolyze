@@ -18,6 +18,7 @@ except ImportError:  # pragma: no cover - older specutils
 
 from astrolyze.io import Metadata
 
+from . import _coords
 from ._base import ContextCarrier
 
 
@@ -48,6 +49,31 @@ class Spectrum(ContextCarrier):
             flux=new_quantity, spectral_axis=self._spec.spectral_axis
         )
         return Spectrum(spec, self._metadata_with_unit(new_quantity.unit))
+
+    # -- coordinate-array + validity emission (issue #26) -------------------------------
+    @property
+    def coordinates(self) -> _coords.AxisCoordinates:
+        """The spectral coordinate subset, read from the spectral axis (no reparse). The
+        absolute frequency is authoritative; the per-line Δv is derived from it under the
+        object's convention + rest frequency, and raises if absent (no silent guess —
+        ADR-0003). A 1D spectrum has no sky axis, so the sky/pixel fields are ``None``."""
+        return _coords.AxisCoordinates(
+            frequency=_coords.absolute_frequency(
+                self.spectral_axis,
+                rest_frequency=self.rest_frequency,
+                convention=self.velocity_convention,
+            ),
+            delta_v=_coords.delta_v(
+                self.spectral_axis,
+                rest_frequency=self.rest_frequency,
+                convention=self.velocity_convention,
+            ),
+        )
+
+    @property
+    def validity(self) -> _coords.Validity:
+        """Validity descriptor: blanked channels as ``NaN`` + a boolean finite-data mask."""
+        return _coords.validity_of(self.flux)
 
     # -- thin passthroughs --------------------------------------------------------------
     @property

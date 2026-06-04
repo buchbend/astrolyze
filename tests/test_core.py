@@ -260,3 +260,202 @@ def test_no_systemexit_or_print_in_library_code():
         src = src_file.read_text()
         assert "SystemExit" not in src, f"{src_file.name} uses SystemExit"
         assert not re.search(r"\bprint\s*\(", src), f"{src_file.name} calls print()"
+
+
+# ======================================================================================
+# Issue #26 — per-axis physical coordinates + a validity descriptor, READ from the WCS /
+# spectral axis astrolyze already parses (no reparse, no new geometry).
+#
+# Correctness obligation: a scientist (and any downstream consumer) must be able to read,
+# off the core object,
+#   - the per-axis physical coordinate arrays as Quantity (each carrying its own unit):
+#     absolute frequency (authoritative), per-line Δv, sky coordinates, pixel scale;
+#   - *where the data is real* — a validity descriptor exposing blanked / edge / outside-
+#     coverage voxels as NaN plus a boolean finite-data mask;
+# without re-deriving any of it from the header. The frequency is AUTHORITATIVE: it is read
+# from the spectral axis (already velocity here) by the same convention + rest frequency the
+# object carries, so the toolkit never silently guesses the convention (ADR-0003). The
+# values are checked against the WCS directly, and the mask is checked on a cube containing
+# NaNs (and that it travels through a subcube slice: mask-of-a-slice == slice-of-the-mask).
+# ======================================================================================
+@pytest.fixture
+def cube_with_nans(tmp_path):
+    """The reference cube with two blanked voxels — the validity / NaN-mask fixture."""
+    path = tmp_path / "ngc0628_co21_blanked.fits"
+    data = np.ones((4, 3, 3), dtype="float32")
+    data[0, 0, 0] = np.nan  # a single blanked voxel
+    data[3, 2, 2] = (
+        np.nan
+    )  # a second, in a different corner (so a 2x2 slice can exclude it)
+    fits.writeto(path, data, _cube_header())
+    return Cube.from_loaded(load(path))
+
+
+def _wcs_spectral_velocity(cube):
+    """The per-channel velocity, straight off the cube WCS (the VRAD spectral axis)."""
+    return cube._sc.spectral_axis.to(u.km / u.s)
+
+
+# --------------------------------------------------------------------------------------
+# AC: Cube exposes per-axis physical coordinate arrays as Quantity (each with its unit),
+# read from the existing WCS / spectral axis. Values checked against the WCS.
+# --------------------------------------------------------------------------------------
+def test_cube_coordinates_are_quantities_read_from_the_wcs(cube):
+    coords = cube.coordinates
+
+    # absolute frequency is AUTHORITATIVE and carries a frequency unit.
+    assert isinstance(coords.frequency, u.Quantity)
+    assert coords.frequency.unit.is_equivalent(u.Hz)
+    assert coords.frequency.shape == (4,)
+    # the channel at v=0 (CRVAL3) is the rest frequency on the radio convention.
+    assert u.isclose(coords.frequency[0], REST, rtol=1e-9)
+
+    # per-line Δv carries a velocity unit and equals the WCS velocity axis (radio + rest).
+    assert isinstance(coords.delta_v, u.Quantity)
+    assert coords.delta_v.unit.is_equivalent(u.km / u.s)
+    assert u.allclose(
+        coords.delta_v, _wcs_spectral_velocity(cube), rtol=1e-9, atol=1e-6 * u.km / u.s
+    )
+
+    # sky coordinates carry an angular unit and match the WCS world map.
+    assert isinstance(coords.longitude, u.Quantity)
+    assert isinstance(coords.latitude, u.Quantity)
+    assert coords.longitude.unit.is_equivalent(u.deg)
+    assert coords.latitude.unit.is_equivalent(u.deg)
+    lat_wcs, lon_wcs = (
+        cube._sc.spatial_coordinate_map
+    )  # spectral-cube returns [lat, lon]
+    assert u.allclose(coords.longitude, lon_wcs, rtol=1e-12)
+    assert u.allclose(coords.latitude, lat_wcs, rtol=1e-12)
+
+    # pixel scale carries an angular unit and matches CDELT (0.0002 deg per pixel).
+    assert isinstance(coords.pixel_scale, u.Quantity)
+    assert coords.pixel_scale.unit.is_equivalent(u.deg)
+    assert u.allclose(coords.pixel_scale, [2e-4, 2e-4] * u.deg, rtol=1e-9)
+
+
+def test_cube_coordinates_do_not_reparse_the_header(cube, monkeypatch):
+    # The accessor must read the *already-parsed* WCS / spectral axis, never re-open or
+    # re-parse a FITS header. We make any header parse explode and assert the read still works.
+    import astrolyze.io.schema as schema
+
+    def _boom(*a, **k):  # pragma: no cover - only fires on a (forbidden) reparse
+        raise AssertionError("coordinates must not reparse the FITS header")
+
+    monkeypatch.setattr(
+        schema.Metadata, "from_header", classmethod(lambda cls, h: _boom())
+    )
+    coords = cube.coordinates
+    assert coords.frequency.shape == (4,)
+    assert coords.longitude.shape == (3, 3)
+
+
+# --------------------------------------------------------------------------------------
+# AC: per-line Δv is derived from the absolute frequency relative to the metadata's
+# rest_frequency by its velocity_convention — and, when that context is absent, the
+# toolkit does NOT silently guess (ADR-0003): the Δv / frequency accessors raise.
+# --------------------------------------------------------------------------------------
+def test_delta_v_uses_the_objects_convention_and_rest_frequency(cube):
+    # The optical convention gives a *different* Δv for the same line than radio — proving
+    # Δv is derived through the object's stated convention, not assumed.
+    coords = cube.coordinates
+    radio = coords.delta_v
+    nu = coords.frequency
+    expected_radio = nu.to(
+        u.km / u.s,
+        equivalencies=u.doppler_radio(REST),
+    )
+    assert u.allclose(radio, expected_radio, rtol=1e-9, atol=1e-6 * u.km / u.s)
+
+
+def test_velocity_axis_cube_without_rest_or_convention_refuses_to_guess(tmp_path):
+    # A velocity-axis cube whose header omits the rest frequency + convention: it loads
+    # (lazy), but turning the velocity axis into an AUTHORITATIVE absolute frequency needs
+    # the convention astrolyze never assumes (ADR-0003) — so frequency / Δv must raise.
+    h = _cube_header()
+    del h["RESTFRQ"]
+    del h["HIERARCH ASTROLYZE VCONV"]
+    path = tmp_path / "ngc0628_no_context.fits"
+    fits.writeto(path, np.ones((4, 3, 3), dtype="float32"), h)
+    incomplete = Cube.from_loaded(load(path))
+    assert incomplete.is_complete is False
+    with pytest.raises(MissingContextError):
+        _ = incomplete.coordinates.frequency
+    with pytest.raises(MissingContextError):
+        _ = incomplete.coordinates.delta_v
+
+
+# --------------------------------------------------------------------------------------
+# AC: a validity descriptor exposes blanked / edge / coverage voxels as NaN + a boolean
+# finite-data mask. Checked on a cube containing NaNs.
+# --------------------------------------------------------------------------------------
+def test_validity_exposes_nan_and_a_boolean_finite_mask(cube_with_nans):
+    validity = cube_with_nans.validity
+
+    # the finite-data mask is a boolean array the shape of the cube.
+    assert validity.mask.dtype == np.bool_
+    assert validity.mask.shape == cube_with_nans.shape
+    # exactly the two blanked voxels are flagged not-finite; everything else is real.
+    assert not validity.mask[0, 0, 0]
+    assert not validity.mask[3, 2, 2]
+    assert validity.mask.sum() == cube_with_nans.shape[0] * 9 - 2
+
+    # the data view exposes the blanked voxels as NaN (and carries its unit).
+    assert isinstance(validity.data, u.Quantity)
+    assert validity.data.unit.is_equivalent(u.Jy / u.beam)
+    assert np.isnan(validity.data.value[0, 0, 0])
+    assert np.isnan(validity.data.value[3, 2, 2])
+    # mask and NaN agree: the mask is exactly the finite locations of the data.
+    assert np.array_equal(validity.mask, np.isfinite(validity.data.value))
+
+
+def test_validity_mask_travels_through_a_subcube_slice(cube_with_nans):
+    # The mask of a slice must equal the slice of the mask (it travels WITH the data).
+    full_mask = cube_with_nans.validity.mask
+    sub = cube_with_nans[
+        :, 0:2, 0:2
+    ]  # excludes the [.,2,2] blank, keeps the [0,0,0] blank
+    assert isinstance(sub, Cube)
+    mask_of_slice = sub.validity.mask
+    slice_of_mask = full_mask[:, 0:2, 0:2]
+    assert np.array_equal(mask_of_slice, slice_of_mask)
+    # and the surviving blank is still flagged in the sliced descriptor.
+    assert not mask_of_slice[0, 0, 0]
+    assert mask_of_slice.sum() == slice_of_mask.sum()
+
+
+# --------------------------------------------------------------------------------------
+# AC: Map exposes the sky/pixel subset; Spectrum exposes the spectral subset.
+# --------------------------------------------------------------------------------------
+def test_map_exposes_the_sky_pixel_coordinate_subset(cube):
+    channel = cube[0]  # a 2D channel Map
+    assert isinstance(channel, Map)
+    coords = channel.coordinates
+    # sky + pixel scale present...
+    assert coords.longitude.unit.is_equivalent(u.deg)
+    assert coords.latitude.unit.is_equivalent(u.deg)
+    assert u.allclose(coords.pixel_scale, [2e-4, 2e-4] * u.deg, rtol=1e-9)
+    assert coords.longitude.shape == (3, 3)
+    # ...and no spectral axis on a 2D map.
+    assert not hasattr(coords, "frequency") or coords.frequency is None
+
+
+def test_map_validity_exposes_nan_and_mask(cube_with_nans):
+    channel = cube_with_nans[0]  # the channel holding the [0,0] blank
+    validity = channel.validity
+    assert validity.mask.shape == (3, 3)
+    assert not validity.mask[0, 0]
+    assert np.isnan(validity.data.value[0, 0])
+
+
+def test_spectrum_exposes_the_spectral_coordinate_subset(cube):
+    sp = cube[:, 1, 1]
+    assert isinstance(sp, Spectrum)
+    coords = sp.coordinates
+    # absolute frequency (authoritative) + per-line Δv present...
+    assert coords.frequency.unit.is_equivalent(u.Hz)
+    assert coords.delta_v.unit.is_equivalent(u.km / u.s)
+    assert coords.frequency.shape == (4,)
+    assert u.isclose(coords.frequency[0], REST, rtol=1e-9)
+    # ...and no sky/pixel subset on a 1D spectrum.
+    assert not hasattr(coords, "longitude") or coords.longitude is None
