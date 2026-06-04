@@ -47,6 +47,47 @@ class BrightnessTemperatureScale(str, Enum):
     PLANCK = "planck"
 
 
+class CalibrationScale(str, Enum):
+    """The single-dish calibration *temperature scale* a Kelvin-valued cube is on (issue #25).
+
+    This is a DIFFERENT concept from :class:`BrightnessTemperatureScale` (the Rayleigh-Jeans
+    vs Planck brightness LAW): it names which observed temperature scale the calibration put
+    the data on, and so whether a beam-efficiency correction is owed before the data is a
+    main-beam brightness temperature:
+
+    - ``T_mb`` — main-beam brightness temperature: already the source scale; convert directly.
+    - ``T_A*`` — antenna temperature corrected for the atmosphere/spillover/ohmic losses but
+      *not* the main-beam efficiency; ``T_mb = T_A*/eta_mb`` must be applied first.
+    - ``T_R*`` — the forward-beam-corrected scale; treated as directly comparable to ``T_mb``
+      for the point-vs-extended distinction astrolyze does not yet model (no extra factor).
+
+    Kelvin is genuinely ambiguous about which of these it is, so astrolyze never assumes one
+    (ADR-0003): a temperature cube must *declare* its scale before it can be harmonised."""
+
+    T_MB = "T_mb"
+    T_A_STAR = "T_A*"
+    T_R_STAR = "T_R*"
+
+
+def coerce_calibration_scale(value) -> CalibrationScale:
+    """Accept a ``CalibrationScale`` or a string (case-insensitive on the leading ``T``);
+    raise on anything else. The ``*``/``mb`` body is matched verbatim so ``T_A*`` round-trips."""
+    if isinstance(value, CalibrationScale):
+        return value
+    text = str(value)
+    try:
+        return CalibrationScale(text)
+    except ValueError:
+        # Allow a forgiving case on the prefix (t_mb -> T_mb) without inventing new spellings.
+        for scale in CalibrationScale:
+            if text.lower() == scale.value.lower():
+                return scale
+        valid = ", ".join(s.value for s in CalibrationScale)
+        raise ValueError(
+            f"unknown calibration scale {value!r}; expected one of: {valid}"
+        ) from None
+
+
 def coerce_velocity_convention(value) -> VelocityConvention:
     """Accept a ``VelocityConvention`` or a case-insensitive string; raise on anything else."""
     if isinstance(value, VelocityConvention):

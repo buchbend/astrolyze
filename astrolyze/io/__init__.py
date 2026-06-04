@@ -23,7 +23,7 @@ from __future__ import annotations
 
 # Re-exported from the unit layer: the I/O contract reuses the same no-silent-physics types
 # (the velocity convention and the missing-context error) rather than defining parallel ones.
-from astrolyze.units import MissingContextError, VelocityConvention
+from astrolyze.units import CalibrationScale, MissingContextError, VelocityConvention
 
 from . import naming, schema
 from .access import LoadedData, load, save
@@ -41,6 +41,7 @@ __all__ = [
     "project",
     # reused context types
     "VelocityConvention",
+    "CalibrationScale",
     "MissingContextError",
     # submodules
     "schema",

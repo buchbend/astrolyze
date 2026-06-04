@@ -30,7 +30,7 @@ from astropy.wcs import WCS
 
 from astrolyze.io import LoadedData, Metadata, load
 from astrolyze.io.schema import REQUIRED_CONTEXT
-from astrolyze.units import VelocityConvention
+from astrolyze.units import CalibrationScale, VelocityConvention
 
 REST = 230.538 * u.GHz  # CO(2-1)
 BEAM = radio_beam.Beam(major=12 * u.arcsec, minor=10 * u.arcsec, pa=30 * u.deg)
@@ -49,6 +49,8 @@ def _full_metadata() -> Metadata:
         distance=9.84 * u.Mpc,
         calibration_error=0.1,
         name_tag="mom0",
+        calibration_scale=CalibrationScale.T_MB,
+        eta_mb=0.8,
     )
 
 
@@ -191,3 +193,38 @@ def test_load_still_populates_header_wcs_metadata(full_fits):
     assert isinstance(loaded.metadata, Metadata)
     assert loaded.metadata.is_complete is True
     assert loaded.data.shape == (2, 3, 3)
+
+
+# ======================================================================================
+# Issue #25 — the calibration TEMPERATURE SCALE (T_mb / T_A* / T_R*) + main-beam
+# efficiency eta_mb. Both serialize through the attrs projection (#22). This is the
+# new physical context astrolyze did not model: which temperature scale a Kelvin cube is
+# on, and the efficiency needed to move T_A* onto the main-beam scale.
+# ======================================================================================
+def test_calibration_scale_and_eta_mb_project_through_attrs():
+    m = _full_metadata()
+    attrs = m.to_attrs()
+    json.dumps(attrs)  # still JSON-able with the new fields present
+    # The calibration scale projects to its plain enum value; eta_mb to a float.
+    assert attrs["calibration_scale"] == CalibrationScale.T_MB.value
+    assert attrs["eta_mb"] == pytest.approx(0.8)
+
+
+def test_calibration_scale_and_eta_mb_round_trip_through_attrs():
+    m = _full_metadata()
+    back = Metadata.from_attrs(m.to_attrs())
+    # The scale reconstructs as the enum (not a bare string) and eta_mb as the float.
+    assert back.calibration_scale is CalibrationScale.T_MB
+    assert back.eta_mb == pytest.approx(0.8)
+    assert back == m
+
+
+def test_calibration_scale_absent_stays_none_through_attrs():
+    # A cube with no declared calibration scale projects without inventing one (ADR-0003).
+    m = Metadata(object="NGC0628", bunit=u.K)
+    attrs = m.to_attrs()
+    assert "calibration_scale" not in attrs
+    assert "eta_mb" not in attrs
+    back = Metadata.from_attrs(attrs)
+    assert back.calibration_scale is None
+    assert back.eta_mb is None
