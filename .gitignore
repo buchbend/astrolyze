@@ -16,6 +16,9 @@ venv/
 .ruff_cache/
 .mypy_cache/
 
+# Jupyter
+.ipynb_checkpoints/
+
 # data (never commit science data into the toolkit)
 *.fits
 *.zarr/

@@ -38,6 +38,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5", "black>=24"]
+# Tooling to run the interactive tutorial (examples/tutorial.ipynb).
+notebook = ["jupyterlab>=4", "ipykernel>=6"]
 
 [project.urls]
 Homepage = "https://github.com/buchbend/astrolyze"

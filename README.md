@@ -55,8 +55,10 @@ astrolyze moment0 ngc0628_co21.fits -u "K km/s" -o ngc0628_mom0.png
 ```
 
 A small real-data cutout (PHANGS-ALMA NGC 628 CO 2-1) ships in
-`tests/data/ngc0628_co21_cutout.fits.gz` to try it on immediately. See [AGENTS.md](AGENTS.md)
-for the full "how we work with astro data" guide.
+`tests/data/ngc0628_co21_cutout.fits.gz` to try it on immediately. To poke at it
+interactively, `pip install -e ".[notebook]"` and open
+[`examples/tutorial.ipynb`](examples/tutorial.ipynb). See [AGENTS.md](AGENTS.md) for the full
+"how we work with astro data" guide.
 
 ## License
 

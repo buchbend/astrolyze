@@ -202,4 +202,6 @@ python examples/tracer_ngc628.py tests/data/ngc0628_co21_cutout.fits.gz /tmp/mom
 ```
 
 Point `$ASTROLYZE_TRACER_CUBE` at a full cube to run the example on real survey data without
-an argument.
+an argument. For a guided, interactive walk-through — slicing out spectra and channel maps,
+converting units, composing multi-panel figures — open
+[`examples/tutorial.ipynb`](examples/tutorial.ipynb) (`pip install -e ".[notebook]"`).
