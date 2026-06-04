@@ -17,8 +17,8 @@ Build them from an :class:`~astrolyze.io.LoadedData` via ``Cube.from_loaded(load
 
 from __future__ import annotations
 
-from .cube import Cube
+from .cube import Cube, LossyDirectionError
 from .map import Map
 from .spectrum import Spectrum
 
-__all__ = ["Cube", "Map", "Spectrum"]
+__all__ = ["Cube", "LossyDirectionError", "Map", "Spectrum"]
