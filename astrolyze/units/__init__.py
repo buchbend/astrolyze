@@ -19,6 +19,7 @@ from ._context import (
     VelocityConvention,
     coerce_velocity_convention,
 )
+from ._insufficiency import ContextGap, Insufficiency
 from .aliases import Jy_beam, Jy_sr, K_kms, MJy_sr, Ta, Tmb
 from .convert import convert
 from .equivalencies import (
@@ -37,6 +38,9 @@ __all__ = [
     "BrightnessTemperatureScale",
     "MissingContextError",
     "coerce_velocity_convention",
+    # typed-insufficiency descriptor (issue #29)
+    "Insufficiency",
+    "ContextGap",
     # equivalency builders
     "brightness_temperature",
     "beam_angular_area",

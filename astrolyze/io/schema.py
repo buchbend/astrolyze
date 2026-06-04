@@ -27,6 +27,8 @@ import radio_beam
 from astropy.io import fits
 
 from astrolyze.units import (
+    ContextGap,
+    Insufficiency,
     MissingContextError,
     VelocityConvention,
     coerce_velocity_convention,
@@ -95,17 +97,29 @@ class Metadata:
     def is_complete(self) -> bool:
         return not self.missing
 
+    def insufficiency(self) -> Insufficiency:
+        """The mandatory-context gaps as a returnable :class:`~astrolyze.units.Insufficiency`
+        descriptor (empty when complete) — issue #29.
+
+        A structured, inspectable form of :attr:`missing`: each absent field becomes a named
+        :class:`~astrolyze.units.ContextGap` carrying *why* it is needed and how to supply it.
+        Backward compatible — :attr:`missing` is unchanged and this only reframes it."""
+        return Insufficiency([ContextGap.for_parameter(name) for name in self.missing])
+
     def ensure_complete(self) -> None:
         """Raise :class:`MissingContextError` naming the missing mandatory context.
 
         Call this at the door of any operation that needs the physical context (unit
-        conversion, velocity work). Never defaults the answer — see ADR-0003/0006."""
+        conversion, velocity work). Never defaults the answer — see ADR-0003/0006. The raised
+        error also carries the structured :class:`~astrolyze.units.Insufficiency` descriptor
+        (issue #29), so callers can read the gaps without parsing the message string."""
         if self.missing:
             raise MissingContextError(
                 "dataset is missing mandatory context: "
                 + ", ".join(self.missing)
                 + " — set it on the header/metadata before this operation (astrolyze never "
-                "guesses rest frequency or velocity convention)"
+                "guesses rest frequency or velocity convention)",
+                insufficiency=self.insufficiency(),
             )
 
     # -- header (de)serialisation ------------------------------------------------------
