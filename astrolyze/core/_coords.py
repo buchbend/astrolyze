@@ -53,6 +53,15 @@ class AxisCoordinates:
     pixel_scale: u.Quantity | None = None
 
 
+#: Schema version of the on-disk validity companion-group layout (provenance, bumped on a
+#: layout change — the sibling of :data:`~astrolyze.core.noise.NOISE_SCHEMA_VERSION`).
+VALIDITY_SCHEMA_VERSION = 1
+
+#: How the mask was derived: the finite-data locations of the array (blanked/edge/coverage
+#: voxels are ``NaN``). The provenance ``method`` of a companion, like the noise estimator name.
+VALIDITY_METHOD = "finite_mask"
+
+
 @dataclass(frozen=True)
 class Validity:
     """Where the data is real: blanked voxels as ``NaN`` + a boolean finite-data mask.
@@ -60,12 +69,38 @@ class Validity:
     ``mask`` is ``True`` exactly where ``data`` is finite (blanked / edge / outside-coverage
     voxels are ``False`` and appear as ``NaN`` in ``data``). Because both are read from the
     same array, slicing the wrapper slices both consistently — the mask travels with the data
-    (mask-of-a-slice == slice-of-the-mask)."""
+    (mask-of-a-slice == slice-of-the-mask).
+
+    Like the :class:`~astrolyze.core.noise.NoiseModel`, the descriptor persists as a *companion
+    group* inside the cube's #23 Zarr store (:meth:`to_zarr_companion` / :meth:`from_zarr_companion`):
+    the blanked voxels already sit as ``NaN`` in the data array, so the companion adds only the
+    explicit ``uint8`` mask the loader's lean core reads (ADR-0008)."""
 
     #: The values with blanked voxels exposed as ``NaN`` (carries the data's unit).
     data: u.Quantity
     #: Boolean finite-data mask, the shape of the data (``True`` where the data is real).
     mask: np.ndarray
+
+    def to_zarr_companion(self, store):
+        """Write this descriptor as a ``validity`` companion group in the cube's Zarr *store*.
+
+        Mirrors :meth:`NoiseModel.to_zarr_companion`: the boolean mask lands as a ``uint8``
+        array in a ``validity`` subgroup carrying its derivation method + schema version as
+        provenance. Delegates the byte I/O to :mod:`astrolyze.io.zarr_backend`."""
+        from astrolyze.io.zarr_backend import _save_validity_companion
+
+        return _save_validity_companion(self, store)
+
+    @classmethod
+    def from_zarr_companion(cls, store) -> "Validity":
+        """Reconstruct a :class:`Validity` from the ``validity`` companion group in *store*.
+
+        The ``mask`` is read from the group (back to the cube's array order); the NaN-exposing
+        ``data`` is the cube's intensity reloaded from the store, so ``mask == isfinite(data)``
+        holds on the round-trip. The inverse of :meth:`to_zarr_companion`."""
+        from astrolyze.io.zarr_backend import _load_validity_companion
+
+        return _load_validity_companion(store)
 
 
 def validity_of(data: u.Quantity) -> Validity:
@@ -234,6 +269,8 @@ def pixel_scale(wcs) -> u.Quantity:
 __all__ = [
     "AxisCoordinates",
     "Validity",
+    "VALIDITY_SCHEMA_VERSION",
+    "VALIDITY_METHOD",
     "validity_of",
     "absolute_frequency",
     "delta_v",

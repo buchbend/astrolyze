@@ -425,6 +425,45 @@ def test_validity_mask_travels_through_a_subcube_slice(cube_with_nans):
 
 
 # --------------------------------------------------------------------------------------
+# AC: the validity descriptor round-trips as a Zarr companion group alongside the #23 cube
+# store (mirroring the NoiseModel companion, issue #27): a uint8 finite-data mask carrying
+# its derivation method + a schema version, which the loader's lean core reads (ADR-0008).
+# --------------------------------------------------------------------------------------
+def test_validity_zarr_companion_roundtrip(cube_with_nans, tmp_path):
+    from astrolyze.core._coords import Validity
+
+    store = cube_with_nans.to_zarr(tmp_path / "z")
+    validity = cube_with_nans.validity
+
+    group = validity.to_zarr_companion(store)
+    assert group.exists()
+
+    back = Validity.from_zarr_companion(store)
+    # The mask round-trips in the cube's array order...
+    assert back.mask.shape == cube_with_nans.shape
+    assert np.array_equal(back.mask, validity.mask)
+    # ...and stays the finite-data mask: blanked voxels are False AND NaN in the data.
+    assert np.array_equal(back.mask, np.isfinite(back.data.value))
+    assert not back.mask[0, 0, 0]
+    assert not back.mask[3, 2, 2]
+
+
+def test_validity_companion_stored_low_cost_as_uint8(cube_with_nans, tmp_path):
+    # The mask is a 1-byte/voxel uint8 array in the store axis order (not a float copy of the
+    # data), carrying method + version provenance like the noise companion.
+    import xarray as xr
+
+    store = cube_with_nans.to_zarr(tmp_path / "z")
+    cube_with_nans.validity.to_zarr_companion(store)
+
+    ds = xr.open_zarr(store, group="validity", zarr_format=3, consolidated=False)
+    assert ds["mask"].dtype == np.uint8
+    assert set(ds["mask"].dims) == {"sky_y", "sky_x", "freq"}
+    assert ds.attrs["method"] == "finite_mask"
+    assert int(ds.attrs["version"]) == 1
+
+
+# --------------------------------------------------------------------------------------
 # AC: Map exposes the sky/pixel subset; Spectrum exposes the spectral subset.
 # --------------------------------------------------------------------------------------
 def test_map_exposes_the_sky_pixel_coordinate_subset(cube):
