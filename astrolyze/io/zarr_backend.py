@@ -321,6 +321,73 @@ def _load_noise_companion(store):
     )
 
 
+# -- Validity companion group round-trip (issue #26) -----------------------------------
+# The validity descriptor rides as a *subgroup* of the cube store, the sibling of the noise
+# companion: blanked / edge / outside-coverage voxels already sit as NaN in the cube's data
+# array, so the companion adds only the explicit boolean mask the loader's lean core reads
+# (ADR-0008). Stored uint8 (1 byte/voxel) in the store axis order, with method + version
+# provenance — astrolyze adds the projection, xarray/zarr own the bytes.
+VALIDITY_GROUP = "validity"
+ATTR_VALIDITY_METHOD = "method"
+ATTR_VALIDITY_VERSION = "version"
+
+
+def _save_validity_companion(validity, store) -> Path:
+    """Write *validity* (a :class:`~astrolyze.core._coords.Validity`) as a companion *group*.
+
+    The boolean finite-data mask lands as a ``uint8`` ``mask`` array in a ``validity`` subgroup
+    of the cube's Zarr store (issue #23), transposed to the store axis order ``(sky_y, sky_x,
+    freq)`` for a cube — the same boundary transpose the data var gets — and carrying its
+    derivation method + schema version as ``attrs`` (provenance). Mirrors
+    :func:`_save_noise_companion`."""
+    from astrolyze.core._coords import VALIDITY_METHOD, VALIDITY_SCHEMA_VERSION
+
+    store = Path(store)
+    mask = np.asarray(validity.mask)
+    if mask.ndim == 3:
+        # FITS order (spectral, y, x) -> store order (sky_y, sky_x, freq), same as the data var.
+        values = np.transpose(mask, (1, 2, 0)).astype("uint8")
+        dims = CUBE_DIMS
+    elif mask.ndim == 2:
+        values = mask.astype("uint8")
+        dims = SKY_DIMS
+    else:
+        values = mask.astype("uint8")
+        dims = (SPECTRAL_DIM,) * mask.ndim
+    attrs = {
+        ATTR_VALIDITY_METHOD: VALIDITY_METHOD,
+        ATTR_VALIDITY_VERSION: int(VALIDITY_SCHEMA_VERSION),
+    }
+    dataset = xr.Dataset({"mask": (dims, values)}, attrs=attrs)
+    dataset.to_zarr(
+        store, group=VALIDITY_GROUP, mode="a", zarr_format=3, consolidated=False
+    )
+    _emit("save", params={"format": "zarr", "group": VALIDITY_GROUP}, outputs=[store])
+    return store / VALIDITY_GROUP
+
+
+def _load_validity_companion(store):
+    """Reconstruct a :class:`~astrolyze.core._coords.Validity` from the ``validity`` group.
+
+    The ``mask`` is read back to the cube's FITS array order; the NaN-exposing ``data`` is the
+    cube's intensity reloaded from the store, so ``mask == isfinite(data)`` round-trips. The
+    inverse of :func:`_save_validity_companion`."""
+    from astrolyze.core import Cube
+    from astrolyze.core._coords import Validity
+
+    store = Path(store)
+    cube = Cube.from_zarr(store)
+    dataset = xr.open_zarr(
+        store, group=VALIDITY_GROUP, zarr_format=3, consolidated=False
+    )
+    mask = np.asarray(dataset["mask"].data).astype(bool)
+    if mask.ndim == 3:
+        # store order (sky_y, sky_x, freq) -> FITS order (spectral, y, x), matching the cube data.
+        mask = np.transpose(mask, (2, 0, 1))
+    _emit("load", inputs=[store / VALIDITY_GROUP])
+    return Validity(data=cube._data_quantity, mask=mask)
+
+
 def _emit(op, **fields) -> None:
     """Append a run-log record through the always-on run-log seam (ADR-0010); a no-op outside
     an experiment. Deferred to call time so ``io`` stays light on import."""
@@ -329,4 +396,11 @@ def _emit(op, **fields) -> None:
     emit(op, **fields)
 
 
-__all__ = ["_save_zarr", "_load_zarr", "_save_noise_companion", "_load_noise_companion"]
+__all__ = [
+    "_save_zarr",
+    "_load_zarr",
+    "_save_noise_companion",
+    "_load_noise_companion",
+    "_save_validity_companion",
+    "_load_validity_companion",
+]
