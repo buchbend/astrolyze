@@ -15,7 +15,18 @@ from dataclasses import replace
 import astropy.units as u
 
 from astrolyze.io import Metadata
-from astrolyze.units import convert
+from astrolyze.units import ContextGap, Insufficiency, convert
+
+# The unit-classification helpers that route a conversion live in the converter module; the
+# probe reuses them (DRY) rather than re-deriving "which equivalency does this need?". Imported
+# by full dotted path because the package re-exports the ``convert`` *function* under that name.
+from astrolyze.units.convert import (
+    _is_frequency_like,
+    _is_per_beam,
+    _is_temperature,
+    _is_velocity,
+    _shared_integration_axis,
+)
 
 
 class ContextCarrier:
@@ -60,6 +71,23 @@ class ContextCarrier:
         context the specific conversion needs, e.g. a beam-only Jy/beam<->Jy/sr conversion
         must not be blocked for want of a velocity convention it never uses.)"""
         self.metadata.ensure_complete()
+
+    # -- the non-raising probe (issue #29): "what would I need to do X?" ----------------
+    def can_convert_to(self, unit) -> Insufficiency:
+        """Return the :class:`~astrolyze.units.Insufficiency` describing what is missing to
+        convert this object to ``unit`` — **without raising** (issue #29).
+
+        Where :meth:`to` *does* the conversion and raises on missing context (ADR-0003), this
+        *probes* it: it returns the gaps as a structured, inspectable descriptor so a caller
+        can branch (``if cube.can_convert_to("K"): ...``) instead of catching an exception. An
+        empty (satisfied) descriptor means the conversion can proceed.
+
+        The gap list is decided from the requested conversion, not from a fixed schema, so it
+        can name parameters that have no :class:`~astrolyze.io.Metadata` field yet
+        (``calibration_scale`` for the genuinely-ambiguous RJ-vs-Planck scale, arriving in
+        #24/#25): converting brightness to/from temperature names ``rest_frequency`` +
+        ``calibration_scale``; anything touching Jy/beam names ``beam``."""
+        return _probe_conversion(self._data_quantity.unit, unit, self.metadata)
 
     # -- the unit hub (ADR-0003c): supply this object's context, never guess ------------
     def to(
@@ -133,6 +161,57 @@ class ContextCarrier:
         """This object's metadata with ``bunit`` set to ``unit`` (used after a conversion or a
         moment changes the physical unit)."""
         return replace(self.metadata, bunit=u.Unit(unit))
+
+
+def _probe_conversion(src, target, metadata: Metadata) -> Insufficiency:
+    """Decide the :class:`~astrolyze.units.Insufficiency` for converting ``src`` -> ``target``
+    given an object's ``metadata`` — the non-raising counterpart to :func:`convert`'s routing.
+
+    It mirrors the routing in :mod:`astrolyze.units.convert` (which equivalency does *this*
+    conversion need?) but, instead of raising on the first missing piece, collects *all* the
+    gaps the object cannot fill and returns them. The interpretation parameters that have no
+    schema field yet (the RJ-vs-Planck ``calibration_scale``) are named from the conversion
+    itself, so the probe integrates cleanly with #24/#25 without depending on them."""
+    gaps: list[ContextGap] = []
+
+    # An unparseable target is itself a no-silent-physics case: name it, don't raise opaquely.
+    try:
+        target_unit = u.Unit(target)
+    except (ValueError, TypeError):
+        return Insufficiency([ContextGap.for_parameter("unit", detail=str(target))])
+
+    spectral = _is_frequency_like(src) or _is_velocity(src)
+    spectral_target = _is_frequency_like(target_unit) or _is_velocity(target_unit)
+
+    if spectral and spectral_target:
+        # Spectral-axis conversion: only crossing frequency<->velocity needs context.
+        crosses = _is_velocity(src) != _is_velocity(target_unit)
+        if crosses:
+            if metadata.rest_frequency is None:
+                gaps.append(ContextGap.for_parameter("rest_frequency"))
+            if metadata.velocity_convention is None:
+                gaps.append(ContextGap.for_parameter("velocity_convention"))
+        return Insufficiency(gaps)
+
+    # Intensity conversion: factor out any shared velocity-integration axis, then classify.
+    axis = _shared_integration_axis(src, target_unit)
+    base_src = src / axis if axis is not None else src
+    base_tgt = target_unit / axis if axis is not None else target_unit
+
+    involves_temperature = _is_temperature(base_src) != _is_temperature(base_tgt)
+    involves_beam = _is_per_beam(base_src) != _is_per_beam(base_tgt)
+
+    if involves_temperature:
+        # Brightness<->temperature needs the rest frequency and the genuinely-ambiguous
+        # calibration scale (RJ vs Planck) — the latter has no schema field; it is a decision
+        # the object cannot make, so it is always a gap here.
+        if metadata.rest_frequency is None:
+            gaps.append(ContextGap.for_parameter("rest_frequency"))
+        gaps.append(ContextGap.for_parameter("calibration_scale"))
+    if involves_beam and metadata.beam is None:
+        gaps.append(ContextGap.for_parameter("beam"))
+
+    return Insufficiency(gaps)
 
 
 def _emit(op, **fields) -> None:

@@ -10,10 +10,21 @@ from __future__ import annotations
 
 from enum import Enum
 
+from ._insufficiency import Insufficiency
+
 
 class MissingContextError(ValueError):
     """A conversion needs physical context (convention / rest frequency / beam / scale)
-    that was not supplied. Raised instead of silently defaulting — see ADR-0003."""
+    that was not supplied. Raised instead of silently defaulting — see ADR-0003.
+
+    Carries an optional :class:`~astrolyze.units.Insufficiency` descriptor (``insufficiency``)
+    so a raise exposes the same structured "what I'd need" detail a non-raising probe returns
+    (issue #29; ADR-0013) — not only a message string. Backward compatible: existing raises
+    that pass only a message keep ``insufficiency is None``."""
+
+    def __init__(self, *args, insufficiency: Insufficiency | None = None):
+        super().__init__(*args)
+        self.insufficiency = insufficiency
 
 
 class VelocityConvention(str, Enum):
