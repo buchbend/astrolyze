@@ -24,17 +24,26 @@ from .schema import Metadata
 
 @dataclass
 class LoadedData:
-    """The result of :func:`load`: the array plus its header, WCS, and parsed schema.
+    """The result of :func:`load`: the array plus its WCS, parsed schema, and an optional
+    live header.
 
     This is the seam the ``core`` layer (Cube/Map/Spectrum, issue #5) consumes; ``io`` stops
     at parsed bytes + metadata and does not build the data objects itself.
+
+    Backend-neutral by design (issue #22, ADR-0006). A live :class:`~astropy.io.fits.Header`
+    is *optional* — a non-FITS backend (Zarr, issue #23) has none. The exact WCS instead
+    travels as :attr:`header_string`, the **verbatim FITS-WCS header string**, from which any
+    backend reconstructs the WCS with ``WCS(fits.Header.fromstring(header_string))`` (astropy
+    still owns the reconstruction). The FITS loader populates both ``header`` and
+    ``header_string``; a non-FITS loader populates only ``header_string``.
     """
 
     data: np.ndarray
-    header: fits.Header
     wcs: WCS
     metadata: Metadata
     path: Path
+    header_string: str | None = None
+    header: fits.Header | None = None
 
 
 def load(path) -> LoadedData:
@@ -52,10 +61,13 @@ def load(path) -> LoadedData:
     _emit("load", inputs=[path])
     return LoadedData(
         data=data,
-        header=header,
         wcs=WCS(header),
         metadata=Metadata.from_header(header),
         path=path,
+        # Carry the verbatim FITS-WCS header string so a non-FITS backend can reconstruct the
+        # exact WCS without a live fits.Header (ADR-0006); the FITS path also keeps the header.
+        header_string=header.tostring(),
+        header=header,
     )
 
 

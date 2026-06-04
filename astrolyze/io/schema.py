@@ -159,6 +159,92 @@ class Metadata:
             _put(header, KEY_NAMETAG, self.name_tag)
         return header
 
+    # -- attrs (de)serialisation -------------------------------------------------------
+    # The attrs dict is the *backend-neutral* projection of this dataclass, alongside the
+    # FITS header (issue #22, ADR-0006). The dataclass stays the in-memory truth; the header
+    # and the attrs dict are two projections of it. Each field maps to a JSON primitive so a
+    # non-FITS backend (e.g. a Zarr group's ``.attrs``) can carry the physical context
+    # verbatim. Like the header, attrs are *lazy* (ADR-0006 ii): a partial Metadata projects
+    # and round-trips while staying flagged incomplete — absent fields simply do not appear.
+    def to_attrs(self) -> dict:
+        """Project the schema onto a JSON-serializable dict (``json.dumps`` succeeds).
+
+        ``Quantity`` -> ``{"value", "unit"}``; ``radio_beam.Beam`` ->
+        ``{"bmaj", "bmin", "bpa"}`` (each a ``{"value", "unit"}`` Quantity projection);
+        the velocity-convention enum and the brightness unit -> ``str``. Absent fields are
+        omitted, so a partial schema projects without inventing context (ADR-0003)."""
+        attrs: dict = {"schema": SCHEMA_VERSION}
+        if self.object is not None:
+            attrs["object"] = self.object
+        if self.telescope is not None:
+            attrs["telescope"] = self.telescope
+        if self.species is not None:
+            attrs["species"] = self.species
+        if self.rest_frequency is not None:
+            attrs["rest_frequency"] = _quantity_to_attr(self.rest_frequency)
+        if self.velocity_convention is not None:
+            attrs["velocity_convention"] = VelocityConvention(
+                self.velocity_convention
+            ).value
+        if self.beam is not None:
+            attrs["beam"] = {
+                "bmaj": _quantity_to_attr(self.beam.major),
+                "bmin": _quantity_to_attr(self.beam.minor),
+                "bpa": _quantity_to_attr(self.beam.pa),
+            }
+        if self.bunit is not None:
+            attrs["bunit"] = str(self.bunit)
+        if self.distance is not None:
+            attrs["distance"] = _quantity_to_attr(self.distance)
+        if self.calibration_error is not None:
+            attrs["calibration_error"] = float(self.calibration_error)
+        if self.name_tag is not None:
+            attrs["name_tag"] = self.name_tag
+        return attrs
+
+    @classmethod
+    def from_attrs(cls, attrs: dict) -> "Metadata":
+        """Reconstruct the schema from a :meth:`to_attrs` dict. The inverse of
+        :meth:`to_attrs`: ``from_attrs(to_attrs(m)) == m``. Absent keys stay ``None``, so a
+        partial attrs dict reconstructs an incomplete Metadata (still flagged)."""
+        beam = attrs.get("beam")
+        vconv = attrs.get("velocity_convention")
+        return cls(
+            object=attrs.get("object"),
+            telescope=attrs.get("telescope"),
+            species=attrs.get("species"),
+            rest_frequency=_quantity_from_attr(attrs.get("rest_frequency")),
+            velocity_convention=(
+                coerce_velocity_convention(vconv) if vconv is not None else None
+            ),
+            beam=(
+                radio_beam.Beam(
+                    major=_quantity_from_attr(beam["bmaj"]),
+                    minor=_quantity_from_attr(beam["bmin"]),
+                    pa=_quantity_from_attr(beam["bpa"]),
+                )
+                if beam is not None
+                else None
+            ),
+            bunit=_read_unit(attrs.get("bunit")),
+            distance=_quantity_from_attr(attrs.get("distance")),
+            calibration_error=_opt_float(attrs.get("calibration_error")),
+            name_tag=attrs.get("name_tag"),
+        )
+
+
+# -- attrs projection helpers ----------------------------------------------------------
+def _quantity_to_attr(value: u.Quantity) -> dict:
+    """Project a scalar ``Quantity`` onto ``{"value": float, "unit": str}``."""
+    return {"value": float(value.value), "unit": str(value.unit)}
+
+
+def _quantity_from_attr(attr) -> u.Quantity | None:
+    """Reconstruct a ``Quantity`` from a ``{"value", "unit"}`` dict; ``None`` passes through."""
+    if attr is None:
+        return None
+    return float(attr["value"]) * u.Unit(attr["unit"])
+
 
 # -- header writing --------------------------------------------------------------------
 def _put(header: fits.Header, key: str, value) -> None:
