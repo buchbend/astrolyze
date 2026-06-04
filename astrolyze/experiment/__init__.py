@@ -19,6 +19,7 @@ Public surface::
     RejectedDataset             # a refused raw file (+ the missing fields / read error)
     RunLog.open(experiment)     # start a run; per-run append-only JSONL in logs/
     emit(op, …)                 # the seam the operations call (no-op when no run is active)
+    narrate(experiment)         # scaffold/open the markdown narrative offer (never enforced)
 
 Importing this subpackage pulls dynaconf (for the config seam) and SQLAlchemy (for the
 manifest) but not matplotlib or spectral-cube; the CLI still defers the import into the command
@@ -32,10 +33,11 @@ import-time side-effect-free; see ``io.access._emit`` / ``core/_base._emit``).
 from __future__ import annotations
 
 from . import ingest as ingest_module
-from . import layout, manifest, runlog
+from . import layout, manifest, narrative, runlog
 from .ingest import AcceptedDataset, IngestReport, RejectedDataset, ingest
 from .layout import Experiment, Role, role_of
 from .manifest import DatasetRecord, Manifest
+from .narrative import narrate
 from .runlog import RunLog, active_run, emit
 
 __all__ = [
@@ -51,8 +53,10 @@ __all__ = [
     "RunLog",
     "emit",
     "active_run",
+    "narrate",
     "layout",
     "manifest",
     "ingest_module",
     "runlog",
+    "narrative",
 ]
