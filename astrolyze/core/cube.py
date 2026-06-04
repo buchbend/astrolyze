@@ -69,8 +69,11 @@ class Cube(ContextCarrier):
         we are only recording the beam the header already states, not smoothing.
         """
         bunit = loaded.metadata.bunit or u.dimensionless_unscaled
-        data = u.Quantity(loaded.data, bunit)
-        sc = _build_cube(data, loaded.wcs, loaded.metadata.beam)
+        # A dask-backed source (the lazy Zarr backend, #23) must stay a dask array: wrapping it
+        # in u.Quantity materialises it to numpy, so we keep it bare and carry the unit via the
+        # cube meta instead (see _build_cube). FITS data is a plain ndarray -> the eager path.
+        data = loaded.data if _is_dask(loaded.data) else u.Quantity(loaded.data, bunit)
+        sc = _build_cube(data, loaded.wcs, loaded.metadata.beam, unit=bunit)
         return cls(sc, loaded.metadata)
 
     # -- Zarr backend (issue #23): same context as the FITS path, via the io seam -------
@@ -565,12 +568,118 @@ class Cube(ContextCarrier):
         obj = self.metadata.object or "?"
         return f"<Cube {obj} {self.shape} [{self.unit}]>"
 
+    # -- spatial tiling / postage-stamp cutouts (issue #30) -----------------------------
+    # A cutout iterator: pure SPATIAL slicing that keeps the FULL spectral axis on every
+    # tile. astrolyze stays thin (ADR-0004) — each window is just ``self[:, y0:y1, x0:x1]``,
+    # so spectral-cube does the slice (and the sub-image WCS) and ``__getitem__`` carries the
+    # beam / rest frequency / convention onto the resulting Cube. On a dask-backed cube the
+    # slice is a dask graph, so tiling is lazy with no full materialisation (#23). No new
+    # resampling/interpolation/padding maths is added here.
+    def tiles(self, size, *, stride=None, overlap=0, partial: str = "drop"):
+        """Iterate spatial cutout sub-:class:`Cube`\\ s, each keeping the **full** spectral axis.
 
-def _build_cube(data: u.Quantity, wcs, beam) -> SpectralCube:
-    """Construct a SpectralCube, attaching the beam at build time when present."""
+        A generator over a strided spatial grid — the general postage-stamp / mosaic-tiling op.
+        Each yielded cutout is ``self[:, y0:y1, x0:x1]``: a pure spatial slice (no resampling,
+        interpolation, or padding) that preserves **all** channels and carries this cube's
+        context plus a correct sub-image WCS (ADR-0004). It is **lazy** on a dask-backed cube
+        (#23): the cutout is a dask graph, so nothing materialises until you compute it.
+
+        Parameters
+        ----------
+        size : int or (int, int)
+            Spatial tile size in pixels — a square ``n`` or ``(ny, nx)``.
+        stride : int or (int, int), optional
+            Step between successive tile origins. When given it is authoritative; otherwise it
+            is derived from *overlap* as ``size - overlap`` (the natural overlapping-tile
+            controls). Must be positive.
+        overlap : int or (int, int), default 0
+            Convenience for ``stride = size - overlap`` (ignored when *stride* is given);
+            ``overlap=0`` is a non-overlapping grid. Must be smaller than *size*.
+        partial : {"drop", "keep"}, default "drop"
+            The **explicit** edge rule (no silent padding, ADR-0003). ``"drop"`` skips any
+            edge window narrower/shorter than *size*; ``"keep"`` yields it as a smaller,
+            truncated cutout (still a pure slice — never padded out to *size*).
+
+        Yields
+        ------
+        Cube
+            One spatial cutout per grid position, in row-major (``y`` then ``x``) order.
+        """
+        ny, nx = _as_pair(size, "size")
+        if stride is not None:
+            sy, sx = _as_pair(stride, "stride")
+        else:
+            oy, ox = _as_pair(overlap, "overlap", allow_zero=True)
+            sy, sx = ny - oy, nx - ox
+        if sy <= 0 or sx <= 0:
+            raise ValueError(
+                f"tile stride must be positive (got {(sy, sx)}); with overlap, overlap must be "
+                "smaller than size so successive tiles advance"
+            )
+        if partial not in ("drop", "keep"):
+            raise ValueError(
+                f"partial must be 'drop' or 'keep' (the explicit edge rule), got {partial!r}; "
+                "astrolyze never silently pads a partial edge tile (ADR-0003)"
+            )
+
+        full_y, full_x = self.shape[1], self.shape[2]
+        for y0 in range(0, full_y, sy):
+            y1 = min(y0 + ny, full_y)
+            if partial == "drop" and (y1 - y0) < ny:
+                continue
+            for x0 in range(0, full_x, sx):
+                x1 = min(x0 + nx, full_x)
+                if partial == "drop" and (x1 - x0) < nx:
+                    continue
+                yield self[:, y0:y1, x0:x1]
+
+
+def _as_pair(value, name: str, *, allow_zero: bool = False) -> tuple[int, int]:
+    """Coerce a tiling parameter to a positive ``(int, int)`` pair (a scalar means square).
+
+    A guard, not silent physics (ADR-0003): a non-integer or non-positive size/stride is a
+    programming error and is rejected with a clear message rather than rounded or defaulted."""
+    if isinstance(value, (int, np.integer)):
+        pair = (int(value), int(value))
+    else:
+        seq = tuple(value)
+        if len(seq) != 2:
+            raise ValueError(f"{name} must be an int or a (ny, nx) pair, got {value!r}")
+        pair = (int(seq[0]), int(seq[1]))
+    floor = 0 if allow_zero else 1
+    if pair[0] < floor or pair[1] < floor:
+        raise ValueError(
+            f"{name} must be {'non-negative' if allow_zero else 'positive'}, got {pair}"
+        )
+    return pair
+
+
+def _build_cube(data, wcs, beam, *, unit=None) -> SpectralCube:
+    """Construct a SpectralCube, attaching the beam at build time when present.
+
+    A dask-backed array is kept lazy by building a dask cube (``use_dask=True``) and carrying
+    its unit via ``meta`` rather than a ``Quantity`` wrap — ``u.Quantity`` would materialise the
+    dask array to numpy, defeating the lazy Zarr backend (#23). A unit-carrying ``Quantity``
+    (the eager FITS path and the transform methods) is unchanged: ``data`` already states its
+    unit, so *unit* is only consulted for the bare-dask case."""
+    use_dask = _is_dask(data)
+    kwargs = {"wcs": wcs, "use_dask": use_dask}
     if beam is not None:
-        return SpectralCube(data=data, wcs=wcs, beam=beam)
-    return SpectralCube(data=data, wcs=wcs)
+        kwargs["beam"] = beam
+    if use_dask and not hasattr(data, "unit") and unit is not None:
+        # Bare dask array: spectral-cube reads the unit from the header meta (a Quantity would
+        # have materialised it). dimensionless is recorded as the empty BUNIT it round-trips to.
+        bunit = "" if unit == u.dimensionless_unscaled else u.Unit(unit).to_string()
+        kwargs["meta"] = {"BUNIT": bunit}
+    return SpectralCube(data=data, **kwargs)
+
+
+def _is_dask(data) -> bool:
+    """Whether *data* (possibly a unit-carrying Quantity) wraps a dask array — the lazy path."""
+    import dask
+
+    value = getattr(data, "value", data)
+    return dask.is_dask_collection(value)
 
 
 def _is_temperature_unit(unit) -> bool:
