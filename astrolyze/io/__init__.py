@@ -4,14 +4,19 @@ The FITS header is authoritative; the filename is a derived, browsable projectio
 Loading is lazy: an incomplete header still opens, but is flagged, and operations needing the
 missing context raise (``MissingContextError``) rather than silently guessing (ADR-0003).
 
+Two on-disk backends sit behind the seam (issue #23): **FITS** (eager) and an xarray-native
+**Zarr v3** store (lazy, dask-backed). ``load`` dispatches on the target and ``save(...,
+format=...)`` selects the writer; both meet the same backend-neutral ``LoadedData`` contract.
+
 Public surface::
 
-    load(path) -> LoadedData          # data + header + WCS + parsed Metadata (lazy)
-    save(data, metadata, directory)   # write a derived file, named from the header
+    load(path) -> LoadedData          # FITS file or Zarr store -> data + WCS + Metadata (lazy)
+    save(data, metadata, directory, format="fits"|"zarr")   # write a derived dataset
     project(metadata) -> str          # the header-derived filename projection
     Metadata                          # the typed header schema (is_complete / ensure_complete)
 
-Byte I/O delegates to astropy; astrolyze adds the schema, not a FITS reader.
+Byte I/O delegates to astropy (FITS) and xarray/zarr/dask (Zarr); astrolyze adds the schema
+and the dispatch, not a storage layer.
 """
 
 from __future__ import annotations

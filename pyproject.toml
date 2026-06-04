@@ -34,6 +34,12 @@ dependencies = [
     "rich>=13",
     "dynaconf>=3.2",
     "SQLAlchemy>=2.0",
+    # The xarray-native Zarr v3 backend (issue #23, ADR-0006): a second on-disk store
+    # alongside FITS, lazy/dask-backed. astrolyze stays thin — storage, coords and chunking
+    # are these libraries' job. Pre-authorised by PRD #21.
+    "xarray>=2024.1",
+    "zarr>=3",
+    "dask>=2024.1",
 ]
 
 [project.optional-dependencies]
