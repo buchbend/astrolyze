@@ -9,13 +9,14 @@ Importing this module pulls in matplotlib (it is the plotting layer); importing 
 ``astrolyze`` package does not — ``astrolyze.style`` resolves here lazily on first access.
 """
 
-from .engine import DEFAULT_CMAP, plot_cube, plot_map, plot_spectrum
+from .engine import DEFAULT_CMAP, plot_cube, plot_map, plot_noise, plot_spectrum
 from .style import style
 
 __all__ = [
     "plot_map",
     "plot_spectrum",
     "plot_cube",
+    "plot_noise",
     "style",
     "DEFAULT_CMAP",
 ]

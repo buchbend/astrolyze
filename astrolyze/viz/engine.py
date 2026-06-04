@@ -98,6 +98,17 @@ def plot_cube(cube, **kwargs):
     return plot_map(cube.moment0(), **kwargs)
 
 
+def plot_noise(model, **kwargs):
+    """Quick-look a :class:`~astrolyze.core.NoiseModel` as its spatial σ map (issue #27).
+
+    A noise model has several products; the canonical 2D summary is the spatial noise pattern
+    σ_xy, so ``model.plot()`` shows that by reusing :func:`plot_map` (DRY). For the spectral
+    σ_v or the autocorrelation, plot the corresponding product (``model.sigma_spectrum.plot()``,
+    ``model.spectral_acf.plot()``).
+    """
+    return plot_map(model.sigma_map, **kwargs)
+
+
 # --------------------------------------------------------------------------------------
 # helpers
 # --------------------------------------------------------------------------------------

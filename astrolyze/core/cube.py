@@ -141,6 +141,21 @@ class Cube(ContextCarrier):
             )
         return result  # 0D / anything else: hand back the raw upstream value
 
+    # -- noise estimation (issue #27): a context-carrying NoiseModel companion ----------
+    def estimate_noise(self, *, method: str = None):
+        """Estimate this cube's noise as a context-carrying :class:`~astrolyze.core.NoiseModel`.
+
+        Returns a companion (ADR-0004) exposing first-class σ products — a σ ``Cube`` / ``Map`` /
+        ``Spectrum``, the spectral autocorrelation, and a single robust σ ``Quantity`` — built by
+        reusing this cube's own type transitions, so they carry the beam + rest frequency +
+        velocity convention. The default (and, for issue #27, only) estimator is the robust
+        ``mad_std``; the pluggable suite is issue #28. No silent physics (ADR-0003): a cube with
+        no usable signal-free data is flagged :data:`~astrolyze.core.NoiseQuality.UNRELIABLE`
+        rather than given a fabricated σ."""
+        from .noise import DEFAULT_METHOD, estimate
+
+        return estimate(self, method=method if method is not None else DEFAULT_METHOD)
+
     # -- guarded beam / channel matching (issue #31) ------------------------------------
     # astrolyze stays thin here: spectral-cube does the convolution/binning maths and
     # radio_beam decides which direction is resolution-losing. The only value added is the
