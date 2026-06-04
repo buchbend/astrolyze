@@ -62,6 +62,37 @@ class Cube(ContextCarrier):
         sc = _build_cube(data, loaded.wcs, loaded.metadata.beam)
         return cls(sc, loaded.metadata)
 
+    # -- Zarr backend (issue #23): same context as the FITS path, via the io seam -------
+    @classmethod
+    def from_zarr(cls, store) -> "Cube":
+        """Build a :class:`Cube` from a Zarr store, carrying the same context as the FITS path.
+
+        A thin convenience over the io seam: ``Cube.from_loaded(load(store))``. ``load``
+        dispatches the Zarr store to the lazy backend, and :meth:`from_loaded` attaches the
+        beam / rest frequency / convention exactly as it does for FITS (ADR-0004/0006)."""
+        from astrolyze.io import load
+
+        return cls.from_loaded(load(store))
+
+    def to_zarr(self, directory, **layout):
+        """Write this cube to an xarray-native Zarr v3 store under *directory*; return its path.
+
+        A thin convenience over the io seam (``io.save(..., format="zarr")``): the schema, the
+        verbatim FITS-WCS string, and the data are carried unchanged, so a later
+        :meth:`from_zarr` reconstructs the same context. ``**layout`` (``chunks`` / ``shards`` /
+        ``compressors``) is the caller's Zarr layout, passed straight through — astrolyze fixes
+        no chunking policy."""
+        from astrolyze.io import save
+
+        return save(
+            self._data_quantity.value,
+            self.metadata,
+            directory,
+            format="zarr",
+            base_header=self._sc.wcs.to_header(),
+            **layout,
+        )
+
     # -- delegated PPV operations (type transitions carry context) ----------------------
     def moment0(self) -> Map:
         """The zeroth moment (velocity-integrated intensity) as a :class:`Map`."""
