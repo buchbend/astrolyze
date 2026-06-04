@@ -313,6 +313,68 @@ class Cube(ContextCarrier):
         slice (mask-of-a-slice == slice-of-the-mask)."""
         return _coords.validity_of(self._data_quantity)
 
+    # -- frequency-authoritative spectral axis + frame transform (issue #24) -------------
+    def delta_v_for(self, rest_frequency: u.Quantity) -> u.Quantity:
+        """The derived per-channel velocity offset relative to a *chosen* line.
+
+        :attr:`coordinates.delta_v <astrolyze.core._coords.AxisCoordinates.delta_v>` is Δv
+        against the primary :attr:`rest_frequency`; broadband work needs Δv per line, so this
+        gives Δv against any line's ``rest_frequency`` (e.g. a second species in the band). It
+        is derived from the authoritative absolute frequency under the object's convention —
+        not assumed — and raises if that convention is absent (ADR-0003)."""
+        return _coords.delta_v_relative_to(
+            self.coordinates.frequency,
+            line_rest_frequency=rest_frequency,
+            convention=self.velocity_convention,
+        )
+
+    def to_spectral_frame(
+        self,
+        frame: str,
+        *,
+        location=None,
+        obstime=None,
+        target=None,
+    ) -> "Cube":
+        """Transform the spectral axis to a different reference *frame* (e.g. LSRK->BARYCENT).
+
+        Delegates the maths to astropy :class:`~astropy.coordinates.SpectralCoord` (astrolyze
+        stays thin). It is **context-or-raise** (ADR-0003): the observer ``location`` +
+        ``obstime`` and the ``target`` sky position are all required — without them a frame
+        shift cannot be computed and we raise rather than silently leaving the frame unchanged.
+        The current frame (the dataset's ``SPECSYS``) must be known too: an absent
+        ``spectral_frame`` is flagged here (lazy enforcement) and raises naming it.
+
+        Returns a new :class:`Cube` on a frequency spectral axis in the requested *frame*, its
+        :attr:`~astrolyze.io.Metadata.spectral_frame` updated to *frame* (ADR-0004)."""
+        from astropy.wcs import WCS
+
+        shifted_frequency = _coords.to_spectral_frame(
+            self.coordinates.frequency,
+            frame,
+            source_frame=self.metadata.spectral_frame,
+            location=location,
+            obstime=obstime,
+            target=target,
+        )
+        # Rebuild the spectral WCS on the shifted absolute frequencies; the celestial axes are
+        # untouched. spectral-cube's with_spectral_unit keeps freq<->velocity routing through
+        # astropy; the frame shift is a (Doppler) rescaling of the linear frequency grid, so we
+        # set the reference channel + channel spacing from the shifted axis (CRPIX 1 = chan 0).
+        new_sc = self._sc.with_spectral_unit(u.Hz)
+        new_wcs = WCS(new_sc.header)
+        spec = new_wcs.wcs.spec
+        new_wcs.wcs.crpix[spec] = 1.0
+        new_wcs.wcs.crval[spec] = shifted_frequency[0].to_value(u.Hz)
+        if shifted_frequency.size > 1:
+            spacing = (shifted_frequency[1] - shifted_frequency[0]).to_value(u.Hz)
+            new_wcs.wcs.cdelt[spec] = spacing
+        rebuilt = SpectralCube(data=new_sc.unmasked_data[:], wcs=new_wcs)
+        from dataclasses import replace
+
+        _emit("to_spectral_frame", params={"frame": frame})
+        return Cube(rebuilt, replace(self.metadata, spectral_frame=frame))
+
     # -- thin passthroughs --------------------------------------------------------------
     @property
     def spectral_axis(self):
