@@ -28,6 +28,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import astropy.units as u
+from astropy.coordinates import SpectralCoord
 from astropy.wcs.utils import proj_plane_pixel_scales
 
 from astrolyze.units import MissingContextError, doppler
@@ -103,6 +104,99 @@ def delta_v(spectral_axis, *, rest_frequency, convention) -> u.Quantity:
     return nu.to(u.km / u.s, equivalencies=equiv + u.spectral())
 
 
+def delta_v_relative_to(
+    absolute_frequency_axis, *, line_rest_frequency, convention
+) -> u.Quantity:
+    """Per-channel Δv of an already-absolute frequency axis relative to a *chosen* line.
+
+    The companion of :func:`delta_v` for broadband work: the authoritative absolute frequency
+    is fixed (derived once from the primary line), and this measures each channel's velocity
+    offset from *any* line's rest frequency under the same ``convention`` — so a second species
+    in the band gets its own Δv. Raises if the convention is absent (ADR-0003)."""
+    equiv = doppler(convention, line_rest_frequency)
+    return u.Quantity(absolute_frequency_axis).to(
+        u.km / u.s, equivalencies=equiv + u.spectral()
+    )
+
+
+# -- spectral-frame transform ---------------------------------------------------------
+# FITS SPECSYS codes -> the astropy frame an observer is held stationary in (the spectral
+# reference frame). Barycentric/heliocentric are ICRS-stationary to astropy; topocentric is
+# the observer's own frame (a no-op shift). Only the frames astrolyze claims to transform
+# between are listed; an unknown target raises rather than silently picking one (ADR-0003).
+_SPECSYS_TO_ASTROPY_FRAME = {
+    "LSRK": "lsrk",
+    "LSRD": "lsrd",
+    "BARYCENT": "icrs",
+    "HELIOCEN": "hcrs",
+    "TOPOCENT": "itrs",
+    "GALACTOC": "galactocentric",
+}
+
+
+def to_spectral_frame(
+    absolute_frequency_axis,
+    target_frame,
+    *,
+    source_frame,
+    location,
+    obstime,
+    target,
+) -> u.Quantity:
+    """Transform an absolute-frequency axis to a different spectral reference frame.
+
+    Thin door over astropy :class:`~astropy.coordinates.SpectralCoord`: it builds the spectral
+    coordinate with the observer (the telescope ``location`` at ``obstime``) and the ``target``
+    sky position, then asks for the axis as seen by an observer stationary in ``target_frame``.
+
+    Context-or-raise (ADR-0003): the observer ``location`` + ``obstime`` and the ``target``
+    are all required — without them a frame shift cannot be computed, so we raise rather than
+    silently leaving the frame unchanged. ``source_frame`` (the dataset's current ``SPECSYS``)
+    must be known too: transforming *from* an unknown frame would be guessing, so an absent
+    ``source_frame`` raises naming ``spectral_frame``."""
+    if source_frame is None:
+        raise MissingContextError(
+            "spectral_frame is unknown (SPECSYS absent): a frame transform needs the source "
+            "frame to interpret the axis; astrolyze never guesses it (ADR-0003)",
+        )
+    missing = [
+        name
+        for name, value in (
+            ("location", location),
+            ("obstime", obstime),
+            ("target", target),
+        )
+        if value is None
+    ]
+    if missing:
+        raise MissingContextError(
+            "a spectral-frame transform requires observer location + obstime + target "
+            "(SpectralCoord cannot shift the frame without them); missing: "
+            + ", ".join(missing)
+        )
+    astropy_frame = _astropy_frame_for(target_frame)
+    observer = location.get_itrs(obstime=obstime)
+    coord = SpectralCoord(
+        u.Quantity(absolute_frequency_axis).to(u.Hz, equivalencies=u.spectral()),
+        observer=observer,
+        target=target,
+    )
+    return coord.with_observer_stationary_relative_to(astropy_frame).to(u.Hz)
+
+
+def _astropy_frame_for(specsys) -> str:
+    """Map a FITS ``SPECSYS`` code to the astropy frame name; raise on an unknown code."""
+    code = str(specsys).strip().upper()
+    try:
+        return _SPECSYS_TO_ASTROPY_FRAME[code]
+    except KeyError as exc:
+        valid = ", ".join(_SPECSYS_TO_ASTROPY_FRAME)
+        raise MissingContextError(
+            f"unknown spectral frame {specsys!r}; astrolyze knows: {valid} "
+            "(it never guesses a frame, ADR-0003)"
+        ) from exc
+
+
 # -- sky axes -------------------------------------------------------------------------
 def sky_coordinate_maps(spatial_coordinate_map) -> tuple[u.Quantity, u.Quantity]:
     """Split a spectral-cube ``spatial_coordinate_map`` into (longitude, latitude).
@@ -143,6 +237,8 @@ __all__ = [
     "validity_of",
     "absolute_frequency",
     "delta_v",
+    "delta_v_relative_to",
+    "to_spectral_frame",
     "sky_coordinate_maps",
     "pixel_scale",
     "MissingContextError",

@@ -41,6 +41,9 @@ KEY_TELESCOPE = "TELESCOP"
 KEY_BUNIT = "BUNIT"
 KEY_RESTFRQ = "RESTFRQ"  # preferred FITS spelling
 KEY_RESTFRQ_ALT = "RESTFREQ"  # legacy alias accepted on read
+# The spectral reference frame is the standard FITS SPECSYS keyword (LSRK/BARYCENT/...), so a
+# plain FITS reader sees it; astrolyze reads it verbatim and never guesses one (ADR-0003).
+KEY_SPECSYS = "SPECSYS"
 
 # astrolyze-namespaced HIERARCH cards (accessed by the text after HIERARCH, e.g.
 # header["ASTROLYZE VCONV"]).
@@ -51,6 +54,15 @@ KEY_DISTUNIT = "ASTROLYZE DISTUNIT"
 KEY_CALERR = "ASTROLYZE CALERR"
 KEY_NAMETAG = "ASTROLYZE NAMETAG"
 KEY_SCHEMA = "ASTROLYZE SCHEMA"
+KEY_VSYS = "ASTROLYZE VSYS"  # systemic velocity value
+KEY_VSYSUNIT = "ASTROLYZE VSYSUNIT"  # systemic velocity unit
+# The line list is broadband-extensible, so it is namespaced+indexed per entry, e.g.
+# ``HIERARCH ASTROLYZE LINE1 SPECIES`` / ``LINE1 TRANS`` / ``LINE1 RESTFRQ`` (Hz). The primary
+# line (index 1) mirrors RESTFRQ, so an existing single-line header still parses unchanged.
+KEY_LINE_PREFIX = "ASTROLYZE LINE"
+KEY_NLINES = (
+    "ASTROLYZE NLINES"  # number of line entries (read bound for the indexed cards)
+)
 
 SCHEMA_VERSION = 1
 DEFAULT_DISTANCE_UNIT = u.Mpc
@@ -68,6 +80,20 @@ _CTYPE_VELOCITY_CONVENTION = {
 REQUIRED_CONTEXT = ("rest_frequency", "velocity_convention")
 
 
+@dataclass(frozen=True)
+class Line:
+    """One spectral line a dataset carries: a ``(species, transition, rest_frequency)`` entry.
+
+    A single-line cube carries one :class:`Line`; a broadband cube carries many (issue #24).
+    ``species`` and ``transition`` are free-form labels (e.g. ``"CO"`` / ``"2-1"``);
+    ``rest_frequency`` is a frequency ``Quantity``. The primary line mirrors
+    :attr:`Metadata.rest_frequency`, so existing single-line headers parse unchanged."""
+
+    species: str | None = None
+    transition: str | None = None
+    rest_frequency: u.Quantity | None = None  # frequency
+
+
 @dataclass
 class Metadata:
     """The typed astrolyze header schema. All fields default to ``None`` so a partial header
@@ -83,6 +109,15 @@ class Metadata:
     distance: u.Quantity | None = None  # length
     calibration_error: float | None = None  # fractional
     name_tag: str | None = None
+    #: Spectral reference frame, read verbatim from FITS ``SPECSYS`` (LSRK / BARYCENT /
+    #: TOPOCENT …); ``None`` when absent — never guessed (ADR-0003). Flagged incomplete only
+    #: when a frame transform is requested without it (lazy enforcement; issue #24).
+    spectral_frame: str | None = None
+    #: Systemic velocity (v_sys) of the source, an optional velocity ``Quantity``.
+    systemic_velocity: u.Quantity | None = None
+    #: Extensible line list (issue #24): one :class:`Line` for a single-line cube, many for
+    #: broadband. The primary line mirrors :attr:`rest_frequency` (the optional primary line).
+    lines: list[Line] = field(default_factory=list)
     #: Provenance seam (ADR-0006 (c)): unused in v1, reserved so the heterogeneity-tracking
     #: layer can attach without breaking the header contract.
     provenance: object | None = field(default=None, repr=False)
@@ -141,6 +176,9 @@ class Metadata:
             distance=_read_distance(header),
             calibration_error=_opt_float(header.get(KEY_CALERR)),
             name_tag=header.get(KEY_NAMETAG),
+            spectral_frame=_read_spectral_frame(header),
+            systemic_velocity=_read_systemic_velocity(header),
+            lines=_read_lines(header),
         )
 
     def to_header(self, base: fits.Header | None = None) -> fits.Header:
@@ -171,6 +209,25 @@ class Metadata:
             _put(header, KEY_CALERR, float(self.calibration_error))
         if self.name_tag is not None:
             _put(header, KEY_NAMETAG, self.name_tag)
+        if self.spectral_frame is not None:
+            _put(header, KEY_SPECSYS, self.spectral_frame)
+        if self.systemic_velocity is not None:
+            _put(header, KEY_VSYS, self.systemic_velocity.value)
+            _put(header, KEY_VSYSUNIT, str(self.systemic_velocity.unit))
+        if self.lines:
+            _put(header, KEY_NLINES, len(self.lines))
+            for index, line in enumerate(self.lines, start=1):
+                base = f"{KEY_LINE_PREFIX}{index}"
+                if line.species is not None:
+                    _put(header, f"{base} SPECIES", line.species)
+                if line.transition is not None:
+                    _put(header, f"{base} TRANS", line.transition)
+                if line.rest_frequency is not None:
+                    _put(
+                        header,
+                        f"{base} RESTFRQ",
+                        (line.rest_frequency.to_value(u.Hz), "Hz"),
+                    )
         return header
 
     # -- attrs (de)serialisation -------------------------------------------------------
@@ -214,6 +271,23 @@ class Metadata:
             attrs["calibration_error"] = float(self.calibration_error)
         if self.name_tag is not None:
             attrs["name_tag"] = self.name_tag
+        if self.spectral_frame is not None:
+            attrs["spectral_frame"] = self.spectral_frame
+        if self.systemic_velocity is not None:
+            attrs["systemic_velocity"] = _quantity_to_attr(self.systemic_velocity)
+        if self.lines:
+            attrs["lines"] = [
+                {
+                    "species": line.species,
+                    "transition": line.transition,
+                    "rest_frequency": (
+                        _quantity_to_attr(line.rest_frequency)
+                        if line.rest_frequency is not None
+                        else None
+                    ),
+                }
+                for line in self.lines
+            ]
         return attrs
 
     @classmethod
@@ -244,6 +318,16 @@ class Metadata:
             distance=_quantity_from_attr(attrs.get("distance")),
             calibration_error=_opt_float(attrs.get("calibration_error")),
             name_tag=attrs.get("name_tag"),
+            spectral_frame=attrs.get("spectral_frame"),
+            systemic_velocity=_quantity_from_attr(attrs.get("systemic_velocity")),
+            lines=[
+                Line(
+                    species=entry.get("species"),
+                    transition=entry.get("transition"),
+                    rest_frequency=_quantity_from_attr(entry.get("rest_frequency")),
+                )
+                for entry in attrs.get("lines", [])
+            ],
         )
 
 
@@ -294,6 +378,47 @@ def _read_distance(header: fits.Header) -> u.Quantity | None:
     return float(value) * unit
 
 
+def _read_spectral_frame(header: fits.Header) -> str | None:
+    """The spectral reference frame, read verbatim from FITS ``SPECSYS``.
+
+    Read, never guessed (ADR-0003): absent ``SPECSYS`` -> ``None``. Returned uppercased and
+    stripped so the standard codes (LSRK/BARYCENT/...) compare cleanly."""
+    value = header.get(KEY_SPECSYS)
+    if value is None:
+        return None
+    return str(value).strip().upper()
+
+
+def _read_systemic_velocity(header: fits.Header) -> u.Quantity | None:
+    value = header.get(KEY_VSYS)
+    if value is None:
+        return None
+    unit = u.Unit(header.get(KEY_VSYSUNIT, "km/s"))
+    return float(value) * unit
+
+
+def _read_lines(header: fits.Header) -> list[Line]:
+    """Parse the indexed ``HIERARCH ASTROLYZE LINE<n> …`` cards into a list of :class:`Line`.
+
+    Absent (single-line headers carry only ``RESTFRQ``) -> empty list, so an existing header
+    parses exactly as before. ``NLINES`` bounds the read; each present index becomes a line."""
+    count = header.get(KEY_NLINES)
+    if count is None:
+        return []
+    lines: list[Line] = []
+    for index in range(1, int(count) + 1):
+        base = f"{KEY_LINE_PREFIX}{index}"
+        rest = header.get(f"{base} RESTFRQ")
+        lines.append(
+            Line(
+                species=header.get(f"{base} SPECIES"),
+                transition=header.get(f"{base} TRANS"),
+                rest_frequency=(float(rest) * u.Hz) if rest is not None else None,
+            )
+        )
+    return lines
+
+
 def _opt_float(value) -> float | None:
     return float(value) if value is not None else None
 
@@ -301,4 +426,4 @@ def _opt_float(value) -> float | None:
 # Field names in declaration order — handy for callers that diff two Metadata objects.
 SCHEMA_FIELDS = tuple(f.name for f in fields(Metadata) if f.name != "provenance")
 
-__all__ = ["Metadata", "REQUIRED_CONTEXT", "SCHEMA_VERSION", "SCHEMA_FIELDS"]
+__all__ = ["Metadata", "Line", "REQUIRED_CONTEXT", "SCHEMA_VERSION", "SCHEMA_FIELDS"]

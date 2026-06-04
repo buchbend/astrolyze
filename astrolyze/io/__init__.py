@@ -28,7 +28,7 @@ from astrolyze.units import MissingContextError, VelocityConvention
 from . import naming, schema
 from .access import LoadedData, load, save
 from .naming import project
-from .schema import Metadata
+from .schema import Line, Metadata
 
 __all__ = [
     # loading / saving
@@ -37,6 +37,7 @@ __all__ = [
     "LoadedData",
     # schema + projection
     "Metadata",
+    "Line",
     "project",
     # reused context types
     "VelocityConvention",
