@@ -96,6 +96,22 @@ def incomplete_fits(tmp_path):
     return path
 
 
+@pytest.fixture
+def stokes4d_fits(tmp_path):
+    """A 4D FITS with a degenerate (size-1) STOKES axis — the CASA / interferometer convention
+    (PHANGS-ALMA ``*.pbcor.fits``). The loader must squeeze it to the 3D PPV cube spectral-cube
+    models, dropping the STOKES axis from both the data and the WCS."""
+    path = tmp_path / "raw" / "ngc0628_co21_4d.fits"
+    path.parent.mkdir(parents=True)
+    h = _full_header()
+    h["CTYPE4"], h["CRVAL4"] = "STOKES", 1.0
+    h["CDELT4"], h["CRPIX4"] = 1.0, 1.0
+    # numpy axis order is the reverse of FITS: (stokes=1, spectral=2, y=3, x=3).
+    data = np.arange(1 * 2 * 3 * 3, dtype="float32").reshape(1, 2, 3, 3)
+    fits.writeto(path, data, h)
+    return path
+
+
 # --------------------------------------------------------------------------------------
 # Parse the schema from a FITS header (the header is authoritative)
 # --------------------------------------------------------------------------------------
@@ -123,6 +139,31 @@ def test_parse_required_keywords_from_synthetic_fits(full_fits):
 
     assert m.is_complete is True
     assert m.missing == []
+
+
+# --------------------------------------------------------------------------------------
+# Degenerate extra (STOKES) axis — CASA/interferometer FITS load as the 3D PPV cube (#48)
+# --------------------------------------------------------------------------------------
+def test_load_squeezes_degenerate_stokes_axis(stokes4d_fits):
+    loaded = load(stokes4d_fits)
+    # The degenerate STOKES axis is dropped: a 3D PPV cube + a 3-axis WCS.
+    assert loaded.data.shape == (2, 3, 3)
+    assert loaded.wcs.naxis == 3
+    # The squeeze touches only the array + WCS; the header is still authoritative for the schema.
+    m = loaded.metadata
+    assert m.object == "NGC0628"
+    assert u.isclose(m.rest_frequency, REST, rtol=1e-12)
+    assert m.velocity_convention is VelocityConvention.RADIO
+    # header_string is the Zarr-load WCS vehicle (ADR-0006): it must describe the 3-axis WCS so a
+    # later from_zarr reconstructs a 3D cube, not a 4-axis WCS over 3D data.
+    from astropy.wcs import WCS
+
+    assert WCS(fits.Header.fromstring(loaded.header_string)).naxis == 3
+    # The actual symptom: the Cube now builds (previously ValueError: must be 3-dimensional).
+    from astrolyze.core import Cube
+
+    cube = Cube.from_loaded(loaded)
+    assert cube.shape == (2, 3, 3)
 
 
 # --------------------------------------------------------------------------------------
