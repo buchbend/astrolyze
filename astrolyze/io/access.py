@@ -22,7 +22,7 @@ from pathlib import Path
 
 import numpy as np
 from astropy.io import fits
-from astropy.wcs import WCS
+from astropy.wcs import WCS, WCSSUB_CELESTIAL, WCSSUB_SPECTRAL
 
 from .naming import project
 from .schema import Metadata
@@ -88,17 +88,53 @@ def _load_fits(path: Path) -> LoadedData:
         hdu = next((h for h in hdul if h.data is not None), hdul[0])
         header = hdu.header.copy()
         data = None if hdu.data is None else np.array(hdu.data)
+    # CASA / interferometer cubes (e.g. PHANGS-ALMA) are written 4D with a degenerate STOKES
+    # axis; squeeze it so the data + WCS are the 3D PPV cube the core layer models (issue #48).
+    original_wcs = WCS(header)
+    data, wcs = _squeeze_degenerate_axes(data, original_wcs)
+    squeezed = wcs.naxis != original_wcs.naxis
     _emit("load", inputs=[path])
     return LoadedData(
         data=data,
-        wcs=WCS(header),
+        wcs=wcs,
         metadata=Metadata.from_header(header),
         path=path,
         # Carry the verbatim FITS-WCS header string so a non-FITS backend can reconstruct the
         # exact WCS without a live fits.Header (ADR-0006); the FITS path also keeps the header.
-        header_string=header.tostring(),
+        # When a degenerate axis was dropped the 4-axis header no longer matches the 3D data, so
+        # the reduced WCS becomes the vehicle (else a from_zarr would rebuild a 4-axis WCS).
+        header_string=(wcs.to_header().tostring() if squeezed else header.tostring()),
         header=header,
     )
+
+
+def _squeeze_degenerate_axes(data, wcs):
+    """Drop degenerate (length-1) non-celestial, non-spectral axes so a CASA / interferometer
+    cube written with a trailing STOKES axis (the ``NAXIS4=1`` convention, e.g. PHANGS-ALMA
+    ``*.pbcor.fits``) loads as the 3D PPV cube spectral-cube models. Returns ``(data, wcs)``
+    reduced to celestial+spectral, or the inputs unchanged when there is nothing to drop.
+
+    Only *degenerate* extra axes are dropped — a non-degenerate extra axis is real data we will
+    not silently collapse (ADR-0003); it is left in place for the cube builder to reject.
+    """
+    if data is None or data.ndim <= 3:
+        return data, wcs
+    reduced = wcs.sub([WCSSUB_CELESTIAL, WCSSUB_SPECTRAL])
+    if reduced.naxis != 3:
+        return data, wcs  # no clean celestial+spectral triplet — don't guess
+    # The 0-based WCS axis indices to retain: longitude, latitude, spectral.
+    keep = {wcs.wcs.lng, wcs.wcs.lat, wcs.wcs.spec}
+    index = [slice(None)] * data.ndim
+    for wcs_axis in range(wcs.naxis):
+        if wcs_axis in keep:
+            continue
+        # numpy axis order is the reverse of FITS/WCS.
+        np_axis = data.ndim - 1 - wcs_axis
+        if data.shape[np_axis] != 1:
+            # A non-degenerate extra axis is real data: leave it for the builder to reject.
+            return data, wcs
+        index[np_axis] = 0
+    return data[tuple(index)], reduced
 
 
 def save(
