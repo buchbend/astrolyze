@@ -12,9 +12,9 @@ from __future__ import annotations
 import numpy as np
 import astropy.units as u
 import radio_beam
-from astropy.convolution import Gaussian1DKernel
+from astropy.convolution import Gaussian1DKernel, convolve_fft
 from radio_beam.utils import BeamError
-from spectral_cube import SpectralCube
+from spectral_cube import DaskSpectralCube, SpectralCube
 
 from astrolyze.io import Metadata
 from astrolyze.units import (
@@ -171,7 +171,9 @@ class Cube(ContextCarrier):
     # scaled by the correlation laws) — re-estimation is never called on this hot path, because a
     # real science cube is full of source (ADR-0003). With no ``noise=`` the return is the bare
     # Cube exactly as in #31 (backward compatible).
-    def convolve_to_beam(self, beam: radio_beam.Beam, *, noise=None):
+    def convolve_to_beam(
+        self, beam: radio_beam.Beam, *, noise=None, save_to_tmp_dir: bool = False
+    ):
         """Smooth the cube spatially to a **larger** *beam* via spectral-cube ``convolve_to``.
 
         The target must be larger than the current beam in the sense that it can be reached
@@ -182,9 +184,16 @@ class Cube(ContextCarrier):
         Returns a new :class:`Cube` carrying the new, larger beam as context (ADR-0004). When a
         :class:`~astrolyze.core.NoiseModel` is passed as ``noise``, it is propagated analytically
         through the beam change (spatial σ × √(Ω_in/Ω_out)) and the return is
-        ``(cube, propagated_model)`` (issue #32)."""
+        ``(cube, propagated_model)`` (issue #32).
+
+        On a dask-backed (lazy-Zarr) cube the convolution is materialised eagerly and can be
+        memory-heavy — a multi-GB cube plus FFT buffers can exhaust a small host. Pass
+        ``save_to_tmp_dir=True`` to compute it once to a temp directory (point ``TMPDIR`` at real
+        disk, not tmpfs); on the in-memory FITS path the flag is a no-op. The **synchronous** dask
+        scheduler also helps — set it caller-side via ``dask.config.set(scheduler="synchronous")``
+        (issue #51)."""
         self._require_larger_beam(beam)
-        smoothed = self._masked_sc().convolve_to(beam)
+        smoothed = self._convolve_to_fft(beam, save_to_tmp_dir=save_to_tmp_dir)
         _emit("convolve_to_beam", params={"beam": str(beam)})
         out = Cube(smoothed, self._metadata_with_beam(beam))
         if noise is None:
@@ -259,7 +268,14 @@ class Cube(ContextCarrier):
         )
         return out, propagate(noise, spectral_factor=effective_m)
 
-    def match_to(self, other: "Cube", *, reproject: bool = False, noise=None):
+    def match_to(
+        self,
+        other: "Cube",
+        *,
+        reproject: bool = False,
+        noise=None,
+        save_to_tmp_dir: bool = False,
+    ):
         """Bring ``self`` and ``other`` to a common beam (a common-beam + line-ratio helper).
 
         The common beam is the smallest beam both cubes can be *smoothed* to (radio_beam's
@@ -273,12 +289,18 @@ class Cube(ContextCarrier):
         Returns ``(matched_self, matched_other)`` as :class:`Cube`\\ s carrying the new
         common beam (ADR-0004). When a pair of :class:`~astrolyze.core.NoiseModel`\\ s is passed
         as ``noise=(model_self, model_other)`` each is propagated analytically to the common beam
-        and the return is ``((matched_self, matched_other), (model_self, model_other))`` (#32)."""
+        and the return is ``((matched_self, matched_other), (model_self, model_other))`` (#32).
+
+        ``save_to_tmp_dir`` is forwarded to each convolution; on dask-backed cubes it controls the
+        eager-materialisation strategy of the (memory-heavy) common-beam smoothing — see
+        :meth:`convolve_to_beam` (issue #51)."""
         common = radio_beam.commonbeam.commonbeam(
             radio_beam.Beams(beams=[self.metadata.beam, other.metadata.beam])
         )
-        matched_self = self._convolve_if_needed(common)
-        matched_other = other._convolve_if_needed(common)
+        matched_self = self._convolve_if_needed(common, save_to_tmp_dir=save_to_tmp_dir)
+        matched_other = other._convolve_if_needed(
+            common, save_to_tmp_dir=save_to_tmp_dir
+        )
         if reproject:
             matched_self = matched_self._reproject_spatial_to(matched_other)
         _emit("match_to", params={"beam": str(common), "reproject": reproject})
@@ -469,7 +491,9 @@ class Cube(ContextCarrier):
                 "super-resolution, which astrolyze refuses (never invents structure)"
             ) from exc
 
-    def _convolve_if_needed(self, beam: radio_beam.Beam) -> "Cube":
+    def _convolve_if_needed(
+        self, beam: radio_beam.Beam, *, save_to_tmp_dir: bool = False
+    ) -> "Cube":
         """Convolve to *beam* unless already at it (used by :meth:`match_to`).
 
         Unlike :meth:`convolve_to_beam`, reaching the common beam may be a no-op for the
@@ -480,7 +504,7 @@ class Cube(ContextCarrier):
             return (
                 self  # already at (or effectively at) the common beam — nothing to do.
             )
-        return self.convolve_to_beam(beam)
+        return self.convolve_to_beam(beam, save_to_tmp_dir=save_to_tmp_dir)
 
     def _reproject_spatial_to(self, other: "Cube") -> "Cube":
         """Reproject onto *other*'s spatial grid (a common grid), keeping our spectral axis."""
@@ -502,6 +526,26 @@ class Cube(ContextCarrier):
         if sc.mask is None:
             sc = sc.with_mask(np.isfinite(sc.unmasked_data[:]))
         return sc
+
+    def _convolve_to_fft(
+        self, beam: radio_beam.Beam, *, save_to_tmp_dir: bool = False
+    ) -> SpectralCube:
+        """Spatial convolution forced onto the FFT path (issue #51).
+
+        spectral-cube's per-class ``convolve_to`` default differs — ``SpectralCube`` defaults to
+        ``convolve_fft``, ``DaskSpectralCube`` to the ~65x slower direct ``convolve``. A Zarr-backed
+        cube (#23) is dask-backed and so silently took the direct default. We pass ``convolve_fft``
+        explicitly so the backend's default can't pick direct; FFT is bit-identical here, not an
+        approximation. spectral-cube auto-sets ``allow_huge`` for the dask FFT path.
+
+        ``save_to_tmp_dir`` is a ``DaskSpectralCube``-only eager-materialisation control; the
+        in-memory base class has no such parameter and would forward the unknown kwarg into
+        ``convolve_fft`` and error, so it is attached only on the dask path (a no-op otherwise)."""
+        masked = self._masked_sc()
+        kwargs = {"convolve": convolve_fft}
+        if save_to_tmp_dir and isinstance(masked, DaskSpectralCube):
+            kwargs["save_to_tmp_dir"] = True
+        return masked.convolve_to(beam, **kwargs)
 
     def _metadata_with_beam(self, beam) -> Metadata:
         """This object's metadata with the beam updated to *beam* (the new resolution)."""

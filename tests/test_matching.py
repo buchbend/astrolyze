@@ -130,6 +130,92 @@ def test_convolve_to_beam_delegates_to_spectral_cube(cube, monkeypatch):
 
 
 # --------------------------------------------------------------------------------------
+# convolve_to_beam: the FFT (not direct) convolution path on dask-backed cubes (issue #51)
+#
+# spectral-cube's per-class default differs — SpectralCube.convolve_to defaults to convolve_fft,
+# DaskSpectralCube.convolve_to to the ~65x slower direct convolve. A Zarr-backed (dask) Cube hits
+# the dask class, so without an explicit convolve= it silently ran direct. These guard the fix.
+# --------------------------------------------------------------------------------------
+def _make_dask_cube(tmp_path, name="dask_ngc0628.fits"):
+    """A dask-backed :class:`Cube` (the lazy-Zarr path) with non-trivial, structured data.
+
+    Built through the real FITS->Zarr io seam so it exercises the same backend production hits.
+    Random (not uniform) data makes the convolution non-degenerate, so FFT vs direct is a real
+    numerical comparison rather than a constant passing through. float64 (not the fixtures' float32)
+    so FFT and direct agree at machine precision — the point is that FFT is exact here, not an
+    approximation, and float32 round-off (~1e-8) would mask that."""
+    from astrolyze.io import load
+
+    rng = np.random.default_rng(51)
+    data = rng.normal(size=(8, 16, 16)).astype("float64")
+    path = tmp_path / name
+    fits.writeto(path, data, _cube_header())
+    eager = Cube.from_loaded(load(path))
+    return Cube.from_zarr(eager.to_zarr(tmp_path / "z"))
+
+
+def test_dask_convolve_to_beam_matches_direct(tmp_path):
+    # The FFT path is bit-identical to direct here (a pure performance bug, not an approximation).
+    # Convolve the dask cube the production way (FFT) and compare to an explicit direct reference.
+    from astropy.convolution import convolve as direct_convolve
+
+    cube = _make_dask_cube(tmp_path)
+    out = cube.convolve_to_beam(LARGER_BEAM)
+    reference = cube._masked_sc().convolve_to(LARGER_BEAM, convolve=direct_convolve)
+    np.testing.assert_allclose(
+        np.asarray(out._sc.unmasked_data[:]),
+        np.asarray(reference.unmasked_data[:]),
+        atol=1e-10,
+        rtol=0,
+    )
+
+
+def test_dask_convolve_to_beam_uses_fft_not_direct(tmp_path, monkeypatch):
+    # The no-silent-regression guard: assert the production code passes convolve_fft on the dask
+    # path, so the backend's ~65x slower direct default can never silently creep back in.
+    from spectral_cube import DaskSpectralCube
+    from astropy.convolution import convolve_fft
+
+    cube = _make_dask_cube(tmp_path)
+    captured = {}
+    real = DaskSpectralCube.convolve_to
+
+    def spy(self, beam, *args, convolve=None, **kwargs):
+        captured["convolve"] = convolve
+        return real(self, beam, *args, convolve=convolve, **kwargs)
+
+    monkeypatch.setattr(DaskSpectralCube, "convolve_to", spy)
+    cube.convolve_to_beam(LARGER_BEAM)
+    assert captured["convolve"] is convolve_fft
+
+
+def test_convolve_to_beam_forwards_save_to_tmp_dir_on_dask(tmp_path, monkeypatch):
+    # save_to_tmp_dir is a DaskSpectralCube-only eager-materialisation control; it must reach the
+    # dask convolve_to when requested (the caller's lever against OOM on big cubes).
+    from spectral_cube import DaskSpectralCube
+
+    cube = _make_dask_cube(tmp_path)
+    captured = {}
+    real = DaskSpectralCube.convolve_to
+
+    def spy(self, beam, *args, save_to_tmp_dir=False, **kwargs):
+        captured["save_to_tmp_dir"] = save_to_tmp_dir
+        return real(self, beam, *args, save_to_tmp_dir=save_to_tmp_dir, **kwargs)
+
+    monkeypatch.setattr(DaskSpectralCube, "convolve_to", spy)
+    cube.convolve_to_beam(LARGER_BEAM, save_to_tmp_dir=True)
+    assert captured["save_to_tmp_dir"] is True
+
+
+def test_convolve_to_beam_ignores_save_to_tmp_dir_on_eager(cube):
+    # The eager base-class convolve_to has no save_to_tmp_dir (it would error if forwarded into
+    # convolve_fft). The kwarg must be silently dropped on the in-memory path, not crash.
+    out = cube.convolve_to_beam(LARGER_BEAM, save_to_tmp_dir=True)
+    assert isinstance(out, Cube)
+    assert u.isclose(out.beam.major, LARGER_BEAM.major, rtol=1e-9)
+
+
+# --------------------------------------------------------------------------------------
 # convolve_to_beam: the REFUSED direction (a smaller / deconvolving target) raises
 # --------------------------------------------------------------------------------------
 def test_convolve_to_smaller_beam_raises_clear_named_error(cube):
