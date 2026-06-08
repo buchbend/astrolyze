@@ -80,6 +80,31 @@ a, b = co21.match_to(co10)                    # common beam, spectral axes untou
 a, b = co21.match_to(co10, reproject=True)    # also share one pixel grid (for line ratios)
 ```
 
+## Performance on lazy-Zarr (dask) cubes
+
+A `Cube` loaded from a Zarr store is **dask-backed** (lazy), and the spatial convolution is
+always run on the **FFT** path — `convolve_to_beam` / `match_to` are bit-identical to but
+roughly two orders of magnitude faster than a direct-space convolution for the large kernels a
+beam degrade implies. This is not an approximation: FFT and direct agree to machine precision
+here. (Internally `spectral-cube`'s `convolve_to` defaults to a direct convolution for the dask
+class, so astrolyze passes the FFT convolver explicitly to keep the fast path independent of the
+backend.)
+
+Materialising a whole convolved dask cube is **eager-heavy** — a multi-GB cube plus FFT buffers
+can exhaust a small host. Two caller-side levers help:
+
+```python
+# Compute once to a temp directory instead of holding the result in memory.
+# Point TMPDIR at real disk (not tmpfs). A no-op on the in-memory FITS path.
+coarser = cube.convolve_to_beam(target, save_to_tmp_dir=True)
+a, b = co21.match_to(co10, save_to_tmp_dir=True)
+
+# The synchronous scheduler keeps peak memory down on a constrained host.
+import dask
+with dask.config.set(scheduler="synchronous"):
+    coarser = cube.convolve_to_beam(target, save_to_tmp_dir=True)
+```
+
 ## See also
 
 - [No silent physics](no-silent-physics.md) — the same refuse-rather-than-guess principle for
