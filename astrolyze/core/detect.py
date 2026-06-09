@@ -359,6 +359,24 @@ def _enforce_consecutive_channels(core: np.ndarray, min_consecutive: int) -> np.
     return keep[labels]
 
 
+def _projected_pixel_counts(labels: np.ndarray, n: int) -> np.ndarray:
+    """Distinct ``(y, x)`` columns each label occupies — the projected footprint area per label.
+
+    Vectorised over the mask voxels (not ``labels == i`` per component, which is O(n·N) and the hot
+    path on a source-filled cube): take the labelled voxels, key each by ``(label, pixel)``,
+    de-duplicate channels with one ``np.unique``, and count per label. Returns a length-``n+1`` array
+    (index 0 = background)."""
+    nz, ny, nx = labels.shape
+    zyx = np.nonzero(labels)
+    lab = labels[zyx]
+    pixel = zyx[1].astype(np.int64) * nx + zyx[2]
+    keys = np.unique(
+        lab.astype(np.int64) * (ny * nx) + pixel
+    )  # distinct (label, pixel)
+    comp = (keys // (ny * nx)).astype(np.intp)
+    return np.bincount(comp, minlength=n + 1)
+
+
 def _area_floor(mask: np.ndarray, min_area_pixels: int) -> tuple[np.ndarray, int]:
     """Drop connected components whose **projected** spatial footprint is < ``min_area_pixels``.
 
@@ -368,14 +386,11 @@ def _area_floor(mask: np.ndarray, min_area_pixels: int) -> tuple[np.ndarray, int
         return mask, 0
     structure = np.ones((3, 3, 3), dtype=int)
     labels, n = ndimage.label(mask, structure=structure)
-    out = np.zeros_like(mask)
-    kept = 0
-    for i in range(1, n + 1):
-        comp = labels == i
-        if int(comp.any(axis=0).sum()) >= min_area_pixels:
-            out |= comp
-            kept += 1
-    return out, kept
+    if n == 0:
+        return np.zeros_like(mask), 0
+    keep = _projected_pixel_counts(labels, n) >= min_area_pixels
+    keep[0] = False  # background
+    return keep[labels], int(keep[1:].sum())
 
 
 def _scale_mask(
@@ -475,40 +490,60 @@ def _component_detections(data, mask, sigma_field, *, acf, beam, pixel_scale):
     The masked integrated SNR ``Σ I / √(κ_spec κ_spat Σ σ²)`` (the module statistic), one per
     detection, so a population can be built (the same routine runs on the negative field) and a
     tiler can map each component to the tiles its footprint overlaps."""
-    if not mask.any():
+    data = np.asarray(data, dtype="float64")
+    sigma_field = np.asarray(sigma_field, dtype="float64")
+    usable = (
+        np.asarray(mask, dtype=bool)
+        & np.isfinite(data)
+        & np.isfinite(sigma_field)
+        & (sigma_field > 0.0)
+    )
+    if not usable.any():
         return []
     ppb = pixels_per_beam(beam, pixel_scale)
     k_spat = kappa_spatial(beam, pixel_scale)
     structure = np.ones((3, 3, 3), dtype=int)
-    labels, n = ndimage.label(mask, structure=structure)
-    usable = np.isfinite(data) & np.isfinite(sigma_field) & (sigma_field > 0.0)
+    labels, n = ndimage.label(usable, structure=structure)
+    if n == 0:
+        return []
+
+    # Vectorised per-label reductions over the mask voxels only (not ``labels == i`` per component,
+    # which is O(n·N) and the hot path on a source-filled cube). bincount sums signal/variance/voxels
+    # per label; one ``np.unique`` each de-duplicates channels and pixels; find_objects gives bboxes.
+    nz, ny, nx = data.shape
+    zyx = np.nonzero(usable)
+    lab = labels[zyx]
+    data_m = data[zyx]
+    var_m = sigma_field[zyx] ** 2
+    n_vox = np.bincount(lab, minlength=n + 1)
+    signal = np.bincount(lab, weights=data_m, minlength=n + 1)
+    var0 = np.bincount(lab, weights=var_m, minlength=n + 1)
+    chan_keys = np.unique(lab.astype(np.int64) * nz + zyx[0])
+    n_chan = np.bincount((chan_keys // nz).astype(np.intp), minlength=n + 1)
+    proj_area = _projected_pixel_counts(labels, n)
+    boxes = ndimage.find_objects(labels)
 
     dets = []
     for i in range(1, n + 1):
-        comp = (labels == i) & usable
-        n_vox = int(comp.sum())
-        if n_vox == 0:
+        if n_vox[i] == 0:
             continue
-        signal = float(np.sum(np.where(comp, data, 0.0)))
-        var0 = float(np.sum(np.where(comp, sigma_field**2, 0.0)))
-        n_chan = int(np.count_nonzero(comp.any(axis=(1, 2))))
-        k_spec = kappa_spectral(acf, n_chan)
-        var = k_spec * k_spat * var0
-        snr = signal / np.sqrt(var) if var > 0.0 else 0.0
-        projected = comp.any(axis=0)  # (ny, nx) footprint
-        area_beams = float(projected.sum()) / ppb if ppb > 0 else float("nan")
-        ys, xs = np.where(projected)
+        nchan = int(n_chan[i])
+        k_spec = kappa_spectral(acf, nchan)
+        var = k_spec * k_spat * float(var0[i])
+        snr = float(signal[i]) / np.sqrt(var) if var > 0.0 else 0.0
+        area_beams = float(proj_area[i]) / ppb if ppb > 0 else float("nan")
+        _, y_slice, x_slice = boxes[i - 1]
         dets.append(
             ComponentDetection(
                 integrated_snr=float(snr),
                 area_beams=area_beams,
-                n_signal_voxels=n_vox,
-                n_channels=n_chan,
+                n_signal_voxels=int(n_vox[i]),
+                n_channels=nchan,
                 kappa_spec=k_spec,
-                y0=int(ys.min()),
-                y1=int(ys.max()) + 1,
-                x0=int(xs.min()),
-                x1=int(xs.max()) + 1,
+                y0=int(y_slice.start),
+                y1=int(y_slice.stop),
+                x0=int(x_slice.start),
+                x1=int(x_slice.stop),
             )
         )
     return dets
