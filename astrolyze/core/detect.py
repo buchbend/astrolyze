@@ -558,6 +558,49 @@ def detect_components(
     return components, scales
 
 
+def masked_integrated_snr(data, mask, sigma_field, *, acf, beam, pixel_scale):
+    """The masked integrated SNR over *all* voxels of *mask* (not per-component) + a geometry dict.
+
+    ``Σ I / √(κ_spec · κ_spat · Σ σ²)`` over the masked voxels — the module statistic applied to a
+    caller-chosen region (e.g. one spatial tile's slice of a cube-wide mask). A tiler uses this to
+    score each tile by the detected signal *within it*, so the tile most covering a source scores
+    highest. Returns ``(snr, info)`` with ``info`` = n_signal_voxels / area_beams /
+    n_channels_detected / kappa_spec / kappa_spat. Empty mask ⇒ ``(0.0, …zeros…)``."""
+    data = np.asarray(data, dtype="float64")
+    sigma_field = np.asarray(sigma_field, dtype="float64")
+    ppb = pixels_per_beam(beam, pixel_scale)
+    k_spat = kappa_spatial(beam, pixel_scale)
+    usable = (
+        np.asarray(mask, dtype=bool)
+        & np.isfinite(data)
+        & np.isfinite(sigma_field)
+        & (sigma_field > 0.0)
+    )
+    n_vox = int(usable.sum())
+    if n_vox == 0:
+        return 0.0, {
+            "n_signal_voxels": 0,
+            "area_beams": 0.0,
+            "n_channels_detected": 0,
+            "kappa_spec": 1.0,
+            "kappa_spat": k_spat,
+        }
+    signal = float(np.sum(np.where(usable, data, 0.0)))
+    var0 = float(np.sum(np.where(usable, sigma_field**2, 0.0)))
+    n_chan = int(np.count_nonzero(usable.any(axis=(1, 2))))
+    k_spec = kappa_spectral(acf, n_chan)
+    var = k_spec * k_spat * var0
+    snr = signal / np.sqrt(var) if var > 0.0 else 0.0
+    area_beams = float(usable.any(axis=0).sum()) / ppb if ppb > 0 else float("nan")
+    return float(snr), {
+        "n_signal_voxels": n_vox,
+        "area_beams": area_beams,
+        "n_channels_detected": n_chan,
+        "kappa_spec": k_spec,
+        "kappa_spat": k_spat,
+    }
+
+
 # ======================================================================================
 # SoFiA reliability from the negative (null) population
 # ======================================================================================
@@ -606,6 +649,25 @@ def reliability(pos_params, neg_params, *, smoothing=None) -> np.ndarray:
 # ======================================================================================
 # DQ: interferometer negative bowl (always recorded; ADR-0003 honesty)
 # ======================================================================================
+def bowl_metrics(data, sigma_field, *, t_lo=DEFAULT_T_LO, beam, pixel_scale):
+    """``(min_neg_sigma, bowl_fraction)`` from a cube's per-voxel SNR (the array-level surface).
+
+    A tiling caller computes the bowl DQ once per cube and stamps it on every tube. ``min_neg_sigma``
+    is the most-negative voxel in σ units (bowl depth); ``bowl_fraction`` is the fraction of voxels
+    in a spatially-coherent (≥~1 beam) negative region below ``-t_lo``σ — a deterministic bowl, not
+    noise, which would make a sign-flip null unsafe (ADR-0003)."""
+    data = np.asarray(data, dtype="float64")
+    sigma_field = np.asarray(sigma_field, dtype="float64")
+    finite = np.isfinite(data) & np.isfinite(sigma_field) & (sigma_field > 0.0)
+    if not finite.any():
+        return float("nan"), 0.0
+    with np.errstate(divide="ignore", invalid="ignore"):
+        snr_voxel = np.where(finite, data / sigma_field, np.nan)
+    return _bowl_metrics(
+        snr_voxel, finite, t_lo=t_lo, beam=beam, pixel_scale=pixel_scale
+    )
+
+
 def _bowl_metrics(snr_voxel, finite, *, t_lo, beam, pixel_scale):
     """``(min_neg_sigma, bowl_fraction)``: bowl depth, and the spatially-coherent negative fraction.
 
@@ -713,10 +775,8 @@ def detect(
         min_area_beams=min_area_beams,
     )
 
-    with np.errstate(divide="ignore", invalid="ignore"):
-        snr_voxel = np.where(finite, data / sigma, np.nan)
-    min_neg_sigma, bowl_fraction = _bowl_metrics(
-        snr_voxel, finite, t_lo=t_lo, beam=beam, pixel_scale=pixel_scale
+    min_neg_sigma, bowl_fraction = bowl_metrics(
+        data, sigma, t_lo=t_lo, beam=beam, pixel_scale=pixel_scale
     )
 
     components, scales = detect_components(data, sigma, **detect_kwargs)
@@ -813,6 +873,8 @@ __all__ = [
     "ScaleProvenance",
     "DEFAULT_LADDER",
     "smooth_and_clip_mask",
+    "masked_integrated_snr",
+    "bowl_metrics",
     "reliability",
     "detection_params",
     "kappa_spectral",

@@ -456,6 +456,56 @@ def test_cube_wide_null_assigns_reliability_to_a_component(tmp_path):
     )  # a strong line is reliable against the negative null
 
 
+def test_masked_integrated_snr_over_a_tile_tracks_source_coverage(tmp_path):
+    """A tile covering the source scores higher than one barely clipping it (the per-tile statistic
+    the sharder uses), and an empty tile scores 0 — so the signal tile beats every noise tile."""
+    cube, model = _line_cube(tmp_path / "line.fits", 60, peak=12 * SIGMA)
+    data = np.asarray(cube.validity.data.value)
+    sigma = np.asarray(model.sigma_cube.validity.data.value)
+    acf = np.asarray(model.spectral_acf.flux.value)
+    from astrolyze.core.detect import masked_integrated_snr, smooth_and_clip_mask
+
+    mask, _ = smooth_and_clip_mask(
+        data,
+        sigma,
+        beam=BEAM,
+        pixel_scale=cube.coordinates.pixel_scale,
+        channel_width_kms=2.0,
+    )
+    kw = dict(acf=acf, beam=BEAM, pixel_scale=cube.coordinates.pixel_scale)
+    on_source, info = masked_integrated_snr(
+        data[:, 12:36, 12:36], mask[:, 12:36, 12:36], sigma[:, 12:36, 12:36], **kw
+    )
+    corner, info0 = masked_integrated_snr(
+        data[:, 0:8, 0:8], mask[:, 0:8, 0:8], sigma[:, 0:8, 0:8], **kw
+    )
+    # the tile covering the source scores high; a corner away from it scores far lower (any voxels
+    # there are stray mask clip-ins, not the source).
+    assert on_source > 5.0 and info["n_signal_voxels"] > 0
+    assert on_source > 5.0 * max(corner, 0.1)
+    assert info["n_signal_voxels"] > info0["n_signal_voxels"]
+
+
+def test_bowl_metrics_flags_a_coherent_negative_bowl(tmp_path):
+    from astrolyze.core.detect import bowl_metrics
+
+    rng = np.random.default_rng(3)
+    field = _noise((40, 48, 48), rng=rng)
+    cube = _write_cube(tmp_path / "n.fits", field)
+    sigma = np.full_like(field, SIGMA)
+    # clean noise: no coherent negative region.
+    _, frac0 = bowl_metrics(
+        field, sigma, beam=BEAM, pixel_scale=cube.coordinates.pixel_scale
+    )
+    assert frac0 == pytest.approx(0.0, abs=0.02)
+    # impose a deterministic negative bowl over a beam-sized region across all channels.
+    field[:, 20:34, 20:34] -= 5 * SIGMA
+    min_neg, frac = bowl_metrics(
+        field, sigma, beam=BEAM, pixel_scale=cube.coordinates.pixel_scale
+    )
+    assert frac > 0.0 and min_neg < -3.0
+
+
 def test_detection_params_keeps_only_positive_in_log_space():
     comps = [
         ComponentDetection(10.0, 4.0, 100, 5, 1.0, 0, 5, 0, 5),
