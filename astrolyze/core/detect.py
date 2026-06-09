@@ -157,6 +157,42 @@ class DetectionResult:
     quality: DetectionQuality
 
 
+@dataclass(frozen=True)
+class ComponentDetection:
+    """One connected detection (mask component): its masked integrated SNR + geometry + footprint.
+
+    The reusable unit for a caller that tiles a cube (e.g. the SSL sharder): run
+    :func:`detect_components` once per cube, then map each component to the tiles its projected
+    footprint ``[y0:y1, x0:x1]`` overlaps. ``reliability`` is left ``NaN`` here — it is assigned by
+    the caller against a (cube-wide) null via :func:`reliability` (a single tile rarely has enough
+    negatives to calibrate it)."""
+
+    integrated_snr: float
+    area_beams: float
+    n_signal_voxels: int
+    n_channels: int
+    kappa_spec: float
+    # projected spatial footprint (pixel bbox), so a tiler can test tile overlap.
+    y0: int
+    y1: int
+    x0: int
+    x1: int
+
+
+def detection_params(components) -> np.ndarray:
+    """The ``(N, 2)`` ``[log10 SNR, log10 area_beams]`` array of detections with positive SNR.
+
+    The reliability parameter space (Serra+2012 / Westmeier+2021): log because detections are
+    power-law distributed. Built from a list of :class:`ComponentDetection`; the negative-SNR
+    components (off-source / null artefacts with a net-negative integral) are dropped."""
+    rows = [
+        [np.log10(c.integrated_snr), np.log10(max(c.area_beams, 1e-3))]
+        for c in components
+        if c.integrated_snr > 0.0
+    ]
+    return np.array(rows, dtype="float64") if rows else np.empty((0, 2))
+
+
 # ======================================================================================
 # The two correlation penalties (exact reductions, reusing the noise module's laws)
 # ======================================================================================
@@ -434,10 +470,11 @@ def smooth_and_clip_mask(
 # Per-component masked integrated SNR
 # ======================================================================================
 def _component_detections(data, mask, sigma_field, *, acf, beam, pixel_scale):
-    """Per connected component: ``(snr, area_beams, n_vox, n_chan, kappa_spec)`` over the mask.
+    """Per connected component of *mask*: a :class:`ComponentDetection` (masked SNR + geometry).
 
     The masked integrated SNR ``Σ I / √(κ_spec κ_spat Σ σ²)`` (the module statistic), one per
-    detection, so a population can be built (the same routine runs on the negative field)."""
+    detection, so a population can be built (the same routine runs on the negative field) and a
+    tiler can map each component to the tiles its footprint overlaps."""
     if not mask.any():
         return []
     ppb = pixels_per_beam(beam, pixel_scale)
@@ -458,17 +495,67 @@ def _component_detections(data, mask, sigma_field, *, acf, beam, pixel_scale):
         k_spec = kappa_spectral(acf, n_chan)
         var = k_spec * k_spat * var0
         snr = signal / np.sqrt(var) if var > 0.0 else 0.0
-        area_beams = float(comp.any(axis=0).sum()) / ppb if ppb > 0 else float("nan")
+        projected = comp.any(axis=0)  # (ny, nx) footprint
+        area_beams = float(projected.sum()) / ppb if ppb > 0 else float("nan")
+        ys, xs = np.where(projected)
         dets.append(
-            {
-                "snr": float(snr),
-                "area_beams": area_beams,
-                "n_vox": n_vox,
-                "n_chan": n_chan,
-                "k_spec": k_spec,
-            }
+            ComponentDetection(
+                integrated_snr=float(snr),
+                area_beams=area_beams,
+                n_signal_voxels=n_vox,
+                n_channels=n_chan,
+                kappa_spec=k_spec,
+                y0=int(ys.min()),
+                y1=int(ys.max()) + 1,
+                x0=int(xs.min()),
+                x1=int(xs.max()) + 1,
+            )
         )
     return dets
+
+
+def detect_components(
+    data,
+    sigma_field,
+    *,
+    acf,
+    beam,
+    pixel_scale,
+    channel_width_kms,
+    ladder=None,
+    t_hi: float = DEFAULT_T_HI,
+    t_lo: float = DEFAULT_T_LO,
+    min_consecutive_channels: int = DEFAULT_MIN_CONSECUTIVE_CHANNELS,
+    min_area_beams: float = DEFAULT_MIN_AREA_BEAMS,
+) -> tuple[list[ComponentDetection], tuple[ScaleProvenance, ...]]:
+    """Run the smooth-and-clip detector on bare arrays; return all components + per-rung provenance.
+
+    The array-level reusable surface (the cube-aware :func:`detect` wraps it). A tiling caller runs
+    this once per cube — on the data for the source population, and on ``-data`` for the null — then
+    assigns components to tiles and scores reliability against the cube-wide null with
+    :func:`reliability`. Geometry/units come from *beam* / *pixel_scale* / *channel_width_kms*; the
+    spectral ACF *acf* drives ``κ_spec``."""
+    union, scales = smooth_and_clip_mask(
+        data,
+        sigma_field,
+        beam=beam,
+        pixel_scale=pixel_scale,
+        channel_width_kms=channel_width_kms,
+        ladder=ladder,
+        t_hi=t_hi,
+        t_lo=t_lo,
+        min_consecutive_channels=min_consecutive_channels,
+        min_area_beams=min_area_beams,
+    )
+    components = _component_detections(
+        np.asarray(data, dtype="float64"),
+        union,
+        np.asarray(sigma_field, dtype="float64"),
+        acf=acf,
+        beam=beam,
+        pixel_scale=pixel_scale,
+    )
+    return components, scales
 
 
 # ======================================================================================
@@ -614,7 +701,8 @@ def detect(
         return _unreliable_result(null_kind=null, ppb=ppb, k_spat=k_spat)
 
     channel_width_kms = _channel_width_kms(cube)
-    mask_kwargs = dict(
+    detect_kwargs = dict(
+        acf=acf,
         beam=beam,
         pixel_scale=pixel_scale,
         channel_width_kms=channel_width_kms,
@@ -631,14 +719,8 @@ def detect(
         snr_voxel, finite, t_lo=t_lo, beam=beam, pixel_scale=pixel_scale
     )
 
-    union, scales = smooth_and_clip_mask(data, sigma, **mask_kwargs)
-    positives = [
-        d
-        for d in _component_detections(
-            data, union, sigma, acf=acf, beam=beam, pixel_scale=pixel_scale
-        )
-        if d["snr"] > 0.0
-    ]
+    components, scales = detect_components(data, sigma, **detect_kwargs)
+    positives = [c for c in components if c.integrated_snr > 0.0]
 
     if not positives:
         _emit("detect", params={"quality": "no_detection", "null": null})
@@ -665,12 +747,10 @@ def detect(
             params={"null": "sign_flip", "bowl_fraction": bowl_fraction},
         )
 
-    neg_params = _null_population(data, sigma, acf, null=null, mask_kwargs=mask_kwargs)
+    neg_params = _null_population(data, sigma, null=null, detect_kwargs=detect_kwargs)
 
-    pos_params = np.array(
-        [[np.log10(d["snr"]), np.log10(max(d["area_beams"], 1e-3))] for d in positives]
-    )
-    best_idx = int(np.argmax([d["snr"] for d in positives]))
+    pos_params = detection_params(positives)
+    best_idx = int(np.argmax([c.integrated_snr for c in positives]))
     best = positives[best_idx]
 
     if neg_params is None:
@@ -685,17 +765,17 @@ def detect(
         params={
             "quality": quality.value,
             "null": null,
-            "integrated_snr": best["snr"],
+            "integrated_snr": best.integrated_snr,
             "reliability": reliability_best,
         },
     )
     return DetectionResult(
-        integrated_snr=best["snr"],
+        integrated_snr=best.integrated_snr,
         reliability=reliability_best,
-        n_signal_voxels=best["n_vox"],
-        area_beams=best["area_beams"],
-        n_channels_detected=best["n_chan"],
-        kappa_spec=best["k_spec"],
+        n_signal_voxels=best.n_signal_voxels,
+        area_beams=best.area_beams,
+        n_channels_detected=best.n_channels,
+        kappa_spec=best.kappa_spec,
         kappa_spat=k_spat,
         pixels_per_beam=ppb,
         bowl_fraction=bowl_fraction,
@@ -706,43 +786,35 @@ def detect(
     )
 
 
-def _null_population(data, sigma, acf, *, null, mask_kwargs):
-    """The false-positive ``[log10 SNR, log10 area]`` list for the chosen *null* (None if skipped)."""
+def _null_population(data, sigma, *, null, detect_kwargs):
+    """The false-positive ``[log10 SNR, log10 area]`` array for the chosen *null* (None if skipped)."""
     if null == "none":
         return None
-    if null == "sign_flip":
-        negative = -data
-    elif null == "off_source":
-        # The off-source null is the negative field too, but masked to emission-free regions; for
-        # a bowl-free cube it coincides with sign-flip. A spatial off-source selector is a future
-        # refinement (the bowl DQ flags when it is needed); fall back to the negative field.
+    if null in ("sign_flip", "off_source"):
+        # The off-source null is the negative field masked to emission-free regions; for a bowl-free
+        # cube it coincides with sign-flip. A spatial off-source selector is a future refinement (the
+        # bowl DQ flags when it is needed); fall back to the negative field.
         negative = -data
     else:
         raise ValueError(
             f"unknown null {null!r}; choose 'sign_flip', 'off_source', or 'none'"
         )
-    beam = mask_kwargs["beam"]
-    pixel_scale = mask_kwargs["pixel_scale"]
-    neg_union, _ = smooth_and_clip_mask(negative, sigma, **mask_kwargs)
-    neg = _component_detections(
-        negative, neg_union, sigma, acf=acf, beam=beam, pixel_scale=pixel_scale
-    )
-    return [
-        [np.log10(d["snr"]), np.log10(max(d["area_beams"], 1e-3))]
-        for d in neg
-        if d["snr"] > 0.0
-    ]
+    neg, _ = detect_components(negative, sigma, **detect_kwargs)
+    return detection_params(neg)
 
 
 __all__ = [
     "detect",
+    "detect_components",
     "DetectionResult",
     "DetectionQuality",
+    "ComponentDetection",
     "ScaleStep",
     "ScaleProvenance",
     "DEFAULT_LADDER",
     "smooth_and_clip_mask",
     "reliability",
+    "detection_params",
     "kappa_spectral",
     "kappa_spatial",
     "pixels_per_beam",

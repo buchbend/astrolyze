@@ -44,14 +44,18 @@ from astrolyze.core import Cube, NoiseModel, NoiseQuality
 from astrolyze.core import noise as noise_mod
 from astrolyze.core.detect import (
     DEFAULT_LADDER,
+    ComponentDetection,
     DetectionQuality,
     DetectionResult,
     ScaleProvenance,
     ScaleStep,
     detect,
+    detect_components,
+    detection_params,
     kappa_spatial,
     kappa_spectral,
     pixels_per_beam,
+    reliability,
 )
 from astrolyze.io import load
 
@@ -402,3 +406,63 @@ def test_default_ladder_is_physical():
     assert all(isinstance(s, ScaleStep) for s in DEFAULT_LADDER)
     assert any(s.spectral_fwhm_kms > 0 for s in DEFAULT_LADDER)
     assert any(s.spatial_fwhm_beams > 0 for s in DEFAULT_LADDER)
+
+
+# ======================================================================================
+# AC 6: the array-level surface a tiling caller (the SSL sharder) composes
+# ======================================================================================
+def test_detect_components_returns_footprint_bbox_around_the_line(tmp_path):
+    """detect_components yields ComponentDetections whose projected bbox brackets the source — so a
+    tiler can map a component to the tiles it overlaps (the cube-wide-detect-then-assign pattern)."""
+    cube, model = _line_cube(tmp_path / "line.fits", 60, peak=12 * SIGMA)
+    data = np.asarray(cube.validity.data.value)
+    sigma = np.asarray(model.sigma_cube.validity.data.value)
+    acf = np.asarray(model.spectral_acf.flux.value)
+    comps, scales = detect_components(
+        data,
+        sigma,
+        acf=acf,
+        beam=BEAM,
+        pixel_scale=cube.coordinates.pixel_scale,
+        channel_width_kms=2.0,
+    )
+    assert comps and all(isinstance(c, ComponentDetection) for c in comps)
+    best = max(comps, key=lambda c: c.integrated_snr)
+    assert (
+        best.y0 <= 24 < best.y1 and best.x0 <= 24 < best.x1
+    )  # brackets the line at (24,24)
+    assert best.integrated_snr > 5.0
+
+
+def test_cube_wide_null_assigns_reliability_to_a_component(tmp_path):
+    """The sharder pattern: build a cube-wide null once, score a positive component against it."""
+    cube, model = _line_cube(tmp_path / "line.fits", 60, peak=15 * SIGMA)
+    data = np.asarray(cube.validity.data.value)
+    sigma = np.asarray(model.sigma_cube.validity.data.value)
+    acf = np.asarray(model.spectral_acf.flux.value)
+    kw = dict(
+        acf=acf,
+        beam=BEAM,
+        pixel_scale=cube.coordinates.pixel_scale,
+        channel_width_kms=2.0,
+    )
+    pos, _ = detect_components(data, sigma, **kw)
+    neg, _ = detect_components(-data, sigma, **kw)
+    pos = [c for c in pos if c.integrated_snr > 0]
+    best_idx = int(np.argmax([c.integrated_snr for c in pos]))
+    r = reliability(detection_params(pos), detection_params(neg))[best_idx]
+    assert (
+        0.0 <= r <= 1.0 and r > 0.8
+    )  # a strong line is reliable against the negative null
+
+
+def test_detection_params_keeps_only_positive_in_log_space():
+    comps = [
+        ComponentDetection(10.0, 4.0, 100, 5, 1.0, 0, 5, 0, 5),
+        ComponentDetection(
+            -3.0, 2.0, 20, 2, 1.0, 0, 3, 0, 3
+        ),  # net-negative -> dropped
+    ]
+    params = detection_params(comps)
+    assert params.shape == (1, 2)
+    assert params[0, 0] == pytest.approx(np.log10(10.0))
