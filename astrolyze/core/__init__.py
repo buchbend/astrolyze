@@ -18,6 +18,11 @@ Build them from an :class:`~astrolyze.io.LoadedData` via ``Cube.from_loaded(load
 from __future__ import annotations
 
 from .cube import Cube, LossyDirectionError
+from .detect import (
+    DetectionQuality,
+    DetectionResult,
+    detect,
+)
 from .map import Map
 from .noise import (
     NoiseModel,
@@ -36,4 +41,7 @@ __all__ = [
     "Spectrum",
     "available_estimators",
     "register_estimator",
+    "detect",
+    "DetectionResult",
+    "DetectionQuality",
 ]
