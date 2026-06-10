@@ -176,7 +176,13 @@ class Metadata:
         """Parse a :class:`~astropy.io.fits.Header` into the schema. The header is
         authoritative; missing fields simply stay ``None``."""
         rest = header.get(KEY_RESTFRQ, header.get(KEY_RESTFRQ_ALT))
-        beam = radio_beam.Beam.from_fits_header(header) if "BMAJ" in header else None
+        # radio_beam prefers the BMAJ/BMIN/BPA keywords and falls back to the AIPS HISTORY
+        # cards ("AIPS   CLEAN BMAJ= ..."), which is where AIPS-era surveys (THINGS) keep the
+        # restoring beam — so let it try every header, and only a beam-less header stays None.
+        try:
+            beam = radio_beam.Beam.from_fits_header(header)
+        except radio_beam.beam.NoBeamException:
+            beam = None
 
         return cls(
             object=header.get(KEY_OBJECT),
@@ -392,7 +398,16 @@ def _read_convention(header: fits.Header) -> VelocityConvention | None:
 
 
 def _read_unit(value) -> u.UnitBase | None:
-    return u.Unit(value) if value else None
+    if not value:
+        return None
+    try:
+        return u.Unit(value)
+    except ValueError:
+        # AIPS-era headers write all-caps unit strings ('JY/BEAM', THINGS); astropy parsing is
+        # case-sensitive. Retry with the canonical spellings aliased in — anything still
+        # unparseable re-raises, so a genuinely unknown unit stays a loud error (ADR-0003).
+        with u.set_enabled_aliases({"JY": u.Jy, "BEAM": u.beam, "KELVIN": u.K}):
+            return u.Unit(value)
 
 
 def _read_calibration_scale(value) -> CalibrationScale | None:
