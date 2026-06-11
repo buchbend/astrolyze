@@ -280,6 +280,91 @@ def plot_channel_maps(
     return fig, np.array(axes)
 
 
+def plot_stack_grid(
+    stack,
+    *,
+    ncols=None,
+    cmap=DEFAULT_CMAP,
+    add_beam=True,
+    backend="matplotlib",
+):
+    """Draw one house-style panel per :class:`~astrolyze.collection.stack.Stack` member (#64).
+
+    The browse-everything view (PRD #56 user story 12): a grid with one panel per stack member,
+    each the member cube's canonical 2-D summary — its moment-0 map, the same view ``cube.plot()``
+    shows for a cube — on its own WCS axes, titled with the member's identity (object / survey /
+    species / transition). It reuses :func:`plot_map` (DRY) and the shipped house style, so a
+    stack grid matches the channel-map grid's look.
+
+    Crucially this works on a **heterogeneous** stack: members may carry different brightness
+    units, so each panel gets its **own** colorbar labelled with that member's unit (a single
+    shared scale across mixed units would be physically meaningless) — that is the deliberate
+    difference from :func:`plot_channel_maps`, where all panels share one scale.
+
+    Parameters
+    ----------
+    stack : ~astrolyze.collection.stack.Stack
+        The stack to display. Must have at least one member.
+    ncols : int, optional
+        Number of panel columns. Default: ``min(n_members, 4)``.
+    cmap : str, optional
+        Colormap name. Default: ``"cividis"`` (the house default — ADR-0005 rider 2).
+    add_beam : bool, optional
+        Draw each member's beam ellipse in its panel's lower-left corner. Default: ``True``.
+    backend : str, optional
+        Reserved seam for a future interactive backend (ADR-0005 rider 1). Only ``"matplotlib"``.
+
+    Returns
+    -------
+    fig : :class:`matplotlib.figure.Figure`
+    axes : :class:`numpy.ndarray` of :class:`matplotlib.axes.Axes`
+        One element per member, in member order.
+
+    Raises
+    ------
+    ValueError
+        The stack is empty (nothing to plot is a caller mistake, not a silent empty figure).
+    NotImplementedError
+        ``backend`` is not ``"matplotlib"``.
+    """
+    _require_backend(backend)
+    members = list(stack)
+    n_panels = len(members)
+    if n_panels == 0:
+        raise ValueError(
+            "cannot plot_grid an empty stack (no members to draw); a stack with no covering "
+            "cutouts has nothing to show — filter or re-stack before plotting"
+        )
+
+    if ncols is None:
+        ncols = min(n_panels, 4)
+    nrows = int(np.ceil(n_panels / ncols))
+
+    with style():
+        panel_size = 2.6  # inches per panel — a touch larger than channel maps (own colorbar each)
+        fig = plt.figure(figsize=(ncols * panel_size + 0.8, nrows * panel_size))
+        axes = []
+        for i, member in enumerate(members):
+            # The member's canonical 2-D summary is its moment-0 map (same as cube.plot()); each
+            # panel is an independent plot_map so it carries its own WCS, unit colorbar, and beam.
+            summary = member.cube.moment0()
+            ax = fig.add_subplot(nrows, ncols, i + 1, projection=summary.wcs)
+            plot_map(
+                summary,
+                ax=ax,
+                cmap=cmap,
+                add_beam=add_beam,
+                add_colorbar=True,
+            )
+            ax.set_title(member._label())
+            axes.append(ax)
+        # subplots_adjust (not tight_layout) — WCSAxes warns under tight_layout; generous spacing
+        # because every panel carries its own colorbar.
+        fig.subplots_adjust(hspace=0.4, wspace=0.45)
+
+    return fig, np.array(axes)
+
+
 # --------------------------------------------------------------------------------------
 # helpers
 # --------------------------------------------------------------------------------------
