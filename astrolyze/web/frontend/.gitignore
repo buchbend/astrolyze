@@ -1,0 +1,7 @@
+# Frontend build artifacts and deps — never committed. The BUILT bundle lands in ../static (the
+# package-data dir the wheel ships); CI runs `npm ci && npm run build` to produce it, so it need
+# not be tracked. node_modules is install-on-demand.
+node_modules/
+dist/
+.vite/
+*.local

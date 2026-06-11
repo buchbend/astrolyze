@@ -1,0 +1,10 @@
+# Packaging manifest (issue #66).
+#
+# The web corpus explorer ships its BUILT Vue bundle (astrolyze/web/static/, declared as
+# package-data in pyproject) but NEVER its frontend source tree or node deps. setuptools' build_py
+# walker would otherwise sweep stray .py files out of node_modules/ (e.g. a bundled tool's
+# python/ helper) into the wheel. `prune` is the reliable cross-environment exclusion the
+# pyproject globs alone do not guarantee for node_modules. In CI the wheel is built from a fresh
+# checkout with no node_modules, so this is primarily a local-build safeguard.
+prune astrolyze/web/frontend
+global-exclude */node_modules/*

@@ -51,7 +51,8 @@ dependencies = [
 
 [project.optional-dependencies]
 # ruff is the single linter *and* formatter (no black) — `ruff check` + `ruff format`.
-dev = ["pytest>=8", "ruff>=0.5"]
+# httpx backs starlette's TestClient (the web contract tests, issue #66); it is test-only.
+dev = ["pytest>=8", "ruff>=0.5", "httpx>=0.27"]
 # Tooling to run the interactive tutorial (examples/tutorial.ipynb).
 notebook = ["jupyterlab>=4", "ipykernel>=6"]
 # Object-store access (issue #63): s3fs is the fsspec driver that lights up ``s3://`` corpus
@@ -62,6 +63,14 @@ notebook = ["jupyterlab>=4", "ipykernel>=6"]
 # `pip install astrolyze[s3]`. Remote caching is fsspec passthrough — e.g. a
 # `simplecache::s3://…` URL caches reads with no astrolyze cache layer.
 s3 = ["s3fs>=2024.1"]
+# The web corpus explorer (issue #66): `astrolyze explore <corpus>` serves a FastAPI backend
+# (thin wrappers over the public Collection API) and a built Vue frontend. fastapi is the app,
+# uvicorn the ASGI server. It is an OPT-IN extra, not a hard dependency: a bare install never
+# imports fastapi/uvicorn (the heavy server stack is irrelevant to the analysis library), the
+# imports stay lazy, and `astrolyze explore` without the extra exits with one actionable line
+# (`pip install 'astrolyze[web]'`) — the same opt-in contract as s3/coverage. Install with
+# `pip install astrolyze[web]`.
+web = ["fastapi>=0.110", "uvicorn>=0.29"]
 # Exact sky-coverage queries (issue #62): mocpy deserializes a catalog's exact-footprint MOC
 # (the v1.1 ``moc`` column) so ``Collection.covering(SkyCoord)`` can prefilter candidates by exact
 # footprint instead of only the coarse center+radius circle. It is an OPT-IN consumer extra, not a
@@ -80,9 +89,23 @@ astrolyze = "astrolyze.cli:app"
 
 [tool.setuptools.packages.find]
 include = ["astrolyze*"]
+# Exclude the frontend SOURCE tree from package discovery: it is a Node project, not a Python
+# package. Without this, setuptools would discover stray .py files under node_modules (e.g. a
+# bundled tool's python/ helper) and wrongly ship them. The BUILT bundle (web/static/) is shipped
+# separately as package-data below — only the source/deps under frontend/ are excluded here.
+exclude = ["astrolyze.web.frontend*"]
 
 [tool.setuptools.package-data]
-astrolyze = ["viz/*.mplstyle"]
+# viz: the house matplotlib style. web/static: the BUILT Vue frontend the wheel must ship so the
+# corpus explorer serves its UI from the installed package (issue #66). The bundle is emitted by
+# `npm run build` (frontend/ -> web/static/) in CI before the Python build; the recursive globs
+# cover Vite's hashed assets/ subtree. A source checkout that never ran the build simply ships no
+# static/* and the explorer serves the API alone (the app degrades gracefully — see web/api.py).
+astrolyze = ["viz/*.mplstyle", "web/static/*", "web/static/**/*"]
+# The frontend SOURCE tree (astrolyze/web/frontend/, including node_modules/) is excluded from the
+# wheel by MANIFEST.in's `prune` — only the BUILT bundle (web/static/, above) ships. The prune is
+# the reliable exclusion: setuptools' package-data globs alone do not stop its build_py walker from
+# sweeping stray node_modules .py files into the wheel.
 
 [tool.ruff]
 line-length = 88
