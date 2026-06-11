@@ -37,6 +37,7 @@ from .scan import (
     scan_directory,
     write_catalog,
 )
+from .stack import HomogeneityReport, Selection, Stack, StackMember
 
 __all__ = [
     "Collection",
@@ -54,4 +55,8 @@ __all__ = [
     "write_catalog",
     "ScanResult",
     "ScanWarning",
+    "Stack",
+    "StackMember",
+    "Selection",
+    "HomogeneityReport",
 ]

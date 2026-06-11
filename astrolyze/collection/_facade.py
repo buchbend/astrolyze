@@ -385,6 +385,44 @@ class Collection:
         )
         return Collection(replace(self._catalog, rows=covered), self._root_uri)
 
+    def stack(self, position_or_sources, *, size, partial: str = "raise"):
+        """Gather sky-coordinate cutouts into a :class:`~astrolyze.collection.stack.Stack` (#64).
+
+        The stage-1 stack builder (PRD #56 user stories 10/11): assemble a multi-survey,
+        multi-line view of a target — or a multi-target sample — by taking a
+        :meth:`~astrolyze.core.Cube.cutout` of angular *size* from every cube that covers each
+        position. The result is a :class:`~astrolyze.collection.stack.Stack`: an aligned-cutout
+        container that is **always safe to construct and browse**, however heterogeneous its
+        members. Co-addition is a separate explicit stage (#65) — this call never co-adds.
+
+        Parameters
+        ----------
+        position_or_sources : ~astropy.coordinates.SkyCoord or list
+            **Either** a single sky position (a scalar :class:`~astropy.coordinates.SkyCoord`) —
+            :meth:`covering` finds every cube containing it and one cutout is taken from each
+            (user story 10) — **or** a list of catalog object **names** and/or SkyCoords, building
+            a multi-target sample (user story 11). A *name* is resolved against **this collection's
+            catalog** (no SIMBAD/Sesame in the library — PRD #56 out of scope); an unknown name
+            raises :class:`KeyError`. A non-scalar SkyCoord array is treated as a list of its
+            positions.
+        size : ~astropy.units.Quantity
+            The angular stamp size handed to :meth:`~astrolyze.core.Cube.cutout` (a scalar square
+            or a ``(height, width)`` pair). Keyword-only — a stack always declares its stamp size.
+        partial : {"raise", "trim"}, default "raise"
+            The cutout edge rule for a covering cube whose footprint cannot fit the full stamp
+            (passed through to :meth:`~astrolyze.core.Cube.cutout`): ``"raise"`` rejects a partial
+            window, ``"trim"`` opts into the trimmed stamp (no silent clipping either way).
+
+        Returns
+        -------
+        ~astrolyze.collection.stack.Stack
+            The gathered members (each a cutout carrying origin provenance + identity), with the
+            request's :class:`~astrolyze.collection.stack.Selection` provenance recorded.
+        """
+        from .stack import gather_stack
+
+        return gather_stack(self, position_or_sources, size=size, partial=partial)
+
 
 # -- aggregation helpers ---------------------------------------------------------------
 def _distinct(values) -> tuple:

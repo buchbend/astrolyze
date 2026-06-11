@@ -16,6 +16,7 @@ from .engine import (
     plot_map,
     plot_noise,
     plot_spectrum,
+    plot_stack_grid,
 )
 from .style import style
 
@@ -25,6 +26,7 @@ __all__ = [
     "plot_cube",
     "plot_noise",
     "plot_channel_maps",
+    "plot_stack_grid",
     "style",
     "DEFAULT_CMAP",
 ]
