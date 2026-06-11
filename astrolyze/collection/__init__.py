@@ -37,7 +37,7 @@ from .scan import (
     scan_directory,
     write_catalog,
 )
-from .stack import HomogeneityReport, Selection, Stack, StackMember
+from .stack import CoaddError, HomogeneityReport, Selection, Stack, StackMember
 
 __all__ = [
     "Collection",
@@ -59,4 +59,5 @@ __all__ = [
     "StackMember",
     "Selection",
     "HomogeneityReport",
+    "CoaddError",
 ]

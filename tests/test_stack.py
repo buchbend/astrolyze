@@ -510,12 +510,12 @@ def test_map_requires_fn_to_return_a_cube(collection):
 
 
 # --------------------------------------------------------------------------------------
-# no co-addition / alignment at this stage (the seam belongs to #65)
+# stage-2 alignment + co-addition now exists (#65) — full physics lives in tests/test_coadd.py
 # --------------------------------------------------------------------------------------
-def test_stack_has_no_coadd_or_alignment_methods_yet(collection):
-    """Stage 1 is the container only — coadd/alignment are #65 and must NOT exist here."""
+def test_stack_has_stage2_alignment_and_coadd_methods(collection):
+    """#65 adds the alignment + co-addition stage onto the stage-1 container."""
     stack = collection.stack(_centre_a(), size=STAMP)
-    for forbidden in ("coadd", "to_common_beam", "to_velocity_grid", "shift_to_rest"):
-        assert not hasattr(stack, forbidden), (
-            f"{forbidden} is the #65 alignment/coadd stage and must not exist on the stage-1 Stack"
+    for method in ("coadd", "to_common_beam", "to_velocity_grid", "shift_to_rest"):
+        assert callable(getattr(stack, method, None)), (
+            f"{method} is the #65 alignment/coadd stage and must exist on the Stack"
         )

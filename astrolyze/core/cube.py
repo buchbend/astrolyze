@@ -26,6 +26,7 @@ from astrolyze.units import (
     BrightnessTemperatureScale,
     CalibrationScale,
     MissingContextError,
+    VelocityConvention,
     coerce_calibration_scale,
     coerce_temperature_scale,
     convert,
@@ -661,6 +662,97 @@ class Cube(ContextCarrier):
 
         _emit("to_spectral_frame", params={"frame": frame})
         return Cube(rebuilt, replace(self.metadata, spectral_frame=frame))
+
+    # -- velocity-axis regrid + rest shift (the #65 stack-alignment seam) ----------------
+    # Two thin spectral operations the Stack's alignment methods (issue #65) build on. Both
+    # work in velocity (km/s), the natural axis for line stacking, routed through the object's
+    # rest frequency + velocity convention (raises if either is absent — no silent guess of a
+    # spectral axis, ADR-0003). astrolyze stays thin: spectral-cube's spectral_interpolate does
+    # the resampling maths; the rest-shift is an exact coordinate RELABEL (no interpolation), so
+    # it costs no signal and adds no smoothing.
+    def velocity_axis(self) -> u.Quantity:
+        """This cube's spectral axis expressed as velocity (km/s) under its own convention.
+
+        The authoritative velocity grid for :meth:`to_velocity_grid` / :meth:`shift_to_rest`,
+        derived from the rest frequency + velocity convention (raises via spectral-cube if either
+        is absent — astrolyze never guesses a velocity axis, ADR-0003)."""
+        return self._velocity_sc().spectral_axis.to(u.km / u.s)
+
+    def to_velocity_grid(self, grid: u.Quantity) -> "Cube":
+        """Resample this cube's spectral axis onto a common velocity *grid*; return a new :class:`Cube`.
+
+        The spectral-regrid half of stack alignment (issue #65, PRD #56 user story 14): every
+        member of a stack is interpolated onto one shared velocity grid so the channels line up
+        voxel-for-voxel before co-addition. *grid* is a 1-D velocity ``Quantity`` (e.g.
+        ``np.linspace(-50, 50, 101) * u.km/u.s``); the cube is first put on a velocity axis under
+        its own convention and then handed to spectral-cube's ``spectral_interpolate`` (astrolyze
+        stays thin — it does the interpolation maths). Voxels of the target grid that fall outside
+        this cube's native velocity coverage are filled with ``NaN`` (``fill_value=np.nan``) — an
+        honest "not observed here" the coadd then treats as zero weight, never an extrapolated
+        guess (ADR-0003). Returns a new :class:`Cube` on *grid*, carrying this cube's beam + unit.
+
+        Resampling is a **visible, auditable choice** (you call it explicitly), not a silent step
+        inside ``coadd`` — that is the whole point of the staged alignment design."""
+        grid_kms = u.Quantity(grid).to(u.km / u.s, equivalencies=u.spectral())
+        masked = self._velocity_sc(masked=True)
+        # fill_value=NaN: do NOT nearest-extrapolate beyond native coverage — an unobserved target
+        # channel must read NaN (zero weight in the coadd), not a fabricated edge value (ADR-0003).
+        regridded = masked.spectral_interpolate(
+            grid_kms, suppress_smooth_warning=True, fill_value=np.nan
+        )
+        _emit(
+            "to_velocity_grid",
+            params={"n": int(grid_kms.size), "unit": "km/s"},
+        )
+        return Cube(regridded, self._metadata_with_beam(self.metadata.beam))
+
+    def shift_to_rest(self, v_sys: u.Quantity) -> "Cube":
+        """Shift the spectral axis so the source's systemic velocity *v_sys* maps to rest (0 km/s).
+
+        The velocity-alignment half of stack alignment (issue #65, PRD #56 user stories 14/17):
+        a source observed at systemic velocity *v_sys* has its line centred at *v_sys*; shifting
+        to rest re-labels the axis by ``v_new = v_obs - v_sys`` so the line sits at 0 km/s and the
+        same channel of two differently-redshifted sources samples the same rest velocity.
+
+        This is an **exact coordinate relabel**, not a resampling: the velocity WCS reference value
+        is moved by *v_sys* and the data array is carried through untouched (no interpolation, no
+        smoothing, no signal cost). Bringing members onto one shared grid afterwards is
+        :meth:`to_velocity_grid`'s job. *v_sys* must be a velocity ``Quantity``; the cube must
+        carry a rest frequency + velocity convention (raises otherwise — no guessed axis, ADR-0003).
+        Returns a new :class:`Cube` whose velocity axis is shifted by *v_sys*."""
+        from astropy.wcs import WCS
+
+        v_sys_ms = u.Quantity(v_sys).to(u.m / u.s, equivalencies=u.spectral())
+        # Put the axis on velocity under this object's convention, then relabel by moving the
+        # spectral reference value (CRVAL) by -v_sys. spectral-cube routes freq<->velocity through
+        # astropy with the rest value/convention, so the data are unchanged — only the axis labels.
+        vel_sc = self._velocity_sc()
+        new_wcs = WCS(vel_sc.header)
+        spec = new_wcs.wcs.spec
+        crval_ms = (new_wcs.wcs.crval[spec] * u.Unit(new_wcs.wcs.cunit[spec])).to_value(
+            u.m / u.s
+        )
+        new_wcs.wcs.crval[spec] = crval_ms - v_sys_ms.to_value(u.m / u.s)
+        new_wcs.wcs.cunit[spec] = "m/s"
+        rebuilt = SpectralCube(data=vel_sc.unmasked_data[:], wcs=new_wcs)
+        _emit("shift_to_rest", params={"v_sys": str(v_sys)})
+        return Cube(rebuilt, self._metadata_with_beam(self.metadata.beam))
+
+    def _velocity_sc(self, *, masked: bool = False) -> SpectralCube:
+        """The wrapped cube on a velocity (km/s) spectral axis under this object's convention.
+
+        Routes through spectral-cube's ``with_spectral_unit`` with the object's rest frequency +
+        velocity convention, so the axis is the authoritative velocity grid (it raises if either
+        is absent — never a guessed axis, ADR-0003). ``masked=True`` attaches the all-finite mask
+        spectral-cube's ``spectral_interpolate`` requires (the regrid path), exactly as the
+        spatial ops do via :meth:`_masked_sc`."""
+        self.require_complete()  # rest frequency + velocity convention or raise (ADR-0003)
+        base = self._masked_sc() if masked else self._sc
+        return base.with_spectral_unit(
+            u.km / u.s,
+            velocity_convention=VelocityConvention(self.velocity_convention).value,
+            rest_value=self.rest_frequency,
+        )
 
     def plot_channel_maps(self, **kwargs):
         """Thin sugar: draw a publication-grade channel-map grid via the viz engine (#59).
