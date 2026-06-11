@@ -26,6 +26,9 @@ not the API reference (the docstrings are) and not a first-run walkthrough (that
 | [Coordinates and validity](guide/coordinates-and-validity.md) | Per-axis physical coordinate arrays (`Cube.coordinates`) and the validity descriptor (`Cube.validity`), surfaced read-only from the WCS | ADR-0004, ADR-0003 |
 | [No silent physics](guide/no-silent-physics.md) | The typed-insufficiency guard: `MissingContextError`, the structured `Insufficiency`/`ContextGap` descriptor, and the non-raising probe `Cube.can_convert_to(...)` | ADR-0003, ADR-0013 |
 | [Beam and channel matching](guide/beam-and-channel-matching.md) | Smoothing to a coarser resolution: `convolve_to_beam`, `spectral_bin`, `spectral_smooth_to`, `match_to`, and the lossy-direction guard | ADR-0003, ADR-0004 |
+| [Browsing a published corpus](guide/collections.md) | Opening a corpus read-only with `Collection` (local / `s3://` via fsspec); object-first `list`, `describe`, composable `query`, and `covering` (catalog-as-index / WCS-as-authority); the scan-builder and the `astrolyze collection …` CLI | ADR-0003 |
+| [Cutouts and stacking](guide/stacking.md) | Sky postage stamps (`Cube.cutout`); the two-stage `Stack` — browse-everything gather, then the explicit `to_common_beam` → `to_velocity_grid` → `shift_to_rest` → `coadd` path with its homogeneity gate | ADR-0003, ADR-0004 |
+| [The web corpus explorer](guide/web-explorer.md) | `astrolyze explore` — a thin FastAPI/Vue wrapper over the public `Collection`/`Cube` API: object-first list, per-store detail, and the GO VIEW-inspired cube viewer (the `astrolyze[web]` extra) | ADR-0003, ADR-0004 |
 
 ## How the pieces fit
 
