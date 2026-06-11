@@ -515,7 +515,7 @@ class Stack:
           member's **as-published** companion (the noise the corpus curated for that store); it is
           the exact per-voxel σ when the members were not spatially smoothed differently on the way
           in, and the right *relative* weighting (the IVW mean depends on the σ *ratios*) otherwise.
-          (Known limitation, issue #65: the companion is not yet re-propagated through a preceding
+          (Known limitation, issue #82: the companion is not yet re-propagated through a preceding
           :meth:`to_common_beam` convolution — so after heterogeneous smoothing the absolute combined
           σ is conservative. The Cube convolution machinery already supports analytic noise
           propagation; threading it through the stack is follow-up work.)
