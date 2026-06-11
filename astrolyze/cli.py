@@ -43,6 +43,13 @@ manifest_app = typer.Typer(
     no_args_is_help=True, help="Inspect an experiment's dataset manifest."
 )
 app.add_typer(manifest_app, name="manifest")
+# `astrolyze collection …` — read-only inspection of a published corpus (issue #57). Mirrors the
+# `manifest` group's shape but over a *collection* (a catalog.parquet over Zarr stores) rather
+# than an experiment's registry; both are query-only views, never an editing path.
+collection_app = typer.Typer(
+    no_args_is_help=True, help="Browse a published corpus (collection)."
+)
+app.add_typer(collection_app, name="collection")
 console = Console()
 err_console = Console(stderr=True)
 
@@ -342,6 +349,71 @@ def manifest_list(
             record.doi or "—",
         )
     console.print(table)
+
+
+@collection_app.command("list")
+def collection_list(
+    path: str = typer.Argument(
+        ...,
+        help="Corpus root to browse — a local directory today, an s3:// URL later "
+        "(same call shape; fsspec resolves both).",
+    ),
+) -> None:
+    """List a published corpus object-first: one row per source, its lines/surveys/beam range.
+
+    Opens the catalog at PATH through the read-only :class:`~astrolyze.collection.Collection`
+    (fsspec, so a local directory and an object-store URL share this command) and prints the same
+    object-first overview the Python ``Collection.list()`` returns — surveys, species, store
+    count, and beam range per source. An unknown ``catalog_schema_version`` or a missing
+    ``catalog.parquet`` exits non-zero with a clear message; the CLI surfaces the library's
+    refusal, it never papers over it (ADR-0003).
+    """
+    # deferred (pulls pyarrow / fsspec) so `astrolyze --help` stays fast.
+    from astrolyze.collection import Collection
+    from astrolyze.collection.catalog import CatalogSchemaError
+
+    try:
+        collection = Collection.open(path)
+        summaries = collection.list()
+    except FileNotFoundError:
+        err_console.print(
+            f"[red]error:[/red] no catalog at {path} "
+            "(a published corpus carries a catalog.parquet at its root)."
+        )
+        raise typer.Exit(code=1)
+    except CatalogSchemaError as exc:
+        err_console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(code=1)
+
+    if not summaries:
+        console.print(f"[yellow]no datasets[/yellow] in {path}")
+        return
+
+    table = Table(title=f"collection — {path}  (catalog {collection.catalog_version})")
+    table.add_column("object", style="bold")
+    table.add_column("surveys")
+    table.add_column("species")
+    table.add_column("stores", justify="right")
+    table.add_column("beam range")
+    for summary in summaries:
+        table.add_row(
+            summary.object or "—",
+            ", ".join(summary.surveys) or "—",
+            ", ".join(summary.species) or "—",
+            str(summary.n_stores),
+            _format_beam_range(summary.beam_range_arcsec),
+        )
+    console.print(table)
+
+
+def _format_beam_range(beam_range) -> str:
+    """``1.50"–13.00"`` from a (min, max) major-axis arcsec pair; a single value collapses."""
+    lo, hi = beam_range
+    if lo is None or hi is None:
+        return "—"
+    if lo == hi:
+        return f'{lo:.2f}"'
+    return f'{lo:.2f}"–{hi:.2f}"'
 
 
 @app.command()

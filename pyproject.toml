@@ -40,6 +40,13 @@ dependencies = [
     "xarray>=2024.1",
     "zarr>=3",
     "dask>=2024.1",
+    # The collection capability (issue #57, PRD #56): a published corpus is indexed by a single
+    # catalog.parquet read through fsspec, so the same Collection.open(...) call serves a local
+    # directory today and an s3:// URL later (#63) with no API change. pyarrow reads the parquet;
+    # fsspec is the storage-neutral path layer. mocpy stays an optional extra (exact MOC coverage,
+    # #62) — the bare install works end-to-end with center+radius prefiltering.
+    "pyarrow>=15",
+    "fsspec>=2024.1",
 ]
 
 [project.optional-dependencies]

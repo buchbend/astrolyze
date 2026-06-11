@@ -69,6 +69,12 @@ KEY_NLINES = (
 # the physical context astrolyze needs to harmonise a Kelvin cube to surface brightness.
 KEY_CALSCALE = "ASTROLYZE CALSCALE"
 KEY_ETAMB = "ASTROLYZE ETAMB"
+# Collection origin provenance (issue #57): the corpus lineage stamped onto every cube a
+# read-only Collection hands back — the source store's fsspec URI and the catalog version it
+# was indexed against. This is the only bridge to the experiment layer: a product saved into an
+# experiment traces back to the exact corpus snapshot via these (PRD #56, ADR-0006 (c)).
+KEY_ORIGIN_STORE = "ASTROLYZE ORIGSTOR"  # source store fsspec URI
+KEY_ORIGIN_CATVER = "ASTROLYZE ORIGCATV"  # catalog_schema_version the row came from
 
 SCHEMA_VERSION = 1
 DEFAULT_DISTANCE_UNIT = u.Mpc
@@ -131,6 +137,15 @@ class Metadata:
     calibration_scale: CalibrationScale | None = None
     #: Main-beam efficiency eta_mb, required to move T_A* onto the T_mb scale (issue #25).
     eta_mb: float | None = None
+    #: Collection origin (issue #57): the fsspec URI of the source store a read-only
+    #: :class:`~astrolyze.collection.Collection` opened this object from. ``None`` for a cube
+    #: built straight from a file — only collection-born objects carry it. The bridge to the
+    #: experiment layer: a product saved into an experiment keeps its corpus lineage here.
+    origin_store_uri: str | None = None
+    #: Collection origin (issue #57): the ``catalog_schema_version`` the source corpus' catalog
+    #: declared when this object was opened, so a saved product resolves to the exact catalog
+    #: snapshot it ran against (PRD #56). ``None`` outside a collection.
+    origin_catalog_version: str | None = None
     #: Provenance seam (ADR-0006 (c)): unused in v1, reserved so the heterogeneity-tracking
     #: layer can attach without breaking the header contract.
     provenance: object | None = field(default=None, repr=False)
@@ -194,6 +209,8 @@ class Metadata:
             lines=_read_lines(header),
             calibration_scale=_read_calibration_scale(header.get(KEY_CALSCALE)),
             eta_mb=_opt_float(header.get(KEY_ETAMB)),
+            origin_store_uri=header.get(KEY_ORIGIN_STORE),
+            origin_catalog_version=_opt_str(header.get(KEY_ORIGIN_CATVER)),
         )
 
     def to_header(self, base: fits.Header | None = None) -> fits.Header:
@@ -247,6 +264,11 @@ class Metadata:
             _put(header, KEY_CALSCALE, CalibrationScale(self.calibration_scale).value)
         if self.eta_mb is not None:
             _put(header, KEY_ETAMB, float(self.eta_mb))
+        if self.origin_store_uri is not None:
+            _put(header, KEY_ORIGIN_STORE, self.origin_store_uri)
+        if self.origin_catalog_version is not None:
+            # A string ("1.0"): keep it verbatim so a "1.10" never collapses to a float.
+            _put(header, KEY_ORIGIN_CATVER, str(self.origin_catalog_version))
         return header
 
     # -- attrs (de)serialisation -------------------------------------------------------
@@ -311,6 +333,10 @@ class Metadata:
             attrs["calibration_scale"] = CalibrationScale(self.calibration_scale).value
         if self.eta_mb is not None:
             attrs["eta_mb"] = float(self.eta_mb)
+        if self.origin_store_uri is not None:
+            attrs["origin_store_uri"] = self.origin_store_uri
+        if self.origin_catalog_version is not None:
+            attrs["origin_catalog_version"] = str(self.origin_catalog_version)
         return attrs
 
     @classmethod
@@ -353,6 +379,8 @@ class Metadata:
             ],
             calibration_scale=_read_calibration_scale(attrs.get("calibration_scale")),
             eta_mb=_opt_float(attrs.get("eta_mb")),
+            origin_store_uri=attrs.get("origin_store_uri"),
+            origin_catalog_version=_opt_str(attrs.get("origin_catalog_version")),
         )
 
 
@@ -452,6 +480,14 @@ def _read_lines(header: fits.Header) -> list[Line]:
 
 def _opt_float(value) -> float | None:
     return float(value) if value is not None else None
+
+
+def _opt_str(value) -> str | None:
+    """Coerce a present value to ``str`` (``None`` passes through).
+
+    A version token like ``"1.0"`` may come back from a FITS card as a float; keep it a string
+    so a reader can compare ``MAJOR.MINOR`` without a numeric ``1.10 == 1.1`` collision."""
+    return str(value) if value is not None else None
 
 
 # Field names in declaration order — handy for callers that diff two Metadata objects.
