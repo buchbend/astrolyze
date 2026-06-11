@@ -65,18 +65,25 @@ def load(path) -> LoadedData:
 
     Lazy by contract (ADR-0006 ii): an incomplete header opens and is flagged via
     ``result.metadata.is_complete`` / ``.missing`` — it never raises here.
+
+    *path* may be a local path or any fsspec URL (``file://`` / ``memory://`` / ``s3://``, #63);
+    a FITS suffix still routes to the FITS reader, anything else to the lazy Zarr backend, which
+    opens the URL through a fsspec mapper and stays lazy over the remote store (PRD #56).
     """
-    path = Path(path)
     if _is_fits_path(path):
-        return _load_fits(path)
+        return _load_fits(Path(path))
     from .zarr_backend import _load_zarr
 
+    # Hand the original target (path or URL) to the Zarr backend — it resolves local vs remote.
     return _load_zarr(path)
 
 
-def _is_fits_path(path: Path) -> bool:
-    """Whether *path* names a FITS file (by suffix). A two-part ``.fits.gz`` counts."""
-    name = path.name.lower()
+def _is_fits_path(path) -> bool:
+    """Whether *path* names a FITS file (by suffix). A two-part ``.fits.gz`` counts.
+
+    The suffix is read off the URL/path text, so a ``file://…/cube.fits`` is still recognised as
+    FITS (Zarr stores are suffix-less directories, so this never misfires on a Zarr URL)."""
+    name = str(path).rsplit("/", 1)[-1].lower()
     return any(name.endswith(suffix) for suffix in _FITS_SUFFIXES)
 
 
@@ -162,24 +169,26 @@ def save(
     the verbatim WCS header string (Zarr), preserving the WCS either way. *chunks* / *shards* /
     *compressors* are the caller's Zarr layout choices, passed straight through to zarr — there
     is no hard-coded chunking policy (they are ignored by the FITS path).
-    """
-    directory = Path(directory)
-    directory.mkdir(parents=True, exist_ok=True)
 
-    if format == "fits":
-        out_path = directory / project(metadata, extension=extension)
-        header = metadata.to_header(base_header)
-        fits.writeto(out_path, data, header, overwrite=overwrite)
-        _emit(
-            "save",
-            params={"format": "fits", "extension": extension},
-            outputs=[out_path],
-        )
-        return out_path
+    *directory* may be a local path or a fsspec URL (``file://`` / ``memory://`` / ``s3://``) for
+    the Zarr backend (#63); zarr/fsspec create the store, so no local directory is made for a
+    remote root. The eager FITS backend is local-only (astropy writes a file).
+    """
+    from ._store import is_local, join_uri
+
+    local = is_local(directory)
     if format == "zarr":
         from .zarr_backend import _save_zarr
 
-        store = directory / project(metadata, extension="zarr")
+        if local:
+            # On-disk: keep the directory creation + Path arithmetic the existing suite relies on.
+            directory = Path(directory)
+            directory.mkdir(parents=True, exist_ok=True)
+            store = directory / project(metadata, extension="zarr")
+        else:
+            # Remote (S3 / memory): join the projection name in URL space; the backend opens it
+            # through a fsspec mapper and zarr writes the store — no mkdir on an object store.
+            store = join_uri(directory, project(metadata, extension="zarr"))
         return _save_zarr(
             data,
             metadata,
@@ -190,6 +199,19 @@ def save(
             compressors=compressors,
             overwrite=overwrite,
         )
+
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    if format == "fits":
+        out_path = directory / project(metadata, extension=extension)
+        header = metadata.to_header(base_header)
+        fits.writeto(out_path, data, header, overwrite=overwrite)
+        _emit(
+            "save",
+            params={"format": "fits", "extension": extension},
+            outputs=[out_path],
+        )
+        return out_path
     raise ValueError(
         f"unknown save format {format!r}: astrolyze writes 'fits' or 'zarr' "
         "(it never guesses a storage backend — ADR-0003)"

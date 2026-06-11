@@ -73,15 +73,24 @@ def _save_zarr(
     shards=None,
     compressors=None,
     overwrite: bool = False,
-) -> Path:
-    """Write *data* + *metadata* to a Zarr v3 store at *store*; return its path.
+    **storage_options,
+):
+    """Write *data* + *metadata* to a Zarr v3 store at *store*; return its path (or URI).
 
     The store is an xarray ``Dataset`` whose group ``attrs`` carry the schema projection
     (:meth:`Metadata.to_attrs`), the verbatim FITS-WCS header string, and a provenance marker.
     *chunks* / *shards* / *compressors* are passed straight through to zarr (per data var) — the
     caller owns the layout. A spectral WCS, when present, fills the authoritative ``freq`` coord.
+
+    *store* may be a local path or any fsspec URL (``file://`` / ``memory://`` / ``s3://``,
+    #63): :func:`~astrolyze.io._store.resolve_store` opens a local target as a :class:`Path`
+    (the on-disk behaviour, returned unchanged) and a remote one through a fsspec mapper (the URI
+    string is returned so the caller stamps the store's real home). *storage_options* flow
+    straight to fsspec (credentials / caching), never inspected here.
     """
-    store = Path(store)
+    from ._store import is_local, resolve_store, store_uri
+
+    target = resolve_store(store, **storage_options)
     # Prefer the explicit verbatim string; fall back to a base header (the FITS save path passes
     # one). Either is the authoritative WCS vehicle — astrolyze never re-derives the WCS.
     if header_string is None and base_header is not None:
@@ -97,30 +106,40 @@ def _save_zarr(
         compressors=compressors,
     )
     dataset.to_zarr(
-        store,
+        target,
         mode="w" if overwrite else "w-",
         zarr_format=3,
         encoding=encoding,
         consolidated=False,
     )
-    _emit("save", params={"format": "zarr"}, outputs=[store])
-    return store
+    # Local: return the Path (callers do ``store / "noise"`` / ``.exists()``). Remote: return the
+    # canonical URI so the store's real home (on S3, in memory) is what gets stamped, not a
+    # scheme-stripped local guess.
+    result = target if is_local(store) else store_uri(store)
+    _emit("save", params={"format": "zarr"}, outputs=[result])
+    return result
 
 
-def _load_zarr(store) -> "LoadedData":
+def _load_zarr(store, **storage_options) -> "LoadedData":
     """Open a Zarr v3 store into a **dask-backed (lazy)** :class:`LoadedData`.
 
     ``chunks={}`` makes xarray hand back dask arrays sized to the on-disk chunks, so neither
     constructing the cube nor slicing a subcube reads the whole array. The schema is rebuilt
     from the group ``attrs`` (:meth:`Metadata.from_attrs`) and the exact WCS from the verbatim
     header string (astropy owns the reconstruction). No live ``fits.Header`` exists here.
+
+    *store* may be a local path or any fsspec URL (``file://`` / ``memory://`` / ``s3://``,
+    #63): a remote URL opens through a fsspec mapper and the read **stays lazy** over the remote
+    store — dask pulls only the chunks touched, never the whole array (PRD #56). *storage_
+    options* (credentials / caching) pass straight to fsspec, untouched.
     """
+    from ._store import resolve_store, store_uri
     from .access import (
         LoadedData,
     )  # local import: avoid an io.access <-> zarr_backend cycle
 
-    store = Path(store)
-    dataset = xr.open_zarr(store, zarr_format=3, consolidated=False, chunks={})
+    target = resolve_store(store, **storage_options)
+    dataset = xr.open_zarr(target, zarr_format=3, consolidated=False, chunks={})
     array = dataset[DATA_VAR]
     # Restore the FITS array order (spectral, y, x) the WCS expects; stays lazy (dask transpose).
     data = _to_fits_order(array).data
@@ -132,12 +151,15 @@ def _load_zarr(store) -> "LoadedData":
         if header_string is not None
         else WCS(naxis=array.ndim)
     )
-    _emit("load", inputs=[store])
+    # The provenance path: the resolved local Path for an on-disk store (unchanged), or the
+    # canonical URI for a remote one — so a remote-loaded store names its real home, not a mapper.
+    path = target if isinstance(target, Path) else store_uri(store)
+    _emit("load", inputs=[path])
     return LoadedData(
         data=data,
         wcs=wcs,
         metadata=Metadata.from_attrs(attrs),
-        path=store,
+        path=path,
         header_string=header_string,
         header=None,  # a non-FITS backend has no live fits.Header (issue #22)
     )

@@ -20,8 +20,10 @@ import each other — the versioned spec is the whole interface (PRD #56). The v
 - a newer **MINOR** of a known MAJOR is accepted: the reader finds every column it knows at its
   position and ignores trailing additions (e.g. the future ``moc`` / ``v_sys_kms`` of a ``1.1``).
 
-All path handling routes through fsspec from day one (:func:`fsspec.open`), so the same call
-shape serves a local directory today and an ``s3://`` URL later with no API change (#63). The
+All path handling routes through fsspec (:func:`fsspec.core.url_to_fs`), so the same call shape
+serves a local directory, a ``file://`` URL, and an ``s3://`` URL with no API change (#63) — and
+a missing catalog raises a clean :class:`FileNotFoundError` on any backend via an up-front
+existence check (some remote backends otherwise defer it to an obscure read-time error). The
 **scan-builder** (#61) and **covering()/MOC reader** (#62) extend this module: a builder will add
 a ``build_catalog(store_dir)`` producing the same :class:`Catalog`, and covering will read the
 footprint columns already parsed here — both reuse :class:`CatalogRow` and the single read path
@@ -31,8 +33,6 @@ rather than re-deriving the format.
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
-
-import fsspec
 
 # The catalog format version this reader is written against. ``MAJOR.MINOR`` — see the module
 # docstring for the gating discipline. Bump MINOR for an additive column; MAJOR for a break.
@@ -142,8 +142,9 @@ def read_catalog(root) -> Catalog:
     """Read + schema-validate the ``catalog.parquet`` at corpus *root*; return a :class:`Catalog`.
 
     *root* is a path or fsspec URL of the corpus root (the directory the Zarr stores live under).
-    All access goes through fsspec (:func:`fsspec.open`), so a local directory and an ``s3://``
-    prefix share this one path — the S3 case (#63) needs no change here. The version is read from
+    All access goes through fsspec (:func:`fsspec.core.url_to_fs`), so a local directory and an
+    ``s3://`` prefix share this one path — the S3 case (#63) needs no change here. The version is
+    read from
     the parquet file's key-value metadata when present (so a reader can gate without scanning a
     row) and otherwise from the ``catalog_schema_version`` column.
 
@@ -151,11 +152,21 @@ def read_catalog(root) -> Catalog:
     :class:`CatalogSchemaError` (descriptive) when the declared MAJOR is one astrolyze cannot
     read. A newer MINOR of a known MAJOR is accepted (additive evolution)."""
     import pyarrow.parquet as pq
+    from fsspec.core import url_to_fs
 
     catalog_url = _join(root, CATALOG_FILENAME)
-    # fsspec.open raises FileNotFoundError for a missing local/remote target — surface it as-is
-    # (a clear, standard signal the corpus has no index), don't wrap it.
-    with fsspec.open(catalog_url, "rb") as handle:
+    # Resolve the filesystem once and check existence explicitly *before* opening (#63). A local
+    # fsspec backend raises FileNotFoundError eagerly, but some remote backends defer it to read
+    # time, where it surfaces as an obscure parquet error rather than a clear "no catalog here".
+    # An up-front exists() makes a missing catalog raise a clean FileNotFoundError on ANY backend.
+    fs, path = url_to_fs(catalog_url)
+    if not fs.exists(path):
+        raise FileNotFoundError(
+            f"no catalog at {catalog_url!r}: a published corpus root must carry a "
+            f"{CATALOG_FILENAME} (the catalog-as-contract index). Check the root path/URL "
+            "(and, for an object store, that credentials are configured)."
+        )
+    with fs.open(path, "rb") as handle:
         table = pq.read_table(handle)
 
     version = _declared_version(table)

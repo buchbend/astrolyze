@@ -54,6 +54,14 @@ dependencies = [
 dev = ["pytest>=8", "ruff>=0.5"]
 # Tooling to run the interactive tutorial (examples/tutorial.ipynb).
 notebook = ["jupyterlab>=4", "ipykernel>=6"]
+# Object-store access (issue #63): s3fs is the fsspec driver that lights up ``s3://`` corpus
+# roots — `Collection.open("s3://…")` / `Cube.from_zarr("s3://…")`. It is an OPT-IN extra, not a
+# hard dependency: a bare install works end-to-end on local (and ``file://`` / ``memory://``)
+# corpora, and imports stay lazy so its absence never breaks local use (fsspec raises a clear
+# ImportError only if an ``s3://`` URL is actually opened without it). Install with
+# `pip install astrolyze[s3]`. Remote caching is fsspec passthrough — e.g. a
+# `simplecache::s3://…` URL caches reads with no astrolyze cache layer.
+s3 = ["s3fs>=2024.1"]
 
 [project.urls]
 Homepage = "https://github.com/buchbend/astrolyze"
