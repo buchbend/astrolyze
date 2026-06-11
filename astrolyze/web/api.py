@@ -31,8 +31,24 @@ The endpoints (all under ``/api``):
   ``Collection.describe(object)``); the detail view's data source. Unknown object → 404.
 - ``GET /api/stores/{store_id}`` — one store's full catalog row + resolved URI (mirrors a single
   :class:`~astrolyze.collection.Record`); a deep-link target. Unknown id → 404.
-- ``GET /api/stores/{store_id}/viewer`` — the reserved #67/#68 cube-viewer seam: a documented
-  ``501 Not Implemented`` (not a 404) so the follow-up slices fill a named hook.
+
+The cube-viewer slice (#67) — the four basic panels. Each opens the store **lazily** into a
+dask-backed :class:`~astrolyze.core.Cube` (via the public :meth:`Record.open`) and serves a
+**bounded JSON slice** for client-side D3 (no full-cube load per request, no server-side
+matplotlib; the serializers live in :mod:`astrolyze.web._viewer`):
+
+- ``GET /api/stores/{store_id}/cube`` — axis metadata to drive the UI (shape, n_channels, velocity
+  axis + unit, sky extent, bunit, value-range hint). Reads headers/axes, not the data plane.
+- ``GET /api/stores/{store_id}/moment0`` — the integrated (moment-0) map as a 2-D JSON array +
+  extent/unit/vmin/vmax (public :meth:`Cube.moment0`).
+- ``GET /api/stores/{store_id}/channel/{index}`` — one channel's 2-D slice + its velocity (a single
+  lazy ``cube[index]``). Out-of-range index → ``422``.
+- ``GET /api/stores/{store_id}/spectrum?x=&y=`` — the spectrum at a pixel (velocity + value arrays,
+  length == n_channels; a single lazy ``cube[:, y, x]``). Out-of-range pixel → ``422``.
+
+The reserved ``GET /api/stores/{store_id}/viewer`` seam from #66 is **repointed** to a small index
+of these four routes (the #68 panels — region-averaged spectrum, velocity-window moment,
+linked-zoom — extend this surface; they are not built here).
 
 The built Vue frontend is mounted at ``/`` (``astrolyze/web/static/``) so one process serves the
 SPA and its API; a request for a non-existent static path falls through to ``index.html`` (SPA
@@ -160,6 +176,19 @@ def _decode_store_id(store_id: str) -> str:
     return base64.urlsafe_b64decode(store_id.encode()).decode()
 
 
+def _find_record(collection, store_id: str):
+    """The :class:`~astrolyze.collection.Record` for *store_id*, or ``None`` if absent.
+
+    The single store-id → record lookup shared by the record and the viewer endpoints (DRY): decode
+    the id to a ``store_path`` and match it against the public :attr:`Collection.records`. Returns
+    ``None`` (the caller raises the 404) rather than raising here, so the message stays one place."""
+    store_path = _decode_store_id(store_id)
+    for record in collection.records:
+        if record.store_path == store_path:
+            return record
+    return None
+
+
 def create_app(collection_root: str):
     """Build the corpus-explorer FastAPI app over the corpus at *collection_root*.
 
@@ -172,9 +201,11 @@ def create_app(collection_root: str):
     ``astrolyze.web.api`` does not require the web extra — only building the app does. The
     extra-gate has already run by the time the public :func:`astrolyze.web.create_app` reaches
     here, so a missing extra surfaced the helpful error upstream, not an ``ImportError`` here."""
-    from fastapi import FastAPI, HTTPException
-    from fastapi.responses import FileResponse, JSONResponse
+    from fastapi import FastAPI, HTTPException, Query
+    from fastapi.responses import FileResponse
     from fastapi.staticfiles import StaticFiles
+
+    from . import _viewer
 
     collection = Collection.open(collection_root)
 
@@ -225,33 +256,89 @@ def create_app(collection_root: str):
         A deep-link target keyed by the opaque ``store_id`` (the percent-quoted ``store_path``).
         Looked up against the public :attr:`Collection.records` by ``store_path`` — no facade
         internals. Unknown id → ``404`` (the store_path is not in this corpus)."""
-        store_path = _decode_store_id(store_id)
-        for record in collection.records:
-            if record.store_path == store_path:
-                return _record_json(record)
-        raise HTTPException(
-            status_code=404,
-            detail=f"no store {store_path!r} in this corpus",
-        )
+        record = _find_record(collection, store_id)
+        if record is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"no store {_decode_store_id(store_id)!r} in this corpus",
+            )
+        return _record_json(record)
+
+    # -- cube viewer (#67): open the store lazily, serve bounded JSON slices for D3 --------
+    def _open_cube(store_id: str):
+        """Resolve *store_id* and open its store into a lazy, dask-backed :class:`Cube` (or 404).
+
+        The single seam every viewer endpoint shares: a 404 when the id is unknown, else the public
+        :meth:`Record.open` (``Cube.from_zarr`` under the hood, so the cube is dask-backed and
+        nothing materialises until a slice is read). Opening is cheap — it reads the store's
+        attrs/WCS, not its data — so the per-request open is not the heavy step (the slice is, and
+        each slice is bounded)."""
+        record = _find_record(collection, store_id)
+        if record is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"no store {_decode_store_id(store_id)!r} in this corpus",
+            )
+        return record.open()
 
     @app.get(VIEWER_STUB_ROUTE)
-    def get_store_viewer(store_id: str):
-        """The reserved cube-viewer seam (#67/#68): a documented ``501``, not a ``404``.
+    def get_store_viewer(store_id: str) -> dict:
+        """The cube-viewer index (#67): the four panel-feed routes for this store.
 
-        The list+detail slice ships NO viewer logic. This stub gives the follow-up viewer slices a
-        named hook (the route exists, returns ``501 Not Implemented`` with a pointer) rather than a
-        route they must invent — a clean seam, in the spirit of the facade's documented #60/#61/#62
-        extension points."""
-        return JSONResponse(
-            status_code=501,
-            content={
-                "detail": (
-                    "the cube viewer (integrated map / channel maps / spectra) is not part of "
-                    "this slice — it arrives in issues #67/#68. This route is the reserved seam."
-                ),
-                "store_id": store_id,
+        The #66 reserved seam, now repointed from a ``501`` to a small route index so the frontend
+        (or a script) can discover the panel feeds without hard-coding paths. The #68 panels
+        (region-averaged spectrum, velocity-window moment, linked-zoom) will extend this list."""
+        base = f"/api/stores/{store_id}"
+        return {
+            "store_id": store_id,
+            "panels": {
+                "cube": f"{base}/cube",
+                "moment0": f"{base}/moment0",
+                "channel": f"{base}/channel/{{index}}",
+                "spectrum": f"{base}/spectrum?x={{x}}&y={{y}}",
             },
-        )
+        }
+
+    @app.get("/api/stores/{store_id}/cube")
+    def get_store_cube(store_id: str) -> dict:
+        """Axis metadata to drive the viewer UI (shape, velocity axis, sky extent, units, range).
+
+        Reads only headers/axes via :func:`_viewer.cube_axes` — no full data plane — so it is cheap
+        even on a huge corpus cube. Unknown store id → ``404``."""
+        return _viewer.cube_axes(_open_cube(store_id))
+
+    @app.get("/api/stores/{store_id}/moment0")
+    def get_store_moment0(store_id: str) -> dict:
+        """The integrated (moment-0) map as a 2-D JSON array + extent/unit/vmin/vmax.
+
+        Dogfoods the public :meth:`Cube.moment0`; the single 2-D result is decimated to a bounded
+        payload if large (the response carries the ``downsample`` factor)."""
+        return _viewer.moment0_map(_open_cube(store_id))
+
+    @app.get("/api/stores/{store_id}/channel/{index}")
+    def get_store_channel(store_id: str, index: int) -> dict:
+        """One channel's 2-D slice + its velocity — a single lazy ``cube[index]``.
+
+        Out-of-range *index* → ``422`` (a graceful client error naming the valid range), not a 500
+        or a wrapped traceback."""
+        try:
+            return _viewer.channel_slice(_open_cube(store_id), index)
+        except IndexError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    @app.get("/api/stores/{store_id}/spectrum")
+    def get_store_spectrum(
+        store_id: str,
+        x: int = Query(..., description="pixel column (image x)"),
+        y: int = Query(..., description="pixel row (image y)"),
+    ) -> dict:
+        """The spectrum at pixel (x, y) — a single lazy ``cube[:, y, x]`` (length == n_channels).
+
+        Out-of-range pixel → ``422`` (naming the valid x/y ranges)."""
+        try:
+            return _viewer.pixel_spectrum(_open_cube(store_id), x, y)
+        except IndexError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     # The built SPA, mounted last so /api/* always wins. html=True makes StaticFiles serve
     # index.html for a directory request; the explicit index route + catch-all below give the
