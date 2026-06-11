@@ -14,14 +14,17 @@ single actionable line — :func:`require_web_extra` — rather than an opaque `
 imports of fastapi/uvicorn stay **lazy** (inside :func:`create_app` / :func:`serve`) so importing
 ``astrolyze.web`` itself, and listing CLI ``--help``, costs nothing.
 
-Scope (issues #66 + #67): the explorer ships the object-first **list** + per-store **detail** views
-(#66) and the cube viewer's **three basic panels** (#67) — an integrated (moment-0) map, a channel
-map with a velocity slider + keyboard stepping, and a pixel spectrum at the clicked position. The
+Scope (issues #66 + #67 + #68): the explorer ships the object-first **list** + per-store **detail**
+views (#66), the cube viewer's **three basic panels** (#67) — an integrated (moment-0) map, a
+channel map with a velocity slider + keyboard stepping, and a pixel spectrum at the clicked position
+— and the cube viewer's **interactions** (#68): a polygon region drawn on a map yields a
+region-averaged spectrum, a velocity window brushed on the spectrum recomputes the integrated map
+over exactly that window, and the two map panels share position/zoom with a link/unlink control. The
 viewer's backend (:mod:`astrolyze.web._viewer`) opens each store *lazily* (dask-backed
 :class:`~astrolyze.core.Cube`) and serves bounded JSON slices for client-side D3 — no full-cube load
-per request. The remaining viewer panels (region-averaged spectrum, velocity-window moment,
-linked-zoom) are #68; clean seams are left for them (``VIEWER_STUB_ROUTE`` is now the panel index,
-and the Vuex viewer state reserves the slots) but no #68 logic lives here.
+per request; the #68 reductions (region nanmean, windowed moment-0) stay lazy too (they slice to the
+polygon bounding box / the velocity-window channel slab before reading). This completes PRD #56's web
+tier.
 
 Layering, deliberately thin (the same "astrolyze stays thin" rule as the rest of the package):
 

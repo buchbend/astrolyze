@@ -12,7 +12,12 @@
 // reactively), so there is one source of truth and the SVG stays inside Vue's reactivity. The grid
 // is drawn as one <rect> per cell — fine for the bounded map sizes the backend serves (it decimates
 // anything over MAX_MAP_DIM), and it keeps hit-testing trivial (no canvas pixel readback).
-import { computed } from "vue";
+// The #68 interactions extend this map: a REGION-DRAW mode (mode="region") collects clicked
+// vertices into a polygon and emits it on finish (the region-averaged spectrum), and a shared
+// pan/zoom VIEW (the `view` prop + `viewchange` emit) keeps the two map panels LINKED so one map's
+// zoom drives both. The polygon is reported in the same full-resolution pixel coordinates as a
+// click, so the region endpoint speaks the viewer's one coordinate convention.
+import { computed, ref } from "vue";
 import { scaleSequential, interpolateViridis } from "d3";
 
 const props = defineProps({
@@ -32,9 +37,15 @@ const props = defineProps({
   position: { type: Object, default: null },
   // A short title above the map (e.g. "Integrated (moment 0)" or "Channel 12 · v = 5.0 km/s").
   title: { type: String, default: "" },
+  // Interaction mode: "select" (click → pixel) or "region" (clicks build a polygon).
+  mode: { type: String, default: "select" },
+  // The committed region polygon to overlay: full-resolution [x, y] vertices, or null.
+  region: { type: Array, default: null },
+  // The shared pan/zoom view { k, x, y } the linked maps render at (k = scale, x/y = translate).
+  view: { type: Object, default: null },
 });
 
-const emit = defineEmits(["select"]);
+const emit = defineEmits(["select", "region", "viewchange"]);
 
 // Layout: a fixed drawing box with room for axis labels and a legend strip on the right.
 const PLOT = 360; // square map area in px
@@ -124,6 +135,7 @@ const legendStops = computed(() => {
 });
 
 const legendId = `hm-grad-${Math.random().toString(36).slice(2)}`;
+const clipId = `hm-clip-${Math.random().toString(36).slice(2)}`;
 
 function fmtDeg(v) {
   return v == null ? "—" : `${v.toFixed(3)}°`;
@@ -132,24 +144,164 @@ function fmtDeg(v) {
 const totalW = PAD.left + PLOT + PAD.right;
 const totalH = PAD.top + PLOT + PAD.bottom;
 
-// Translate a click on the map area into a FULL-resolution pixel and emit it. Uses the SVG-local
-// offset (the rect's geometry is known), so no getBoundingClientRect round-trip is needed.
+// -- shared pan/zoom view -------------------------------------------------------------
+// The plot group is transformed by the shared { k, x, y } view (identity when null). Linking is the
+// parent's job: it forwards one map's `viewchange` to the other's `view` prop, so both render the
+// same transform. Applying it as one SVG transform keeps every overlay (cells, crosshair, polygon)
+// in sync for free — they all live inside the transformed group.
+const viewTransform = computed(() => {
+  const v = props.view;
+  if (!v) return "translate(0,0) scale(1)";
+  return `translate(${v.x || 0},${v.y || 0}) scale(${v.k || 1})`;
+});
+
+// A wheel zoom about the cursor and a drag pan, emitted as a { k, x, y } view for the parent to
+// share. Kept minimal (no d3-zoom behaviour binding) so the transform stays a plain reactive value
+// Vue owns; the maths (zoom-about-point) is the standard transform composition.
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 8;
+const dragging = ref(null); // { startX, startY, baseX, baseY } during a pan, else null
+
+function currentView() {
+  return props.view || { k: 1, x: 0, y: 0 };
+}
+
+function svgPoint(event) {
+  const svg = event.currentTarget.ownerSVGElement || event.currentTarget;
+  const rect = svg.getBoundingClientRect();
+  return {
+    sx: (event.clientX - rect.left) * (totalW / rect.width),
+    sy: (event.clientY - rect.top) * (totalH / rect.height),
+  };
+}
+
+function onWheel(event) {
+  event.preventDefault();
+  const v = currentView();
+  const { sx, sy } = svgPoint(event);
+  const factor = event.deltaY < 0 ? 1.15 : 1 / 1.15;
+  const k = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, v.k * factor));
+  if (k === v.k) return;
+  // Keep the point under the cursor fixed: x' = sx - (sx - x) * (k / v.k).
+  const ratio = k / v.k;
+  const next = {
+    k,
+    x: sx - (sx - v.x) * ratio,
+    y: sy - (sy - v.y) * ratio,
+  };
+  emit("viewchange", k === ZOOM_MIN ? { k: 1, x: 0, y: 0 } : next);
+}
+
+function onPointerDown(event) {
+  if (props.mode === "region") return; // region-draw owns clicks; pan only in select mode
+  const v = currentView();
+  const { sx, sy } = svgPoint(event);
+  dragging.value = { startX: sx, startY: sy, baseX: v.x, baseY: v.y };
+}
+function onPointerMove(event) {
+  if (!dragging.value) return;
+  const { sx, sy } = svgPoint(event);
+  const d = dragging.value;
+  emit("viewchange", {
+    k: currentView().k,
+    x: d.baseX + (sx - d.startX),
+    y: d.baseY + (sy - d.startY),
+  });
+}
+function onPointerUp() {
+  dragging.value = null;
+}
+
+// -- region draw ----------------------------------------------------------------------
+// In region mode, each click appends a vertex (full-resolution pixel); a double-click (or clicking
+// near the first vertex) closes the polygon and emits it. A polygon needs ≥3 vertices to enclose an
+// area — fewer is dropped on close (the backend also guards this, but the UI never sends a degenerate
+// region). The in-progress vertices render as a dashed open path with dots.
+const drawing = ref([]); // [[x, y], …] full-resolution vertices being placed
+
+// Convert a screen event to the FULL-resolution pixel under the (possibly zoomed) cursor.
+function eventToPixel(event) {
+  const { sx, sy } = svgPoint(event);
+  const v = currentView();
+  // Undo the view transform to get plot coords, then plot → cell → full-resolution pixel.
+  const px = (sx - v.x) / v.k;
+  const py = (sy - v.y) / v.k;
+  const c = (px - PAD.left) / cellW.value;
+  const r = (py - PAD.top) / cellH.value;
+  if (c < 0 || c >= cols.value || r < 0 || r >= rows.value) return null;
+  return {
+    x: c * props.downsample,
+    y: r * props.downsample,
+    col: c,
+    row: r,
+  };
+}
+
+// Translate a click on the map area into a FULL-resolution pixel and emit it (select mode), or
+// append a polygon vertex (region mode). The view transform is inverted so a click on a zoomed map
+// still lands on the right pixel.
 function onClick(event) {
   if (!cols.value) return;
-  const svg = event.currentTarget;
-  const rect = svg.getBoundingClientRect();
-  // The svg is rendered at its viewBox size (width/height attrs == viewBox), so client→viewBox is a
-  // simple scale by the rendered/intrinsic ratio.
-  const sx = (event.clientX - rect.left) * (totalW / rect.width);
-  const sy = (event.clientY - rect.top) * (totalH / rect.height);
-  const c = Math.floor((sx - PAD.left) / cellW.value);
-  const r = Math.floor((sy - PAD.top) / cellH.value);
-  if (c < 0 || c >= cols.value || r < 0 || r >= rows.value) return;
-  // Map the displayed cell back to a full-resolution pixel (cell centre of the decimated block).
-  const x = Math.round((c + 0.5) * props.downsample - 0.5);
-  const y = Math.round((r + 0.5) * props.downsample - 0.5);
+  const hit = eventToPixel(event);
+  if (!hit) return;
+  if (props.mode === "region") {
+    // Close the polygon if the click lands near the first vertex (and we have ≥3 total).
+    if (drawing.value.length >= 2) {
+      const [fx, fy] = drawing.value[0];
+      const near =
+        Math.abs(hit.x - fx) < props.downsample &&
+        Math.abs(hit.y - fy) < props.downsample;
+      if (near && drawing.value.length >= 3) {
+        finishRegion();
+        return;
+      }
+    }
+    drawing.value = [...drawing.value, [hit.x, hit.y]];
+    return;
+  }
+  // select mode: snap to the cell centre (the full-resolution pixel the spectrum endpoint expects).
+  const x = Math.round((hit.col + 0.5) * props.downsample - 0.5);
+  const y = Math.round((hit.row + 0.5) * props.downsample - 0.5);
   emit("select", { x, y });
 }
+
+function onDblClick(event) {
+  if (props.mode !== "region") return;
+  event.preventDefault();
+  finishRegion();
+}
+
+function finishRegion() {
+  if (drawing.value.length >= 3) {
+    emit("region", drawing.value);
+  }
+  drawing.value = [];
+}
+
+// The in-progress polyline (screen coords, inside the transformed group so the view applies).
+const drawPath = computed(() => {
+  if (!drawing.value.length) return null;
+  const pts = drawing.value.map(([x, y]) => {
+    const c = x / props.downsample;
+    const r = y / props.downsample;
+    return [PAD.left + c * cellW.value, PAD.top + r * cellH.value];
+  });
+  return {
+    points: pts,
+    line: pts.map((p, i) => `${i ? "L" : "M"}${p[0]},${p[1]}`).join(" "),
+  };
+});
+
+// The committed region polygon (closed), rendered as a filled outline.
+const regionPath = computed(() => {
+  if (!Array.isArray(props.region) || props.region.length < 3) return null;
+  const pts = props.region.map(([x, y]) => {
+    const c = x / props.downsample;
+    const r = y / props.downsample;
+    return `${PAD.left + c * cellW.value},${PAD.top + r * cellH.value}`;
+  });
+  return `M${pts.join(" L")} Z`;
+});
 </script>
 
 <template>
@@ -165,9 +317,16 @@ function onClick(event) {
       :width="totalW"
       :height="totalH"
       class="hm-svg"
+      :class="{ 'mode-region': mode === 'region' }"
       role="img"
       :aria-label="title || 'map'"
       @click="onClick"
+      @dblclick="onDblClick"
+      @wheel="onWheel"
+      @pointerdown="onPointerDown"
+      @pointermove="onPointerMove"
+      @pointerup="onPointerUp"
+      @pointerleave="onPointerUp"
     >
       <defs>
         <linearGradient
@@ -184,21 +343,84 @@ function onClick(event) {
             :stop-color="s.color"
           />
         </linearGradient>
+        <!-- clip the zoomable content to the plot box so a panned map never spills over the axes -->
+        <clipPath :id="clipId">
+          <rect
+            :x="PAD.left"
+            :y="PAD.top"
+            :width="PLOT"
+            :height="PLOT"
+          />
+        </clipPath>
       </defs>
 
-      <!-- the cell grid (Vue-bound rects; D3 supplied the colour) -->
-      <rect
-        v-for="cell in cells"
-        :key="cell.key"
-        :x="cell.x"
-        :y="cell.y"
-        :width="cell.w + 0.5"
-        :height="cell.h + 0.5"
-        :fill="cell.fill"
-        :class="{ blank: cell.blank }"
-      />
+      <!-- zoomable content: cells + crosshair + region overlays share one pan/zoom transform -->
+      <g :clip-path="`url(#${clipId})`">
+        <g :transform="viewTransform">
+          <!-- the cell grid (Vue-bound rects; D3 supplied the colour) -->
+          <rect
+            v-for="cell in cells"
+            :key="cell.key"
+            :x="cell.x"
+            :y="cell.y"
+            :width="cell.w + 0.5"
+            :height="cell.h + 0.5"
+            :fill="cell.fill"
+            :class="{ blank: cell.blank }"
+          />
 
-      <!-- map frame -->
+          <!-- committed region polygon (the averaged region) -->
+          <path
+            v-if="regionPath"
+            :d="regionPath"
+            class="hm-region"
+          />
+
+          <!-- in-progress region draw (open dashed path + vertex dots) -->
+          <g
+            v-if="drawPath"
+            class="hm-region-draw"
+          >
+            <path
+              :d="drawPath.line"
+              class="hm-region-draw-line"
+            />
+            <circle
+              v-for="(p, i) in drawPath.points"
+              :key="`dv${i}`"
+              :cx="p[0]"
+              :cy="p[1]"
+              r="3"
+            />
+          </g>
+
+          <!-- crosshair at the shared selected position -->
+          <g
+            v-if="crosshair"
+            class="hm-cross"
+          >
+            <line
+              :x1="crosshair.cx - 8"
+              :x2="crosshair.cx + 8"
+              :y1="crosshair.cy"
+              :y2="crosshair.cy"
+            />
+            <line
+              :x1="crosshair.cx"
+              :x2="crosshair.cx"
+              :y1="crosshair.cy - 8"
+              :y2="crosshair.cy + 8"
+            />
+            <circle
+              :cx="crosshair.cx"
+              :cy="crosshair.cy"
+              r="5"
+            />
+          </g>
+        </g>
+      </g>
+
+      <!-- map frame (outside the transform so it stays a fixed border) -->
       <rect
         :x="PAD.left"
         :y="PAD.top"
@@ -206,30 +428,6 @@ function onClick(event) {
         :height="PLOT"
         class="hm-frame"
       />
-
-      <!-- crosshair at the shared selected position -->
-      <g
-        v-if="crosshair"
-        class="hm-cross"
-      >
-        <line
-          :x1="crosshair.cx - 8"
-          :x2="crosshair.cx + 8"
-          :y1="crosshair.cy"
-          :y2="crosshair.cy"
-        />
-        <line
-          :x1="crosshair.cx"
-          :x2="crosshair.cx"
-          :y1="crosshair.cy - 8"
-          :y2="crosshair.cy + 8"
-        />
-        <circle
-          :cx="crosshair.cx"
-          :cy="crosshair.cy"
-          r="5"
-        />
-      </g>
 
       <!-- extent labels (RA along the bottom, Dec along the left) -->
       <text
@@ -318,6 +516,25 @@ function onClick(event) {
   fill: none;
   stroke: #ff5d3b;
   stroke-width: 1.5;
+}
+.hm-svg.mode-region {
+  cursor: crosshair;
+}
+.hm-region {
+  fill: rgba(255, 93, 59, 0.14);
+  stroke: #ff5d3b;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.hm-region-draw-line {
+  fill: none;
+  stroke: #ff5d3b;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+.hm-region-draw circle {
+  fill: #ff5d3b;
 }
 .hm-axis-label {
   font-family: var(--mono);

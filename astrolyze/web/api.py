@@ -46,9 +46,22 @@ matplotlib; the serializers live in :mod:`astrolyze.web._viewer`):
 - ``GET /api/stores/{store_id}/spectrum?x=&y=`` — the spectrum at a pixel (velocity + value arrays,
   length == n_channels; a single lazy ``cube[:, y, x]``). Out-of-range pixel → ``422``.
 
-The reserved ``GET /api/stores/{store_id}/viewer`` seam from #66 is **repointed** to a small index
-of these four routes (the #68 panels — region-averaged spectrum, velocity-window moment,
-linked-zoom — extend this surface; they are not built here).
+The cube-viewer interactions (#68) extend that surface with two server-side reductions, still thin
+over the public Cube API (the serializers live in :mod:`astrolyze.web._viewer`):
+
+- ``GET /api/stores/{store_id}/moment0?vmin=&vmax=`` — the **same** moment-0 endpoint, now accepting
+  an optional velocity window. With ``vmin``/``vmax`` it recomputes moment-0 over *exactly* the
+  channels whose velocity falls in ``[vmin, vmax]`` (a public ``cube[i0:i1]`` slab → ``moment0``);
+  without them it is the full-band map unchanged (backward compatible). An empty window (no channel
+  inside) → ``422``.
+- ``POST /api/stores/{store_id}/region-spectrum`` — body ``{"vertices": [[x, y], …]}`` (image-pixel
+  polygon, the coordinates the maps report) → the region-averaged spectrum (``velocity`` + mean
+  ``value`` arrays of length ``n_channels`` + ``n_pixels`` averaged). A degenerate region
+  (< 3 vertices) → ``422``. POST (not a GET with an encoded polygon) because the vertex list is the
+  request payload — many vertices, naturally a JSON body, not a URL.
+
+The reserved ``GET /api/stores/{store_id}/viewer`` seam from #66 indexes the panel feeds (the #68
+routes are listed there too so the frontend can discover them without hard-coding paths).
 
 The built Vue frontend is mounted at ``/`` (``astrolyze/web/static/``) so one process serves the
 SPA and its API; a request for a non-existent static path falls through to ``index.html`` (SPA
@@ -201,7 +214,7 @@ def create_app(collection_root: str):
     ``astrolyze.web.api`` does not require the web extra — only building the app does. The
     extra-gate has already run by the time the public :func:`astrolyze.web.create_app` reaches
     here, so a missing extra surfaced the helpful error upstream, not an ``ImportError`` here."""
-    from fastapi import FastAPI, HTTPException, Query
+    from fastapi import Body, FastAPI, HTTPException, Query
     from fastapi.responses import FileResponse
     from fastapi.staticfiles import StaticFiles
 
@@ -296,6 +309,9 @@ def create_app(collection_root: str):
                 "moment0": f"{base}/moment0",
                 "channel": f"{base}/channel/{{index}}",
                 "spectrum": f"{base}/spectrum?x={{x}}&y={{y}}",
+                # #68 interactions
+                "windowed_moment0": f"{base}/moment0?vmin={{vmin}}&vmax={{vmax}}",
+                "region_spectrum": f"{base}/region-spectrum",
             },
         }
 
@@ -308,12 +324,62 @@ def create_app(collection_root: str):
         return _viewer.cube_axes(_open_cube(store_id))
 
     @app.get("/api/stores/{store_id}/moment0")
-    def get_store_moment0(store_id: str) -> dict:
+    def get_store_moment0(
+        store_id: str,
+        vmin: float | None = Query(
+            None,
+            description="velocity-window lower bound (cube velocity unit); pair with vmax",
+        ),
+        vmax: float | None = Query(
+            None,
+            description="velocity-window upper bound (cube velocity unit); pair with vmin",
+        ),
+    ) -> dict:
         """The integrated (moment-0) map as a 2-D JSON array + extent/unit/vmin/vmax.
 
         Dogfoods the public :meth:`Cube.moment0`; the single 2-D result is decimated to a bounded
-        payload if large (the response carries the ``downsample`` factor)."""
-        return _viewer.moment0_map(_open_cube(store_id))
+        payload if large (the response carries the ``downsample`` factor).
+
+        With **both** ``vmin`` and ``vmax`` the map is recomputed over *exactly* the channels whose
+        velocity falls in that window (the velocity-window panel, #68): a public ``cube[i0:i1]`` slab
+        handed to the same ``moment0``, so the windowed map is the full map's integral restricted to
+        the slab — not a reimplemented sum. An empty/invalid window (no channel inside) → ``422``;
+        one bound without the other → ``422`` (a window needs both edges). Without either it is the
+        full-band map, unchanged (backward compatible with #67)."""
+        cube = _open_cube(store_id)
+        if vmin is None and vmax is None:
+            return _viewer.moment0_map(cube)
+        if vmin is None or vmax is None:
+            raise HTTPException(
+                status_code=422,
+                detail="a velocity window needs both vmin and vmax (got only one bound)",
+            )
+        try:
+            return _viewer.windowed_moment0_map(cube, vmin, vmax)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    @app.post("/api/stores/{store_id}/region-spectrum")
+    def post_store_region_spectrum(
+        store_id: str,
+        vertices: list[tuple[float, float]] = Body(
+            ...,
+            embed=True,
+            description="polygon vertices as [x, y] image-pixel pairs",
+        ),
+    ) -> dict:
+        """The cube averaged over a polygon region → its region-averaged spectrum (#68).
+
+        Body ``{"vertices": [[x, y], …]}`` — an image-pixel polygon (the coordinates the maps
+        report; ``embed=True`` keeps the ``vertices`` key so the body is a JSON object, not a bare
+        array). Returns ``velocity`` + mean ``value`` arrays (length == ``n_channels``) + the
+        ``n_pixels`` averaged, via :func:`_viewer.region_spectrum` (a thin composition of public
+        spatial slicing + nanmean). A degenerate region (< 3 vertices) → ``422``; a polygon enclosing
+        no in-map pixel returns an honest empty spectrum (``n_pixels == 0``), not an error."""
+        try:
+            return _viewer.region_spectrum(_open_cube(store_id), vertices)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     @app.get("/api/stores/{store_id}/channel/{index}")
     def get_store_channel(store_id: str, index: int) -> dict:

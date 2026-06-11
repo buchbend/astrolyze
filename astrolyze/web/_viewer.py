@@ -30,9 +30,25 @@ JSON-shape discipline (shared with :mod:`astrolyze.web.api`):
   the sky ``extent`` still spans the full map, so the client draws the true footprint. Striding (not
   averaging) keeps it a pure, cheap slice — no new resampling maths here.
 
-The seams for #68 (region-averaged spectrum, velocity-window moment, linked-zoom) are deliberately
-*not* built: the four basic panels need exactly these four reads. #68 will add endpoints alongside
-these without reshaping them.
+The #68 interactions (region-averaged spectrum, velocity-window moment, linked-zoom) build *on top*
+of the four basic reads without reshaping them. Two add server-side reductions, still thin over the
+public Cube API:
+
+- :func:`region_spectrum` averages the cube over a user-drawn polygon — composed from public
+  spatial slicing (``cube[:, y0:y1, x0:x1]`` → a :class:`Cube`) plus a pure-numpy point-in-polygon
+  mask and ``numpy.nanmean`` over the masked spatial pixels per channel. astrolyze has no
+  first-class polygon-average method, so this is the documented composition; it stays lazy by
+  slicing to the polygon's bounding box first (dask pulls only those columns).
+- :func:`windowed_moment0_map` recomputes moment-0 over exactly the channels whose velocity falls in
+  ``[vmin, vmax]`` — a public **spectral slice by channel index** (``cube[i0:i1]`` → a
+  :class:`Cube`) handed to the same public :meth:`Cube.moment0`. Slicing by channel index (not
+  spectral_slab) means it works on a cube without a rest-frequency velocity axis too (it reuses the
+  viewer's own velocity-or-native axis), and it stays lazy (only the slab's channels are read).
+
+The polygon coordinate convention is **image pixels** (full-resolution ``x`` = column, ``y`` = row),
+the same coordinates the maps' click handler reports and the spectrum/channel endpoints take — so a
+region drawn on a (possibly decimated) heatmap maps back to the same full-resolution grid the rest
+of the viewer speaks, with no sky-WCS round-trip on the hot path.
 """
 
 from __future__ import annotations
@@ -231,10 +247,158 @@ def pixel_spectrum(cube, x: int, y: int) -> dict:
     }
 
 
+# -- #68 interactions: region-averaged spectrum + velocity-window moment ----------------
+def _polygon_pixel_mask(vertices, ny: int, nx: int):
+    """A boolean (ny, nx) mask of pixels whose CENTRE lies inside the polygon *vertices*.
+
+    *vertices* is a sequence of ``(x, y)`` image-pixel pairs (x = column, y = row); the polygon is
+    implicitly closed (last vertex → first). Membership is the standard even-odd ray-casting test
+    (a horizontal ray from each pixel centre crosses the polygon edges an odd number of times when
+    inside) — implemented in pure numpy so the web path pulls in no extra geometry dependency and
+    the rule is auditable here. A pixel centre exactly on an edge is treated consistently by the
+    half-open ``(y0 <= y) != (y1 <= y)`` edge test; the result is intended as a fill mask, not a
+    sub-pixel-exact aperture (region averaging over whole pixels, the honest map resolution)."""
+    verts = np.asarray(vertices, dtype="float64")
+    xs = verts[:, 0]
+    ys = verts[:, 1]
+    # Pixel-centre coordinate grids (centre of pixel (col=c, row=r) is at (c, r) in this convention).
+    col = np.arange(nx, dtype="float64")[None, :]
+    row = np.arange(ny, dtype="float64")[:, None]
+    inside = np.zeros((ny, nx), dtype=bool)
+    n = len(verts)
+    j = n - 1
+    for i in range(n):
+        xi, yi = xs[i], ys[i]
+        xj, yj = xs[j], ys[j]
+        # Edge straddles the pixel row (half-open in y so a shared vertex is counted once).
+        straddles = (yi <= row) != (yj <= row)
+        # x of the edge at this row; guard a horizontal edge (yj == yi) where straddles is False.
+        denom = yj - yi
+        denom = np.where(denom == 0.0, 1.0, denom)
+        x_cross = xi + (row - yi) / denom * (xj - xi)
+        inside ^= straddles & (col < x_cross)
+        j = i
+    return inside
+
+
+def region_spectrum(cube, vertices) -> dict:
+    """The cube averaged over a polygon *region* → a (velocity, mean value, n_pixels) spectrum.
+
+    *vertices* is a list of ``[x, y]`` image-pixel pairs (full-resolution column/row, the same
+    coordinates the maps report). Composed from the public Cube API (astrolyze has no first-class
+    polygon-average): slice the cube to the polygon's integer bounding box (``cube[:, y0:y1, x0:x1]``
+    — a :class:`Cube`, so dask pulls only those columns and the average stays lazy), build the
+    even-odd :func:`_polygon_pixel_mask` over that box, and take ``numpy.nanmean`` over the masked
+    spatial pixels per channel (NaN voxels are excluded — a blanked pixel does not drag the mean to
+    zero, ADR-0003). The velocity axis is the viewer's own (km/s where the cube carries the line
+    context, else native), so the region spectrum shares the pixel spectrum's x-axis exactly.
+
+    Returns ``velocity`` / ``value`` arrays (length == ``n_channels``) plus ``n_pixels`` (how many
+    in-polygon pixels were averaged). A degenerate region (< 3 vertices) raises :class:`ValueError`
+    (the API maps it to a graceful ``422``); a polygon that selects no pixel inside the map yields a
+    spectrum of ``null`` with ``n_pixels == 0`` (honest emptiness, not a 500)."""
+    if vertices is None or len(vertices) < 3:
+        raise ValueError(
+            f"a region needs at least 3 vertices to enclose an area, got "
+            f"{0 if vertices is None else len(vertices)} (draw a polygon, not a point/line)"
+        )
+    nchan, ny, nx = cube.shape
+    verts = np.asarray(vertices, dtype="float64")
+    # Integer bounding box, clamped to the map — slice here so only these columns are pulled.
+    x0 = max(0, int(math.floor(verts[:, 0].min())))
+    y0 = max(0, int(math.floor(verts[:, 1].min())))
+    x1 = min(nx, int(math.ceil(verts[:, 0].max())) + 1)
+    y1 = min(ny, int(math.ceil(verts[:, 1].max())) + 1)
+    velocity, vel_unit = _velocity_values(cube)
+    if x1 <= x0 or y1 <= y0:
+        # The polygon lies entirely outside the map: no pixels, an honest empty spectrum.
+        return {
+            "velocity": velocity,
+            "velocity_unit": vel_unit,
+            "value": [None] * nchan,
+            "value_unit": str(cube.unit),
+            "n_pixels": 0,
+        }
+    sub = cube[:, y0:y1, x0:x1]
+    block = np.asarray(
+        sub._data_quantity.value, dtype="float64"
+    )  # (nchan, dy, dx), lazy slab
+    # Mask in the bounding box's local frame (shift the polygon by the box origin).
+    local = verts - np.array([x0, y0], dtype="float64")
+    mask = _polygon_pixel_mask(local, y1 - y0, x1 - x0)
+    n_pixels = int(mask.sum())
+    if n_pixels == 0:
+        return {
+            "velocity": velocity,
+            "velocity_unit": vel_unit,
+            "value": [None] * nchan,
+            "value_unit": str(cube.unit),
+            "n_pixels": 0,
+        }
+    # Per-channel nanmean over the in-polygon spatial pixels; all-NaN channels → None (RuntimeWarning
+    # suppressed because an all-blanked channel is a legitimate "unknown", not an error).
+    region = block[:, mask]  # (nchan, n_pixels)
+    with np.errstate(invalid="ignore"):
+        all_nan = ~np.isfinite(region).any(axis=1)
+        means = np.where(
+            all_nan,
+            np.nan,
+            np.nanmean(np.where(np.isfinite(region), region, np.nan), axis=1),
+        )
+    return {
+        "velocity": velocity,
+        "velocity_unit": vel_unit,
+        "value": [_finite_or_none(v) for v in means],
+        "value_unit": str(cube.unit),
+        "n_pixels": n_pixels,
+    }
+
+
+def _window_channel_range(velocity, vmin: float, vmax: float) -> tuple[int, int]:
+    """The half-open channel index range ``[i0, i1)`` whose velocities fall within ``[vmin, vmax]``.
+
+    *velocity* is the viewer's velocity-or-native axis (a list, possibly with ``None`` holes). The
+    bounds are ordered defensively (a window dragged right-to-left is the same window). Raises
+    :class:`ValueError` when no channel falls inside (an empty/degenerate window) so the API can
+    return a graceful ``422`` rather than handing spectral-cube an empty slab."""
+    lo, hi = (vmin, vmax) if vmin <= vmax else (vmax, vmin)
+    selected = [i for i, v in enumerate(velocity) if v is not None and lo <= v <= hi]
+    if not selected:
+        raise ValueError(
+            f"velocity window [{lo}, {hi}] selects no channel "
+            f"(the axis spans the cube's own velocity range) — widen the window"
+        )
+    return selected[0], selected[-1] + 1
+
+
+def windowed_moment0_map(cube, vmin: float, vmax: float) -> dict:
+    """Moment-0 recomputed over **exactly** the channels in the velocity window ``[vmin, vmax]``.
+
+    The velocity-window panel: select the channels whose (viewer) velocity is in ``[vmin, vmax]``,
+    slice the cube to that contiguous channel range (``cube[i0:i1]`` — a public :class:`Cube` slice,
+    so only the slab's channels are read and the integral stays lazy), and hand the slab to the same
+    public :meth:`Cube.moment0` the full-map endpoint uses (dogfooding — the windowed map is the
+    full map's integral restricted to the slab, not a reimplemented sum). Serialized exactly like
+    :func:`moment0_map` (NaN→null, decimated if large, full-resolution sky extent) plus the
+    ``vmin``/``vmax`` of the window and the channel span that realised it.
+
+    An empty or invalid window (no channel inside) raises :class:`ValueError` (→ graceful ``422``)."""
+    velocity, _ = _velocity_values(cube)
+    i0, i1 = _window_channel_range(velocity, vmin, vmax)
+    payload = moment0_map(cube[i0:i1])
+    payload["vmin_window"] = _finite_or_none(min(vmin, vmax))
+    payload["vmax_window"] = _finite_or_none(max(vmin, vmax))
+    payload["channel_start"] = int(i0)
+    payload["channel_stop"] = int(i1)  # exclusive
+    return payload
+
+
 __all__ = [
     "MAX_MAP_DIM",
     "cube_axes",
     "moment0_map",
     "channel_slice",
     "pixel_spectrum",
+    "region_spectrum",
+    "windowed_moment0_map",
 ]
