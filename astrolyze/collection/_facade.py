@@ -157,6 +157,14 @@ class Collection:
         root_uri = fs.unstrip_protocol(resolved)
         if fs.exists(f"{resolved.rstrip('/')}/{CATALOG_FILENAME}"):
             catalog = read_catalog(root_uri)
+        elif not fs.exists(resolved):
+            # A root that exists-but-lacks-a-catalog is a scan target (below); a root that does not
+            # exist at all is a user error (typo'd path, wrong bucket) — fail clearly here rather
+            # than letting the scan silently return an empty collection (#61/#63 seam).
+            raise FileNotFoundError(
+                f"no corpus at {root_uri}: it carries neither a {CATALOG_FILENAME} "
+                "nor a directory of Zarr stores to scan"
+            )
         else:
             # Catalog-less directory: build one by scanning the stores (the #61 fallback). The scan
             # stays a local-directory path today; the remote-store scan rides the same #63 seam as
