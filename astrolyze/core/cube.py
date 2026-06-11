@@ -9,12 +9,17 @@ holds one (``._sc``) and delegates, so we stay loosely coupled to upstream inter
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import astropy.units as u
 import radio_beam
 from astropy.convolution import Gaussian1DKernel, convolve_fft
 from radio_beam.utils import BeamError
 from spectral_cube import DaskSpectralCube, SpectralCube
+
+if TYPE_CHECKING:
+    from astropy.coordinates import SkyCoord
 
 from astrolyze.io import Metadata
 from astrolyze.units import (
@@ -738,6 +743,140 @@ class Cube(ContextCarrier):
                 if partial == "drop" and (x1 - x0) < nx:
                     continue
                 yield self[:, y0:y1, x0:x1]
+
+    # -- sky-coordinate postage stamp (issue #58) ---------------------------------------
+    # A single spatial cutout centred on a SkyCoord with a requested ANGULAR size, keeping
+    # the FULL spectral axis. astrolyze stays thin (ADR-0004): astropy's Cutout2D does the
+    # center+size -> pixel-window maths (and decides edge overlap) against the cube's celestial
+    # WCS, and the data slice itself is the existing ``self[:, y0:y1, x0:x1]`` path — so
+    # spectral-cube produces the sub-image WCS and ``__getitem__`` carries the beam / rest
+    # frequency / convention / Metadata onto the result. On a dask-backed cube the slice is a
+    # dask graph, so the cutout is lazy with no full materialisation (#23). No resampling,
+    # interpolation, or padding maths is added here — the stamp is a pure window of the parent.
+    def cutout(self, position: "SkyCoord", size, *, partial: str = "raise") -> "Cube":
+        """A spatial postage-stamp sub-:class:`Cube` centred on a sky *position*, full spectral axis.
+
+        The window is the smallest pixel bracket of the requested **angular** *size* around the
+        :class:`~astropy.coordinates.SkyCoord` *position*, computed on this cube's celestial WCS
+        via astropy :class:`~astropy.nddata.Cutout2D`. The returned cutout keeps **all** channels
+        (spectra are never cut), carries a correct sub-image WCS, and carries this cube's context
+        (ADR-0004). It is **lazy** on a dask-backed cube (#23): the cutout is a dask graph, so
+        nothing materialises until you compute it.
+
+        Parameters
+        ----------
+        position : ~astropy.coordinates.SkyCoord
+            The sky position the stamp is centred on. Must fall inside the cube's footprint
+            (see *partial* / the off-footprint rule below).
+        size : ~astropy.units.Quantity
+            The angular stamp size — a scalar (square) or a ``(height, width)`` pair, each an
+            angular ``Quantity`` (e.g. ``20 * u.arcsec``). A bare number or a non-angular unit
+            raises rather than guess pixels-vs-angle (no silent physics, ADR-0003).
+        partial : {"raise", "trim"}, default "raise"
+            The **explicit** edge rule when the window straddles the cube boundary (no silent
+            clipping, ADR-0003). ``"raise"`` rejects a partially-overlapping window with a clear
+            error; ``"trim"`` opts in to the smaller, in-bounds stamp (still a pure slice — never
+            padded out to *size*).
+
+        Returns
+        -------
+        Cube
+            The spatial postage stamp, full spectral axis, carrying this cube's context.
+
+        Raises
+        ------
+        ValueError
+            If *position* lies outside the cube's sky footprint, if the window only partially
+            overlaps and ``partial="raise"``, or for an unknown *partial* value.
+        ~astropy.units.UnitsError
+            If *size* is not an angular quantity.
+        """
+        if partial not in ("raise", "trim"):
+            raise ValueError(
+                f"partial must be 'raise' or 'trim' (the explicit edge rule), got {partial!r}; "
+                "astrolyze never silently clips a partial-overlap cutout (ADR-0003)"
+            )
+        celestial = self._sc.wcs.celestial
+        # Reject an off-footprint CENTRE explicitly and by name — clearer than letting Cutout2D
+        # surface a NoOverlapError, and the issue's stated behaviour (#58). The centre pixel is
+        # the authoritative test: a stamp must be centred *on* the data, not merely graze it.
+        self._require_centre_on_footprint(position, celestial)
+        cut = self._pixel_window(position, size, celestial, partial=partial)
+        (y0, y1), (x0, x1) = cut.bbox_original[0], cut.bbox_original[1]
+        # bbox_original is inclusive on both ends; turn it into a half-open slice. The slice is
+        # the existing context-carrying path (__getitem__): spectral-cube builds the sub-WCS and
+        # the beam / rest frequency / convention / Metadata travel onto the result for free.
+        _emit(
+            "cutout",
+            params={"position": position.to_string("hmsdms"), "size": str(size)},
+        )
+        return self[:, y0 : y1 + 1, x0 : x1 + 1]
+
+    def _require_centre_on_footprint(self, position, celestial) -> None:
+        """Raise unless *position* maps to a pixel inside the spatial footprint (a descriptive
+        off-footprint error, issue #58). The centre is the authoritative containment test."""
+        x, y = celestial.world_to_pixel(position)
+        ny, nx = self.shape[1], self.shape[2]
+        # World coords map to a pixel CENTRE at integer indices; the valid extent is the
+        # [-0.5, n-0.5) cell range. NaN (an undefined projection at this position) is off too.
+        on_x = np.isfinite(x) and -0.5 <= float(x) <= nx - 0.5
+        on_y = np.isfinite(y) and -0.5 <= float(y) <= ny - 0.5
+        if not (on_x and on_y):
+            raise ValueError(
+                f"cutout position {position.to_string('hmsdms')} lies outside the cube's sky "
+                f"footprint ({nx}x{ny} px); astrolyze raises rather than return an empty or "
+                "garbage stamp (no silent physics, ADR-0003)"
+            )
+
+    def _pixel_window(self, position, size, celestial, *, partial: str):
+        """The Cutout2D pixel window for *position* + angular *size*, applying the edge rule.
+
+        astropy does the center+size -> pixel maths and the overlap test; we only translate its
+        ``strict`` overlap mode into ``partial='raise'`` and ``trim`` into ``partial='trim'``,
+        and re-raise its overlap errors as the house ``ValueError`` (ADR-0003)."""
+        from astropy.nddata import Cutout2D
+        from astropy.nddata.utils import NoOverlapError, PartialOverlapError
+
+        angular_size = _as_angular_size(size)
+        mode = "strict" if partial == "raise" else "trim"
+        # A 2D placeholder of the spatial shape: Cutout2D works on (ny, nx); we only want its
+        # bounding box, so the array content is irrelevant (the real slice is taken downstream).
+        placeholder = np.empty((self.shape[1], self.shape[2]), dtype="uint8")
+        try:
+            return Cutout2D(
+                placeholder,
+                position=position,
+                size=angular_size,
+                wcs=celestial,
+                mode=mode,
+            )
+        except PartialOverlapError as exc:
+            raise ValueError(
+                f"cutout window around {position.to_string('hmsdms')} for size {size} only "
+                "partially overlaps the cube and partial='raise': astrolyze refuses to silently "
+                "clip it. Pass partial='trim' to opt in to the smaller, in-bounds stamp (ADR-0003)"
+            ) from exc
+        except NoOverlapError as exc:
+            raise ValueError(
+                f"cutout window around {position.to_string('hmsdms')} for size {size} does not "
+                "overlap the cube's footprint at all (off-footprint, ADR-0003)"
+            ) from exc
+
+
+def _as_angular_size(size):
+    """Coerce a cutout *size* to an angular ``Quantity`` (scalar or ``(height, width)`` pair).
+
+    A guard, not silent physics (ADR-0003): pixels-vs-angle is genuinely ambiguous, so a bare
+    number or a non-angular unit is rejected rather than guessed at. astropy's ``Cutout2D``
+    accepts an angular ``Quantity`` size and resolves it to pixels through the WCS itself, so we
+    only validate the dimension here and hand the value straight through."""
+    quantity = u.Quantity(size)
+    if not quantity.unit.is_equivalent(u.deg):
+        raise u.UnitsError(
+            f"cutout size must be an angular Quantity (e.g. 20 * u.arcsec), got {size!r}; "
+            "astrolyze never guesses pixels-vs-angle for a sky postage stamp (ADR-0003)"
+        )
+    return quantity
 
 
 def _as_pair(value, name: str, *, allow_zero: bool = False) -> tuple[int, int]:
