@@ -62,6 +62,14 @@ notebook = ["jupyterlab>=4", "ipykernel>=6"]
 # `pip install astrolyze[s3]`. Remote caching is fsspec passthrough — e.g. a
 # `simplecache::s3://…` URL caches reads with no astrolyze cache layer.
 s3 = ["s3fs>=2024.1"]
+# Exact sky-coverage queries (issue #62): mocpy deserializes a catalog's exact-footprint MOC
+# (the v1.1 ``moc`` column) so ``Collection.covering(SkyCoord)`` can prefilter candidates by exact
+# footprint instead of only the coarse center+radius circle. It is an OPT-IN consumer extra, not a
+# hard dependency: a bare install runs covering() end-to-end with center+radius prefiltering plus
+# the store-WCS authority (which decides containment regardless of mocpy). The import stays lazy,
+# so mocpy's absence never breaks a bare covering() call. Install with
+# `pip install astrolyze[coverage]`.
+coverage = ["mocpy>=0.13"]
 
 [project.urls]
 Homepage = "https://github.com/buchbend/astrolyze"

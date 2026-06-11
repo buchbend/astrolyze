@@ -223,3 +223,42 @@ def test_collection_query_multi_filter(corpus):
     )
     assert result.exit_code == 0, _all_output(result)
     assert "NGC3521" in _all_output(result)
+
+
+# --------------------------------------------------------------------------------------
+# collection covering PATH --ra/--dec (issue #62)
+# --------------------------------------------------------------------------------------
+def test_collection_covering_lists_matches(corpus):
+    """A position inside the synthetic stores' WCS footprint lists the covering cubes (HIT)."""
+    result = runner.invoke(
+        app, ["collection", "covering", str(corpus), "--ra", "170.0", "--dec", "-0.04"]
+    )
+    assert result.exit_code == 0, _all_output(result)
+    out = _all_output(result)
+    # Both stores share the CENTRE; covering renders their per-store rows.
+    assert "NGC3521" in out
+    assert "NGC0628" in out
+
+
+def test_collection_covering_accepts_a_coordinate_string(corpus):
+    """The position can be given as a single ICRS coordinate string instead of --ra/--dec."""
+    result = runner.invoke(
+        app, ["collection", "covering", str(corpus), "--coord", "170.0 -0.04"]
+    )
+    assert result.exit_code == 0, _all_output(result)
+    assert "NGC3521" in _all_output(result)
+
+
+def test_collection_covering_far_position_reports_no_matches(corpus):
+    """A position degrees off every footprint covers nothing — the CLI says so, exits cleanly."""
+    result = runner.invoke(
+        app, ["collection", "covering", str(corpus), "--ra", "10.0", "--dec", "-60.0"]
+    )
+    assert result.exit_code == 0, _all_output(result)
+    assert "no" in _all_output(result).lower()
+
+
+def test_collection_covering_requires_a_position(corpus):
+    """Neither --ra/--dec nor --coord given: the CLI rejects it rather than guess a position."""
+    result = runner.invoke(app, ["collection", "covering", str(corpus)])
+    assert result.exit_code != 0, _all_output(result)

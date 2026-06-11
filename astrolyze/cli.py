@@ -603,6 +603,117 @@ def collection_query(
     console.print(table)
 
 
+@collection_app.command("covering")
+def collection_covering(
+    path: str = typer.Argument(
+        ...,
+        help="Corpus root to browse — a local directory today, an s3:// URL later "
+        "(same call shape; fsspec resolves both).",
+    ),
+    ra: Optional[float] = typer.Option(
+        None, "--ra", help="Right ascension in degrees (ICRS). Use with --dec."
+    ),
+    dec: Optional[float] = typer.Option(
+        None, "--dec", help="Declination in degrees (ICRS). Use with --ra."
+    ),
+    coord: Optional[str] = typer.Option(
+        None,
+        "--coord",
+        "-c",
+        help="The position as an ICRS coordinate string (e.g. '10h00m -0d02m' or "
+        "'170.0 -0.04'), instead of --ra/--dec.",
+    ),
+) -> None:
+    """List the corpus cubes whose footprint COVERS a sky position (one row per covering store).
+
+    The shell mirror of ``Collection.covering(SkyCoord)`` (PRD #56 user stories 5/6/7): give a
+    position by ``--ra``/``--dec`` (degrees, ICRS) or a single ``--coord`` string, and it lists
+    every cube that covers it, across surveys. The semantics are the library's: the catalog
+    footprint (center+radius, plus an exact MOC when mocpy is installed) only *prefilters*
+    candidates; the final containment is decided by each candidate store's **own** WCS at open time
+    (the catalog is an index, never the geometry authority). A position covered by nothing reports
+    "no records" and exits cleanly. An unknown ``catalog_schema_version`` exits non-zero (ADR-0003).
+    """
+    # deferred (pulls pyarrow / fsspec / astropy.coordinates) so `astrolyze --help` stays fast.
+    from astrolyze.collection import Collection
+    from astrolyze.collection.catalog import CatalogSchemaError
+
+    position = _parse_position(ra, dec, coord)
+
+    try:
+        collection = Collection.open(path)
+        records = collection.covering(position).records
+    except FileNotFoundError:
+        err_console.print(
+            f"[red]error:[/red] no catalog at {path} "
+            "(a published corpus carries a catalog.parquet at its root)."
+        )
+        raise typer.Exit(code=1)
+    except CatalogSchemaError as exc:
+        err_console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(code=1)
+
+    pos_str = position.to_string("hmsdms")
+    if not records:
+        console.print(f"[yellow]no records covering[/yellow] {pos_str} in {path}")
+        return
+
+    table = Table(
+        title=f"collection covering {pos_str} — {path}  "
+        f"(catalog {collection.catalog_version})"
+    )
+    table.add_column("object", style="bold")
+    table.add_column("survey")
+    table.add_column("telescope")
+    table.add_column("species")
+    table.add_column("transition")
+    table.add_column("store")
+    for record in records:
+        r = record.row
+        table.add_row(
+            r.object or "—",
+            r.survey or "—",
+            r.telescope or "—",
+            r.species or "—",
+            r.transition or "—",
+            record.store_path,
+        )
+    console.print(table)
+
+
+def _parse_position(ra, dec, coord):
+    """Build the ICRS :class:`~astropy.coordinates.SkyCoord` covering target from the CLI options.
+
+    Accepts either ``--ra``/``--dec`` (degrees) or a single ``--coord`` string, but **not** both
+    and **not** neither — a position must be stated explicitly (astrolyze never guesses one,
+    ADR-0003). A non-parseable coordinate string exits non-zero with a clear message rather than
+    a traceback."""
+    from astropy import units as u
+    from astropy.coordinates import SkyCoord
+
+    has_radec = ra is not None or dec is not None
+    if has_radec and coord is not None:
+        err_console.print(
+            "[red]error:[/red] give a position with EITHER --ra/--dec OR --coord, not both."
+        )
+        raise typer.Exit(code=2)
+    if coord is not None:
+        try:
+            return SkyCoord(coord, unit=(u.deg, u.deg), frame="icrs")
+        except Exception as exc:  # noqa: BLE001 — surface a bad coord as a clean CLI error
+            err_console.print(
+                f"[red]error:[/red] could not parse --coord {coord!r} as a sky position ({exc})."
+            )
+            raise typer.Exit(code=2)
+    if ra is None or dec is None:
+        err_console.print(
+            "[red]error:[/red] a position is required — give --ra and --dec (degrees) "
+            "or --coord (a coordinate string). astrolyze never guesses a position (ADR-0003)."
+        )
+        raise typer.Exit(code=2)
+    return SkyCoord(ra * u.deg, dec * u.deg, frame="icrs")
+
+
 @app.command()
 def narrate(
     directory: Path = typer.Argument(

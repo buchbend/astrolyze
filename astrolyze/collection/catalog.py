@@ -78,7 +78,8 @@ class CatalogRow:
     #62 covering reads the footprint fields, the :class:`~astrolyze.collection.Collection` facade
     groups them object-first). Every field except ``store_path`` and ``catalog_schema_version``
     may be ``None`` — a partial row is valid and the catalog never invents context (the same
-    honesty rule as the store schema). Fields mirror :data:`CATALOG_COLUMNS` one-to-one.
+    honesty rule as the store schema). The v1.0 fields mirror :data:`CATALOG_COLUMNS` one-to-one,
+    in order; ``moc`` is the appended v1.1 column (defaulted ``None`` so a v1.0 row reads cleanly).
     """
 
     object: str | None
@@ -97,6 +98,16 @@ class CatalogRow:
     dec_deg: float | None
     radius_deg: float | None
     catalog_schema_version: str
+    # v1.1 additive column (catalog-schema spec §2.5, issue #26/#62): the store's exact-coverage
+    # footprint as a serialized mocpy ASCII MOC (deserialize with ``MOC.from_string(value,
+    # format="ascii")``), null where a footprint MOC could not be built. The reader CARRIES it
+    # through onto the row — covering()'s optional MOC prefilter (#62) needs the value, so it
+    # must not be dropped as a "trailing unknown column". A v1.0 catalog has no moc column, so
+    # ``from_record`` leaves this ``None`` (the default) and the bare center+radius prefilter is
+    # used. Defaulted (and placed last) so it stays additive: a v1.0 reader/writer is unaffected,
+    # ``CATALOG_COLUMNS`` (the v1.0 contract write order) does not list it, and the scan-builder's
+    # separate moc handling (ScanResult.moc) is unchanged.
+    moc: str | None = None
 
     @classmethod
     def from_record(cls, record: dict, *, version: str) -> "CatalogRow":
