@@ -9,10 +9,10 @@ mutation path — PRD #56). The catalog-format knowledge lives entirely in
 and the *open* path (record -> Cube with origin provenance).
 
 Path handling routes through fsspec from day one (:func:`fsspec.core.url_to_fs`): the same
-``Collection.open(...)`` call shape serves a local directory today and an ``s3://`` URL later
-with no API change. Today the open path materialises the local store path the Zarr backend
-expects; the fsspec-URL-end-to-end work (a store mapper for remote bytes) is #63, and the seam is
-:meth:`Record.open` — it is the single place a remote-store opener slots in.
+``Collection.open(...)`` call shape serves a local directory, a ``file://`` URL, and an ``s3://``
+URL with no API change. :meth:`Record.open` hands the store's fsspec URI straight to the Zarr
+backend, which opens local and remote stores through one seam and stays lazy over a remote store
+(#63) — so a corpus on disk and the same corpus on S3 are analysed with identical code.
 
 Extension points for the slices that build on this tracer:
 
@@ -106,11 +106,13 @@ class Record:
         traces back to the exact corpus snapshot it came from (PRD #56). This stamping is the
         only thing the collection adds over a bare open; it never mutates the corpus.
 
-        The remote-store path (an ``s3://`` URI opened via an fsspec mapper) is #63; this is the
-        single seam it slots into. Today the store opens from the resolved local path."""
+        The store URI is handed straight to the Zarr backend, which opens a local path and a
+        remote fsspec URL (``file://`` / ``memory://`` / ``s3://``) through the same seam and
+        stays lazy over a remote store (#63) — so a corpus on disk and the same corpus on S3 open
+        with no code change."""
         from astrolyze.core import Cube
 
-        cube = Cube.from_zarr(_local_store_path(self.store_uri))
+        cube = Cube.from_zarr(self.store_uri)
         cube.metadata = replace(
             cube.metadata,
             origin_store_uri=self.store_uri,
@@ -211,16 +213,6 @@ def _beam_range(rows) -> tuple[float | None, float | None]:
     if not majors:
         return (None, None)
     return (min(majors), max(majors))
-
-
-def _local_store_path(store_uri: str) -> str:
-    """The local filesystem path a ``file://`` store URI names (the Zarr backend opens a path).
-
-    The narrow open path the tracer needs (local corpora today); a remote (``s3://``) opener that
-    hands an fsspec mapper to the Zarr backend is #63, slotting in at :meth:`Record.open`. Uses
-    fsspec to strip the protocol so the resolution is the same machinery the open went through."""
-    fs, resolved = url_to_fs(store_uri)
-    return resolved
 
 
 __all__ = ["Collection", "Record", "ObjectSummary"]

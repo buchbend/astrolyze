@@ -83,6 +83,50 @@ from astrolyze.io import save
 out_path = save(loaded.data, loaded.metadata, "derived/")
 ```
 
+## Remote stores: fsspec URLs and S3 (#63)
+
+The Zarr backend takes an **fsspec URL** anywhere it takes a path, so the same call shape serves
+a local directory, an explicit `file://` URL, an in-memory `memory://` store, or an object store
+on `s3://` — with no code change. A remote store opens through an fsspec mapper and reads stay
+**lazy** (dask pulls only the chunks you touch, never the whole cube):
+
+```python
+from astrolyze.core import Cube
+from astrolyze.collection import Collection
+
+# Identical call shape — on disk or on S3:
+cube = Cube.from_zarr("/data/ism_corpus/l1/heracles.zarr")     # local path
+cube = Cube.from_zarr("file:///data/ism_corpus/l1/heracles.zarr")  # explicit file:// URL
+cube = Cube.from_zarr("s3://my-bucket/ism_corpus/l1/heracles.zarr")  # object store
+
+coll = Collection.open("s3://my-bucket/ism_corpus")            # a whole corpus on S3
+```
+
+`s3://` access needs the fsspec S3 driver, which is an **opt-in extra** (a bare install stays
+fully functional on local / `file://` / `memory://` corpora):
+
+```
+pip install "astrolyze[s3]"
+```
+
+**Credentials and storage options are fsspec's, untouched.** A public/anonymous bucket and a
+credentialed one differ only in how you configure fsspec, e.g. via standard AWS environment
+variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_PROFILE`) or, for a public bucket,
+fsspec's anonymous mode (`{"anon": True}` in your fsspec/`s3fs` configuration). astrolyze never
+inspects these — it hands them straight to fsspec.
+
+**Caching is fsspec passthrough — there is no astrolyze cache layer.** Opt in to read caching with
+fsspec's chained URLs, e.g. wrap a remote root in `simplecache::`:
+
+```python
+# Cache chunks locally on first read; subsequent reads hit the local cache:
+cube = Cube.from_zarr("simplecache::s3://my-bucket/ism_corpus/l1/heracles.zarr")
+```
+
+This works because fsspec resolves the chained URL; astrolyze adds nothing. A missing catalog at a
+URL raises a clear `FileNotFoundError` (the corpus root has no `catalog.parquet`), not an obscure
+deferred read error.
+
 ## See also
 
 - [No silent physics](no-silent-physics.md) — what happens when you act on incomplete metadata.
