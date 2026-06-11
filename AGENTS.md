@@ -40,6 +40,40 @@ Type transitions carry the context for you:
 | `cube[:, y, x]`          | `Spectrum` |
 | `cube[:, y0:y1, x0:x1]`  | `Cube`     |
 
+`Cube.cutout(SkyCoord, size)` takes a sky postage stamp (full spectral axis kept), and
+`cube.plot_channel_maps()` draws a house-style channel-map grid.
+
+### Browsing a corpus (Collection + Stack)
+
+A *published corpus* (a directory of astrolyze Zarr stores indexed by `catalog.parquet`) is opened
+read-only with `Collection` — local or `s3://`, same call shape (fsspec). It is consumed, never
+written to; lineage flows out through each opened cube's origin `Metadata`.
+
+```python
+from astrolyze.collection import Collection
+
+coll = Collection.open("/data/ism_corpus")           # or "s3://bucket/ism_corpus"
+coll.list()                                          # object-first overview (per source)
+coll.describe("NGC3521")                             # per-store detail (catalog-first; deep= opens stores)
+coll.query(species="CO", transition="2-1")           # composable sub-Collection (unknown key raises)
+coll.covering(skycoord)                              # cubes covering a position (WCS is the authority)
+cube = coll.records[0].open()                         # lazy Cube, stamped with corpus origin
+```
+
+`Collection.stack(position_or_sources, size=…)` gathers a `Cube.cutout` from every covering cube into
+a `Stack` — a **browse-everything** container that is always safe however heterogeneous its members.
+Co-addition is a *separate, explicit* path that gates on homogeneity (it raises rather than average
+mixed data silently):
+
+```python
+stack = coll.stack(skycoord, size=30 * u.arcsec)     # filter / plot_grid / map — no precondition
+coadded = (
+    stack.filter(species="CO", transition="2-1")     # narrow to one kind of data
+    .to_common_beam().to_velocity_grid().shift_to_rest(v_sys=...)   # explicit, auditable alignment
+    .coadd(weights="noise")                          # raises (CoaddError) on heterogeneous members
+)
+```
+
 ## The tracer recipe (load → moment0 → convert → plot)
 
 ```python
@@ -77,6 +111,11 @@ astrolyze narrate study/                          # offer a narrative note over 
 astrolyze info  ngc0628_co21.fits                 # metadata schema + completeness (read-only)
 astrolyze moment0 ngc0628_co21.fits -u "K km/s" -o ngc0628_mom0.png
 astrolyze moment0 ngc0628_co21.fits --temperature-scale planck   # for a brightness conversion
+astrolyze collection list      /data/ism_corpus                  # browse a published corpus (read-only)
+astrolyze collection describe  NGC3521 /data/ism_corpus [--deep] # per-store detail for one source
+astrolyze collection query     /data/ism_corpus --species CO     # filter the corpus by catalog field
+astrolyze collection covering  /data/ism_corpus --coord "11h05m48.6s -00d02m09s"  # cubes covering a position
+astrolyze explore  /data/ism_corpus                              # serve the web corpus explorer (astrolyze[web])
 astrolyze --help
 ```
 
@@ -86,7 +125,10 @@ velocity convention, beam, unit, distance, calibration error) and whether the fi
 (default `<input>_moment0.png`). A conversion that needs absent context exits non-zero with a
 clear message — the CLI surfaces the library's refusal, it doesn't paper over it. `ingest` and
 `manifest list` drive the merciless gate and registry, and `narrate` the narrative offer (all
-below).
+below). The `collection …` group is the read-only mirror of the `Collection` API over a published
+corpus (`list` / `describe` / `query` / `covering`), and `explore` serves the web corpus explorer
+(the opt-in `astrolyze[web]` extra). See the [collections](docs/guide/collections.md),
+[stacking](docs/guide/stacking.md), and [web explorer](docs/guide/web-explorer.md) guides.
 
 ## Organising an analysis: the experiment skeleton
 
