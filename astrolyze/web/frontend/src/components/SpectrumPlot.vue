@@ -8,10 +8,11 @@
 // visually linked.
 //
 // D3 owns the MATH (the linear x/y scales), Vue owns the DOM (the path + ticks are bound), matching
-// the BeamRangeBar / HeatMap idiom. The #68 velocity-window selection (brush on this axis to
-// recompute the moment) is a reserved seam: the `velocityWindow` prop is accepted and, if set, the
-// band is shaded — but NO brush interaction is wired here (that is #68).
-import { computed } from "vue";
+// the BeamRangeBar / HeatMap idiom. The #68 velocity-window selection is now wired: dragging across
+// the plot brushes a [v0, v1] band (the `velocityWindow`), emitted so the parent recomputes the
+// integrated map over exactly that window; a second click outside clears it. A region-averaged
+// spectrum (`regionValue`) is overlaid as a second line so the region and pixel spectra compare.
+import { computed, ref } from "vue";
 import { scaleLinear, line as d3line } from "d3";
 
 const props = defineProps({
@@ -22,9 +23,13 @@ const props = defineProps({
   valueUnit: { type: String, default: "" },
   // The current channel index (the slider's), marked with a vertical guide so the panels link.
   channelIndex: { type: Number, default: null },
-  // Reserved #68 seam: a [v0, v1] velocity window to shade. NO brush logic in this slice.
+  // The [v0, v1] velocity window brushed here (shaded); drives the windowed-moment recompute.
   velocityWindow: { type: Array, default: null },
+  // A region-averaged spectrum's values (same velocity axis), overlaid as a second line, or null.
+  regionValue: { type: Array, default: null },
 });
+
+const emit = defineEmits(["window", "clear-window"]);
 
 const W = 460;
 const H = 240;
@@ -49,7 +54,11 @@ const xScale = computed(() => {
 
 const yScale = computed(() => {
   if (!hasData.value) return scaleLinear().domain([0, 1]).range([H - PAD.bottom, PAD.top]);
-  const vals = props.value.filter((v) => v != null && Number.isFinite(v));
+  // The y range spans BOTH the pixel spectrum and the overlaid region spectrum so neither clips.
+  const vals = [
+    ...props.value,
+    ...(Array.isArray(props.regionValue) ? props.regionValue : []),
+  ].filter((v) => v != null && Number.isFinite(v));
   let lo = vals.length ? Math.min(...vals) : 0;
   let hi = vals.length ? Math.max(...vals) : 1;
   if (hi === lo) {
@@ -93,13 +102,70 @@ const channelGuideX = computed(() => {
   return v == null ? null : xScale.value(v);
 });
 
-// Reserved #68 seam: shade the velocity window if one is set. No interaction here.
+// The region-averaged spectrum overlaid as a second line (same x = velocity axis), gaps at nulls.
+const regionPath = computed(() => {
+  if (!hasData.value || !Array.isArray(props.regionValue)) return "";
+  const gen = d3line()
+    .defined((d) => d.v != null && Number.isFinite(d.v) && d.x != null)
+    .x((d) => xScale.value(d.x))
+    .y((d) => yScale.value(d.v));
+  const pts = props.velocity.map((x, i) => ({ x, v: props.regionValue[i] }));
+  return gen(pts) || "";
+});
+
+// Shade the velocity window if one is set (the band the moment was integrated over).
 const windowBand = computed(() => {
   if (!Array.isArray(props.velocityWindow) || props.velocityWindow.length !== 2)
     return null;
   const [a, b] = props.velocityWindow.map((v) => xScale.value(v));
   return { x: Math.min(a, b), w: Math.abs(b - a) };
 });
+
+// -- velocity-window brush ------------------------------------------------------------
+// Drag horizontally across the plot to select a [v0, v1] band; on release the window is emitted (the
+// parent recomputes the windowed moment). A click without a drag clears the window. The brush works
+// in screen x, converted to velocities via the x scale's inverse; the band is clamped to the data
+// range so a drag past the edge selects the edge channel.
+const brushing = ref(null); // { x0 } screen x where the drag started, else null
+const brushPreview = ref(null); // { x, w } screen-space preview rect during a drag
+
+function clampX(sx) {
+  const [lo, hi] = [PAD.left, W - PAD.right];
+  return Math.max(lo, Math.min(hi, sx));
+}
+
+function eventX(event) {
+  const svg = event.currentTarget.ownerSVGElement || event.currentTarget;
+  const rect = svg.getBoundingClientRect();
+  return clampX((event.clientX - rect.left) * (W / rect.width));
+}
+
+function onBrushDown(event) {
+  if (!hasData.value) return;
+  brushing.value = { x0: eventX(event) };
+  brushPreview.value = null;
+}
+function onBrushMove(event) {
+  if (!brushing.value) return;
+  const x1 = eventX(event);
+  const x0 = brushing.value.x0;
+  brushPreview.value = { x: Math.min(x0, x1), w: Math.abs(x1 - x0) };
+}
+function onBrushUp(event) {
+  if (!brushing.value) return;
+  const x1 = eventX(event);
+  const x0 = brushing.value.x0;
+  brushing.value = null;
+  brushPreview.value = null;
+  if (Math.abs(x1 - x0) < 3) {
+    // A click (no real drag): clear any existing window.
+    if (props.velocityWindow) emit("clear-window");
+    return;
+  }
+  const v0 = xScale.value.invert(Math.min(x0, x1));
+  const v1 = xScale.value.invert(Math.max(x0, x1));
+  emit("window", [v0, v1]);
+}
 </script>
 
 <template>
@@ -112,8 +178,12 @@ const windowBand = computed(() => {
       class="sp-svg"
       role="img"
       aria-label="pixel spectrum"
+      @pointerdown="onBrushDown"
+      @pointermove="onBrushMove"
+      @pointerup="onBrushUp"
+      @pointerleave="onBrushUp"
     >
-      <!-- reserved #68 velocity-window band (shaded only if a window is set; no brush) -->
+      <!-- the committed velocity-window band (the moment was integrated over this) -->
       <rect
         v-if="windowBand"
         :x="windowBand.x"
@@ -121,6 +191,16 @@ const windowBand = computed(() => {
         :width="windowBand.w"
         :height="H - PAD.bottom - PAD.top"
         class="sp-window"
+      />
+
+      <!-- live brush preview while dragging a window -->
+      <rect
+        v-if="brushPreview"
+        :x="brushPreview.x"
+        :y="PAD.top"
+        :width="brushPreview.w"
+        :height="H - PAD.bottom - PAD.top"
+        class="sp-brush"
       />
 
       <!-- y grid + ticks -->
@@ -169,6 +249,13 @@ const windowBand = computed(() => {
         :y1="yScale(0)"
         :y2="yScale(0)"
         class="sp-zero"
+      />
+
+      <!-- the region-averaged spectrum (overlaid behind the pixel line for comparison) -->
+      <path
+        v-if="hasData && regionPath"
+        :d="regionPath"
+        class="sp-region-line"
       />
 
       <!-- the spectrum line -->
@@ -224,6 +311,8 @@ const windowBand = computed(() => {
   max-width: 100%;
   height: auto;
   background: var(--surface);
+  cursor: col-resize;
+  touch-action: none;
 }
 .sp-line {
   fill: none;
@@ -248,6 +337,17 @@ const windowBand = computed(() => {
 .sp-window {
   fill: var(--accent-soft);
   opacity: 0.6;
+}
+.sp-brush {
+  fill: var(--accent);
+  opacity: 0.18;
+}
+.sp-region-line {
+  fill: none;
+  stroke: #ff5d3b;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 2;
+  opacity: 0.9;
 }
 .sp-tick {
   font-family: var(--mono);

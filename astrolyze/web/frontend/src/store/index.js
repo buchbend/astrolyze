@@ -10,9 +10,10 @@
 //
 // The `viewer` slice is the cube viewer's shared state — the {store, channel, position} the three
 // linked panels read so a click on either map updates the spectrum and both crosshairs. The #68
-// slots (region, velocityWindow, linked) are reserved here as nulls/true with NO logic, so the
-// follow-up panels (region-averaged spectrum, velocity-window moment, link/unlink) fill a known
-// shape rather than reshaping the store.
+// interactions fill the once-reserved slots with logic: `region` is the drawn polygon + its
+// region-averaged spectrum (GET region-spectrum), `velocityWindow` is the [v0, v1] brushed on the
+// spectrum that recomputes the integrated map (GET moment0?vmin&vmax), and `linked` toggles whether
+// the two map panels share one pan/zoom view (the link/unlink control).
 
 import { createStore } from "vuex";
 
@@ -60,13 +61,18 @@ export default createStore({
         spectrum: null,
         loading: false,
         error: null,
-        // -- reserved #68 slots (NO logic in this slice) --------------------------------
-        // region: a future rectangle/polygon for the region-averaged spectrum panel.
-        // velocityWindow: a future [v0, v1] selected on the spectrum to recompute the moment.
-        // linked: a future link/unlink toggle for the linked-zoom across the two maps.
+        // -- #68 interactions ----------------------------------------------------------
+        // region: the drawn polygon (image-pixel [x, y] vertices) and its averaged spectrum.
+        //   { vertices: [[x, y], …], spectrum: { velocity, value, n_pixels, … } | null }
+        // velocityWindow: the [v0, v1] brushed on the spectrum (cube velocity unit), or null.
+        // windowedMoment0: the moment-0 recomputed over that window (replaces the map panel), or null.
+        // linked: whether the two map panels share one pan/zoom view (the link/unlink control).
+        // mapView: the shared { k, x, y } zoom transform the linked maps render at.
         region: null,
         velocityWindow: null,
+        windowedMoment0: null,
         linked: true,
+        mapView: null,
       },
     };
   },
@@ -128,7 +134,9 @@ export default createStore({
       state.viewer.error = null;
       state.viewer.region = null;
       state.viewer.velocityWindow = null;
+      state.viewer.windowedMoment0 = null;
       state.viewer.linked = true;
+      state.viewer.mapView = null;
     },
     setViewerAxes(state, axes) {
       state.viewer.axes = axes;
@@ -151,6 +159,35 @@ export default createStore({
     },
     setViewerSpectrum(state, spectrum) {
       state.viewer.spectrum = spectrum;
+    },
+    // -- cube viewer interactions (#68) ---------------------------------------------------
+    // The drawn polygon: keep the vertices immediately (so the overlay renders while the
+    // region-averaged spectrum is in flight) and attach the spectrum when it lands.
+    setViewerRegion(state, region) {
+      state.viewer.region = region;
+    },
+    setViewerRegionSpectrum(state, spectrum) {
+      if (state.viewer.region) {
+        state.viewer.region = { ...state.viewer.region, spectrum };
+      }
+    },
+    clearViewerRegion(state) {
+      state.viewer.region = null;
+    },
+    // The velocity window brushed on the spectrum (or null to clear it and the windowed map).
+    setViewerVelocityWindow(state, window) {
+      state.viewer.velocityWindow = window;
+      if (window == null) state.viewer.windowedMoment0 = null;
+    },
+    setViewerWindowedMoment0(state, moment0) {
+      state.viewer.windowedMoment0 = moment0;
+    },
+    // Link/unlink the two map panels' pan/zoom; the shared view they render at.
+    setViewerLinked(state, linked) {
+      state.viewer.linked = linked;
+    },
+    setViewerMapView(state, view) {
+      state.viewer.mapView = view;
     },
   },
   actions: {
@@ -243,6 +280,87 @@ export default createStore({
       } catch (err) {
         commit("setViewerError", err.message);
       }
+    },
+
+    // -- cube viewer interactions (#68) -------------------------------------------------
+    // Select a polygon region (the map's region-draw finishes): keep the vertices, then POST them
+    // to region-spectrum and attach the region-averaged spectrum. A degenerate region (< 3) is
+    // never sent (the map only emits a closed ≥3-vertex polygon), but the backend also guards it.
+    async selectRegion({ commit, state }, vertices) {
+      const storeId = state.viewer.store;
+      if (storeId == null) return;
+      if (!Array.isArray(vertices) || vertices.length < 3) return;
+      commit("setViewerRegion", { vertices, spectrum: null });
+      try {
+        const response = await fetch(
+          `/api/stores/${storeId}/region-spectrum`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ vertices }),
+          },
+        );
+        if (!response.ok) {
+          let detail = `${response.status} ${response.statusText}`;
+          try {
+            const body = await response.json();
+            if (body && body.detail) detail = body.detail;
+          } catch {
+            // keep the status line
+          }
+          throw new Error(detail);
+        }
+        const spectrum = await response.json();
+        // Ignore a stale response (the user may have redrawn while this was in flight).
+        if (
+          state.viewer.region &&
+          state.viewer.region.vertices === vertices
+        ) {
+          commit("setViewerRegionSpectrum", spectrum);
+        }
+      } catch (err) {
+        commit("setViewerError", err.message);
+      }
+    },
+    clearRegion({ commit }) {
+      commit("clearViewerRegion");
+    },
+
+    // Select a velocity window on the spectrum (the brush): set it, then recompute the integrated
+    // map over EXACTLY that window (GET moment0?vmin&vmax) and show it in the map panel. A null
+    // window clears both the window and the windowed map (back to the full-band moment-0).
+    async selectVelocityWindow({ commit, state }, window) {
+      const storeId = state.viewer.store;
+      if (storeId == null) return;
+      if (window == null) {
+        commit("setViewerVelocityWindow", null);
+        return;
+      }
+      const [v0, v1] = window;
+      commit("setViewerVelocityWindow", [v0, v1]);
+      try {
+        const moment0 = await getJson(
+          `/api/stores/${storeId}/moment0?vmin=${v0}&vmax=${v1}`,
+        );
+        // Apply only if this is still the active window (brush drags can race).
+        const w = state.viewer.velocityWindow;
+        if (w && w[0] === v0 && w[1] === v1) {
+          commit("setViewerWindowedMoment0", moment0);
+        }
+      } catch (err) {
+        commit("setViewerError", err.message);
+      }
+    },
+
+    // Link/unlink the two map panels' pan/zoom (the control). Unlinking leaves each map at its
+    // current view; re-linking adopts the shared view so they snap back together.
+    setLinked({ commit }, linked) {
+      commit("setViewerLinked", linked);
+    },
+    // The shared pan/zoom view the linked maps render at (one map's zoom drives both when linked).
+    setMapView({ commit, state }, view) {
+      if (!state.viewer.linked) return;
+      commit("setViewerMapView", view);
     },
   },
 });

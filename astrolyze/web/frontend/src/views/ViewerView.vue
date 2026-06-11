@@ -10,10 +10,13 @@
 // Keyboard stepping (when the viewer has focus): ArrowLeft/ArrowRight = ∓1 channel; PageUp/PageDown
 // and Shift+Arrow = ∓5 channels (the larger-skip modifier). The current velocity is always shown.
 //
-// The #68 panels (region-averaged spectrum, velocity-window-on-spectrum, link/unlink) are NOT built
-// here — their Vuex slots (region, velocityWindow, linked) are reserved but unused, and a labelled
-// seam notes where they land.
-import { computed, onMounted, onBeforeUnmount, watch } from "vue";
+// The #68 interactions are wired here: a REGION-DRAW toggle puts the moment-0 map into polygon mode
+// (a drawn polygon → its region-averaged spectrum, overlaid on the pixel spectrum); a velocity-window
+// BRUSH on the spectrum recomputes the integrated map over exactly that window (replacing the
+// moment-0 panel until cleared); and a LINK/UNLINK control shares (or splits) the two map panels'
+// pan/zoom. The state lives in the Vuex `viewer` slice (region, velocityWindow, windowedMoment0,
+// linked, mapView).
+import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { useStore } from "vuex";
 import HeatMap from "../components/HeatMap.vue";
 import SpectrumPlot from "../components/SpectrumPlot.vue";
@@ -110,6 +113,68 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
 function onSelect({ x, y }) {
   store.dispatch("selectPixel", { x, y });
 }
+
+// -- #68 interactions -----------------------------------------------------------------
+const region = computed(() => viewer.value.region);
+const velocityWindow = computed(() => viewer.value.velocityWindow);
+const windowedMoment0 = computed(() => viewer.value.windowedMoment0);
+const linked = computed(() => viewer.value.linked);
+const mapView = computed(() => viewer.value.mapView);
+
+// The moment-0 panel shows the windowed map when a velocity window is active, else the full band.
+const momentPanel = computed(() => windowedMoment0.value || moment0.value);
+const momentTitle = computed(() =>
+  windowedMoment0.value
+    ? `Integrated · v ∈ [${velocityWindow.value[0].toFixed(1)}, ${velocityWindow.value[1].toFixed(1)}] ${velocityUnit.value || ""}`.trim()
+    : "Integrated (moment 0)",
+);
+
+// Region-draw mode: a local toggle that puts the moment-0 map into polygon mode.
+const regionMode = ref(false);
+function toggleRegionMode() {
+  regionMode.value = !regionMode.value;
+}
+function onRegion(vertices) {
+  regionMode.value = false; // one polygon at a time; drawing finished
+  store.dispatch("selectRegion", vertices);
+}
+function clearRegion() {
+  store.dispatch("clearRegion");
+}
+
+// Velocity-window brush on the spectrum.
+function onWindow(window) {
+  store.dispatch("selectVelocityWindow", window);
+}
+function onClearWindow() {
+  store.dispatch("selectVelocityWindow", null);
+}
+
+// Per-map local view when UNLINKED (so each map keeps its own pan/zoom); shared view when LINKED.
+const momentLocalView = ref(null);
+const channelLocalView = ref(null);
+function onMomentView(view) {
+  momentLocalView.value = view;
+  if (linked.value) store.dispatch("setMapView", view);
+}
+function onChannelView(view) {
+  channelLocalView.value = view;
+  if (linked.value) store.dispatch("setMapView", view);
+}
+const momentView = computed(() =>
+  linked.value ? mapView.value : momentLocalView.value,
+);
+const channelView = computed(() =>
+  linked.value ? mapView.value : channelLocalView.value,
+);
+function toggleLinked() {
+  store.dispatch("setLinked", !linked.value);
+}
+
+// The region-averaged spectrum's values, overlaid on the pixel spectrum (aligned to its velocity).
+const regionSpectrumValue = computed(() =>
+  region.value && region.value.spectrum ? region.value.spectrum.value : null,
+);
 </script>
 
 <template>
@@ -144,21 +209,70 @@ function onSelect({ x, y }) {
     </div>
 
     <template v-else-if="axes">
+      <!-- #68 viewer interaction controls: region draw + link/unlink -->
+      <div class="viewer-toolbar">
+        <button
+          type="button"
+          class="tool-btn"
+          :class="{ active: regionMode }"
+          @click="toggleRegionMode"
+        >
+          {{ regionMode ? "drawing region… (double-click to close)" : "✏ draw region" }}
+        </button>
+        <button
+          v-if="region"
+          type="button"
+          class="tool-btn"
+          @click="clearRegion"
+        >
+          clear region
+        </button>
+        <button
+          v-if="windowedMoment0"
+          type="button"
+          class="tool-btn"
+          @click="onClearWindow"
+        >
+          clear velocity window
+        </button>
+        <span class="tool-spacer" />
+        <button
+          type="button"
+          class="tool-btn link-btn"
+          :class="{ active: linked }"
+          @click="toggleLinked"
+        >
+          {{ linked ? "🔗 maps linked" : "⛓ maps unlinked" }}
+        </button>
+      </div>
+
       <div class="panels">
-        <!-- integrated (moment-0) map -->
+        <!-- integrated (moment-0) map — region-draw target; shows the windowed map when set -->
         <div class="card panel">
           <HeatMap
-            v-if="moment0"
-            title="Integrated (moment 0)"
-            :data="moment0.data"
-            :vmin="moment0.vmin"
-            :vmax="moment0.vmax"
-            :unit="moment0.unit"
-            :extent="moment0.extent"
-            :downsample="moment0.downsample"
+            v-if="momentPanel"
+            :title="momentTitle"
+            :data="momentPanel.data"
+            :vmin="momentPanel.vmin"
+            :vmax="momentPanel.vmax"
+            :unit="momentPanel.unit"
+            :extent="momentPanel.extent"
+            :downsample="momentPanel.downsample"
             :position="position"
+            :mode="regionMode ? 'region' : 'select'"
+            :region="region ? region.vertices : null"
+            :view="momentView"
             @select="onSelect"
+            @region="onRegion"
+            @viewchange="onMomentView"
           />
+          <p
+            v-if="region"
+            class="region-readout num muted"
+          >
+            region: {{ region.vertices.length }} vertices<span v-if="region.spectrum">
+              · {{ region.spectrum.n_pixels }} px averaged</span>
+          </p>
         </div>
 
         <!-- channel map + velocity slider + keyboard stepping -->
@@ -173,7 +287,9 @@ function onSelect({ x, y }) {
             :extent="channel.extent"
             :downsample="channel.downsample"
             :position="position"
+            :view="channelView"
             @select="onSelect"
+            @viewchange="onChannelView"
           />
           <div class="channel-controls">
             <input
@@ -195,7 +311,7 @@ function onSelect({ x, y }) {
           </div>
         </div>
 
-        <!-- pixel spectrum (full-width row) -->
+        <!-- pixel spectrum (full-width row) — brush a velocity window; overlays the region spectrum -->
         <div class="card panel panel-wide">
           <SpectrumPlot
             :velocity="spectrum ? spectrum.velocity : null"
@@ -203,22 +319,23 @@ function onSelect({ x, y }) {
             :velocity-unit="spectrum ? spectrum.velocity_unit : velocityUnit"
             :value-unit="spectrum ? spectrum.value_unit : axes.bunit"
             :channel-index="channelIndex"
-            :velocity-window="viewer.velocityWindow"
+            :velocity-window="velocityWindow"
+            :region-value="regionSpectrumValue"
+            @window="onWindow"
+            @clear-window="onClearWindow"
           />
-          <p
-            v-if="position"
-            class="pixel-readout num muted"
-          >
-            pixel (x={{ position.x }}, y={{ position.y }})
-          </p>
+          <div class="spectrum-legend muted num">
+            <span
+              v-if="position"
+              class="pixel-readout"
+            >pixel (x={{ position.x }}, y={{ position.y }})</span>
+            <span
+              v-if="regionSpectrumValue"
+              class="legend-region"
+            >— region average ({{ region.spectrum.n_pixels }} px)</span>
+            <span class="legend-hint">drag the spectrum to integrate a velocity window</span>
+          </div>
         </div>
-      </div>
-
-      <!-- reserved #68 seam: region-averaged spectrum · velocity-window moment · link/unlink -->
-      <div class="viewer-seam">
-        <strong>Coming in #68</strong><br>
-        region selection &amp; region-averaged spectrum · select a velocity window on the spectrum to
-        recompute the moment · link/unlink the maps' zoom
       </div>
     </template>
   </section>
@@ -269,6 +386,54 @@ function onSelect({ x, y }) {
 }
 .pixel-readout {
   font-size: 0.78rem;
+}
+.viewer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+  flex-wrap: wrap;
+}
+.tool-spacer {
+  flex: 1;
+}
+.tool-btn {
+  font-size: 0.78rem;
+  padding: 0.32rem 0.7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.tool-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.tool-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.link-btn.active {
+  background: var(--accent-soft);
+}
+.region-readout {
+  font-size: 0.74rem;
   margin: 0.4rem 0 0;
+}
+.spectrum-legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.74rem;
+  margin: 0.4rem 0 0;
+}
+.legend-region {
+  color: #ff5d3b;
+}
+.legend-hint {
+  font-style: italic;
 }
 </style>
