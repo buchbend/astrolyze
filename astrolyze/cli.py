@@ -361,12 +361,13 @@ def collection_list(
 ) -> None:
     """List a published corpus object-first: one row per source, its lines/surveys/beam range.
 
-    Opens the catalog at PATH through the read-only :class:`~astrolyze.collection.Collection`
+    Opens the corpus at PATH through the read-only :class:`~astrolyze.collection.Collection`
     (fsspec, so a local directory and an object-store URL share this command) and prints the same
     object-first overview the Python ``Collection.list()`` returns — surveys, species, store
-    count, and beam range per source. An unknown ``catalog_schema_version`` or a missing
-    ``catalog.parquet`` exits non-zero with a clear message; the CLI surfaces the library's
-    refusal, it never papers over it (ADR-0003).
+    count, and beam range per source. A catalog-less directory is transparently scanned (#61), so
+    a bare directory of Zarr stores lists too; an unknown ``catalog_schema_version`` exits non-zero
+    with a clear message, the CLI surfacing the library's refusal rather than papering over it
+    (ADR-0003).
     """
     # deferred (pulls pyarrow / fsspec) so `astrolyze --help` stays fast.
     from astrolyze.collection import Collection
