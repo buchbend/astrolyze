@@ -19,10 +19,76 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          # [dev] for the toolchain, [web] so the FastAPI TestClient contract tests run (not skip).
+          pip install -e ".[dev,web]"
       - name: Lint
         run: ruff check .
       - name: Format
         run: ruff format --check .
       - name: Test
         run: pytest
+
+  # The frontend is BUILT in CI (issue #66 acceptance: "frontend built in CI") and the bundle it
+  # emits into astrolyze/web/static/ is what the wheel ships. This job lints + builds the Vue app
+  # and uploads the built bundle as an artifact the `package` job reuses, so the packaged wheel is
+  # verified to contain real, freshly-built static assets — not a stale checkout.
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: astrolyze/web/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: astrolyze/web/frontend/package-lock.json
+      - name: Install frontend deps
+        run: npm ci
+      - name: Lint frontend
+        run: npm run lint
+      - name: Build frontend
+        run: npm run build
+      - name: Upload built static bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-static
+          path: astrolyze/web/static
+          include-hidden-files: true
+
+  # Build the wheel WITH the freshly-built frontend in place and assert the static assets are
+  # actually inside it — the packaging contract ("frontend packaged as static assets in the wheel")
+  # made executable. Depends on `frontend` so the bundle exists before the wheel is built.
+  package:
+    runs-on: ubuntu-latest
+    needs: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download built static bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: web-static
+          path: astrolyze/web/static
+      - name: Build wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel
+      - name: Assert frontend assets are in the wheel
+        run: |
+          python - <<'PY'
+          import zipfile, glob, sys
+          wheel = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          index = [n for n in names if n.endswith("web/static/index.html")]
+          assets = [n for n in names if "web/static/assets/" in n]
+          print(f"wheel: {wheel}")
+          print(f"index.html present: {bool(index)}  ({index})")
+          print(f"assets present: {len(assets)} file(s)")
+          if not index or not assets:
+              sys.exit("frontend static assets missing from the wheel — packaging is broken")
+          print("OK: built frontend is packaged in the wheel")
+          PY

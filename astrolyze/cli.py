@@ -758,5 +758,53 @@ def narrate(
     )
 
 
+@app.command()
+def explore(
+    collection: str = typer.Argument(
+        ...,
+        help="Corpus root to browse in the web explorer — a local directory or an s3:// URL "
+        "(same call shape; fsspec resolves both).",
+    ),
+    host: str = typer.Option(
+        "127.0.0.1",
+        "--host",
+        help="Interface to bind. Defaults to loopback (a local analysis tool); pass 0.0.0.0 "
+        "to expose it on the network.",
+    ),
+    port: int = typer.Option(8000, "--port", help="Port to serve on."),
+) -> None:
+    """Serve the published corpus at COLLECTION as a browsable web explorer.
+
+    The GUI sibling of the ``astrolyze collection …`` commands (issue #66): starts a local FastAPI
+    server whose endpoints are thin wrappers over the same read-only
+    :class:`~astrolyze.collection.Collection` API, and serves a single-page app with the
+    object-first **list** view and the per-store **detail** view. Open the printed URL in a
+    browser. Works on a local corpus and an ``s3://`` URL alike (it rides ``Collection.open``'s
+    fsspec layer).
+
+    The web stack (fastapi + uvicorn) is the optional ``astrolyze[web]`` extra — opt-in, not a hard
+    dependency. On a bare install this command exits non-zero with a single actionable line
+    (``pip install 'astrolyze[web]'``) rather than an opaque traceback (the same opt-in-extra
+    contract as ``astrolyze[s3]`` / ``astrolyze[coverage]``).
+    """
+    # Imported here, not at module top, so `astrolyze --help` and a bare install never touch the
+    # web extra: astrolyze.web's own imports of fastapi/uvicorn stay lazy behind require_web_extra.
+    from astrolyze.web import WebExtraNotInstalled, serve
+
+    try:
+        console.print(
+            f"[green]serving[/green] {collection} at "
+            f"[bold]http://{host}:{port}[/bold]  (Ctrl-C to stop)"
+        )
+        serve(collection, host=host, port=port)
+    except WebExtraNotInstalled as exc:
+        # The hint contains "astrolyze[web]". rich would (a) parse "[web]" as a markup tag and
+        # drop it, and (b) syntax-highlight the brackets, splicing ANSI codes mid-string. Disable
+        # BOTH markup and highlight so the install command survives verbatim and copy-pastes clean.
+        err_console.print("[red]error:[/red]", end=" ")
+        err_console.print(str(exc), markup=False, highlight=False)
+        raise typer.Exit(code=1)
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

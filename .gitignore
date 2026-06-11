@@ -23,6 +23,13 @@ venv/
 *.fits
 *.zarr/
 
+# web corpus explorer (issue #66): the frontend's node deps and the BUILT bundle are CI artifacts,
+# never source. `npm run build` emits astrolyze/web/static/ (the wheel ships it as package data,
+# built fresh in CI); a dev checkout that never built simply has no static/ and the explorer serves
+# the API alone (web/api.py degrades gracefully). node_modules is install-on-demand.
+astrolyze/web/frontend/node_modules/
+astrolyze/web/static/
+
 # OS / editor
 .DS_Store
 *.swp
