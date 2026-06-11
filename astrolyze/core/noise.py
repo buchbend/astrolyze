@@ -217,6 +217,41 @@ class NoiseModel:
         padded[: min(nz, acf.size)] = acf[: min(nz, acf.size)]
         return template._with_data(padded * u.dimensionless_unscaled)
 
+    # -- spatial cutout: slice the σ pattern first, then reconstruct only the tube ------
+    def cutout(self, y0: int, y1: int, x0: int, x1: int) -> "NoiseModel":
+        """Spatial cutout of the noise model to ``[y0:y1, x0:x1]``, full spectral kept.
+
+        Mirrors ``Cube[:, y0:y1, x0:x1]``: slices the spatial σ pattern and the parent cube the
+        same way so the products carry the sub-WCS/shape; the spectral σ_v, scalar, and ACF are
+        per-cube and unchanged. Lets a tube read its per-voxel σ without reconstructing the whole
+        cube — :attr:`sigma_cube` eagerly reconstructs the FULL σ field, so slicing the *model*
+        first (cheap: only σ_xy / σ_field are sliced) means the cutout's ``sigma_cube``
+        reconstructs just the tube, not the parent cube (the spatial half of #32's tube reads)."""
+        sub_cube = self._cube[:, y0:y1, x0:x1]
+        if self.is_separable:
+            rep = SeparableNoise(
+                sigma_xy=self._rep.sigma_xy[y0:y1, x0:x1],
+                sigma_v=self._rep.sigma_v,
+                scalar=self._rep.scalar,
+                acf=self._rep.acf,
+            )
+        else:
+            rep = FullNoise(
+                sigma_field=self._rep.sigma_field[:, y0:y1, x0:x1],
+                sigma_xy=self._rep.sigma_xy[y0:y1, x0:x1],
+                sigma_v=self._rep.sigma_v,
+                scalar=self._rep.scalar,
+                acf=self._rep.acf,
+            )
+        _emit("noise.cutout", params={"y0": y0, "y1": y1, "x0": x0, "x1": x1})
+        return NoiseModel(
+            sub_cube,
+            rep,
+            method=self.method,
+            quality=self.quality,
+            version=self.version,
+        )
+
     # -- unit hub (ADR-0003c): .to() follows the data unit ------------------------------
     def to(self, unit, **kwargs) -> "NoiseModel":
         """Convert the noise to ``unit`` through the cube's unit hub; return a new model.
