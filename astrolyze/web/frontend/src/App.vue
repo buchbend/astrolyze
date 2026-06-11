@@ -55,7 +55,8 @@ const currentObject = computed(() => route.params.object || null);
     </main>
 
     <footer class="footer">
-      <span>read-only view over the public Collection API — list + detail (issue #66)</span>
+      <span>read-only view over the public Collection + Cube API — list · detail · cube viewer
+        (issues #66, #67)</span>
     </footer>
   </div>
 </template>

@@ -14,8 +14,9 @@ What is contracted here:
    unknown object is a ``404`` (not an empty 200).
 3. ``GET /api/stores/{store_id}`` mirrors a single :class:`~astrolyze.collection.Record`; an
    unknown id is a ``404``.
-4. ``GET /api/stores/{store_id}/viewer`` is the reserved #67/#68 cube-viewer seam: a documented
-   ``501`` (not a 404), so the follow-up slices fill a named hook.
+4. ``GET /api/stores/{store_id}/viewer`` is the cube-viewer index (#67): it lists the four
+   panel-feed routes for the store (the contract tests for the panel feeds themselves live in
+   ``tests/test_web_viewer.py``).
 5. The ``astrolyze[web]`` extra is opt-in: ``astrolyze explore`` (and ``astrolyze.web``'s gate)
    without fastapi installed raises a helpful, actionable error — simulated by monkeypatching the
    import, never by uninstalling fastapi.
@@ -274,19 +275,22 @@ def test_store_endpoint_unknown_id_is_404(client):
 
 
 # --------------------------------------------------------------------------------------
-# GET /api/stores/{store_id}/viewer — reserved #67/#68 seam (501, not 404)
+# GET /api/stores/{store_id}/viewer — cube-viewer panel index (#67)
 # --------------------------------------------------------------------------------------
-def test_viewer_seam_is_not_implemented_not_404(client, corpus):
-    """The cube-viewer route exists as a documented 501 seam, so #67/#68 fill a named hook."""
+def test_viewer_endpoint_lists_panel_feeds(client, corpus):
+    """The cube-viewer route now indexes the four panel-feed routes for the store (#67)."""
     from astrolyze.web.api import _encode_store_id
 
     record = Collection.open(str(corpus)).records[0]
     store_id = _encode_store_id(record.store_path)
     response = client.get(f"/api/stores/{store_id}/viewer")
-    assert response.status_code == 501
+    assert response.status_code == 200
     body = response.json()
-    assert "67" in body["detail"] and "68" in body["detail"]
     assert body["store_id"] == store_id
+    panels = body["panels"]
+    assert panels["cube"] == f"/api/stores/{store_id}/cube"
+    assert panels["moment0"] == f"/api/stores/{store_id}/moment0"
+    assert "channel" in panels and "spectrum" in panels
 
 
 # --------------------------------------------------------------------------------------

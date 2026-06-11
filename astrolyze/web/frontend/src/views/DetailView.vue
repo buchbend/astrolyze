@@ -1,12 +1,12 @@
 <script setup>
-// The per-store DETAIL view (issue #66).
+// The per-store DETAIL view (issues #66 + #67).
 //
 // Mirrors Collection.describe(object): one card per store of the source, showing its physical
 // parameters — survey / telescope / species / transition, beam (major × minor @ PA), rest
 // frequency, bunit, and provenance (store path + checksum). The describe is SHALLOW (the backend
 // does not open stores in this slice), so the native channel width / velocity coverage show as "—"
-// (not yet read), exactly as the CLI's shallow describe renders them. Each store carries a clearly
-// labelled placeholder for the cube viewer — the reserved #67/#68 seam — but no viewer logic.
+// (not yet read), exactly as the CLI's shallow describe renders them. Each store card carries an
+// "open viewer" affordance (#67) routing to the cube viewer for that store.
 import { computed, watch, onMounted } from "vue";
 import { useStore } from "vuex";
 
@@ -144,11 +144,16 @@ function channelWidth(s) {
             </div>
           </dl>
 
-          <!-- Reserved cube-viewer seam (#67/#68). Labelled placeholder, NO viewer logic. -->
-          <div class="viewer-seam">
-            <strong>Cube viewer</strong><br>
-            integrated map · channel maps · spectra — arrives in #67/#68
-          </div>
+          <!-- Open the cube viewer for this store (#67): integrated map · channel map · spectrum. -->
+          <router-link
+            :to="{
+              name: 'store-viewer',
+              params: { object, storeId: s.store_id },
+            }"
+            class="open-viewer"
+          >
+            Open cube viewer →
+          </router-link>
         </article>
       </div>
     </template>
@@ -201,5 +206,19 @@ function channelWidth(s) {
 .store-path {
   word-break: break-all;
   font-size: 0.82rem;
+}
+.open-viewer {
+  display: inline-block;
+  margin-top: 1.2rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--surface);
+  background: var(--accent);
+  border-radius: var(--radius);
+}
+.open-viewer:hover {
+  background: var(--accent-ink);
+  text-decoration: none;
 }
 </style>

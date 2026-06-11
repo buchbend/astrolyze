@@ -14,11 +14,14 @@ single actionable line — :func:`require_web_extra` — rather than an opaque `
 imports of fastapi/uvicorn stay **lazy** (inside :func:`create_app` / :func:`serve`) so importing
 ``astrolyze.web`` itself, and listing CLI ``--help``, costs nothing.
 
-Scope discipline (issue #66, phase-1): this slice ships **list + detail only**. The four-panel
-cube viewer (integrated map / channel maps / spectra) is #67/#68 — a clean seam is left for it
-(:data:`VIEWER_STUB_ROUTE` and the ``GET /api/stores/{store_id}/viewer`` stub return a documented
-``501`` "not yet implemented" rather than a 404, so the follow-up slices have a named hook), but
-no viewer logic lives here.
+Scope (issues #66 + #67): the explorer ships the object-first **list** + per-store **detail** views
+(#66) and the cube viewer's **three basic panels** (#67) — an integrated (moment-0) map, a channel
+map with a velocity slider + keyboard stepping, and a pixel spectrum at the clicked position. The
+viewer's backend (:mod:`astrolyze.web._viewer`) opens each store *lazily* (dask-backed
+:class:`~astrolyze.core.Cube`) and serves bounded JSON slices for client-side D3 — no full-cube load
+per request. The remaining viewer panels (region-averaged spectrum, velocity-window moment,
+linked-zoom) are #68; clean seams are left for them (``VIEWER_STUB_ROUTE`` is now the panel index,
+and the Vuex viewer state reserves the slots) but no #68 logic lives here.
 
 Layering, deliberately thin (the same "astrolyze stays thin" rule as the rest of the package):
 
@@ -42,9 +45,10 @@ WEB_EXTRA_HINT = (
     "Install it with:  pip install 'astrolyze[web]'"
 )
 
-# The reserved seam for the #67/#68 cube viewer. The list+detail slice leaves this route name and
-# the matching API stub in place (returning a documented 501, not a 404) so the follow-up viewer
-# slices have a named hook to fill rather than a route to invent. No viewer logic lives here.
+# The cube-viewer route base. #66 reserved it as a documented 501 seam; #67 repoints it to a small
+# panel-index endpoint (the four panel-feed routes for a store) so the frontend can discover the
+# feeds without hard-coding paths. The #68 panels extend that index. The name is kept stable so the
+# api module and the tests share one constant (DRY).
 VIEWER_STUB_ROUTE = "/api/stores/{store_id}/viewer"
 
 
