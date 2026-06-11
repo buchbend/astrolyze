@@ -112,9 +112,12 @@ def test_collection_list_prints_object_first_table(corpus):
     assert "CO" in out
 
 
-def test_collection_list_missing_catalog_exits_nonzero(tmp_path):
+def test_collection_list_catalog_less_empty_directory_reports_no_datasets(tmp_path):
+    """Since #61, a catalog-less directory is *scanned* rather than rejected: an empty one has no
+    stores to find, so the CLI reports "no datasets" and exits cleanly (the scan fallback, not an
+    error). A directory with stores but no catalog.parquet lists the scanned cubes instead."""
     empty = tmp_path / "empty"
     empty.mkdir()
     result = runner.invoke(app, ["collection", "list", str(empty)])
-    assert result.exit_code != 0
-    assert "catalog" in _all_output(result).lower()
+    assert result.exit_code == 0, _all_output(result)
+    assert "no datasets" in _all_output(result).lower()

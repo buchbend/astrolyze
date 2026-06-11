@@ -22,13 +22,20 @@ so those extend it without rewrites.
 
 from __future__ import annotations
 
-from . import catalog
+from . import catalog, scan
 from ._facade import Collection, ObjectSummary, Record
 from .catalog import (
     Catalog,
     CatalogRow,
     CatalogSchemaError,
     read_catalog,
+)
+from .scan import (
+    ScanResult,
+    ScanWarning,
+    build_catalog,
+    scan_directory,
+    write_catalog,
 )
 
 __all__ = [
@@ -40,4 +47,10 @@ __all__ = [
     "CatalogSchemaError",
     "read_catalog",
     "catalog",
+    "scan",
+    "build_catalog",
+    "scan_directory",
+    "write_catalog",
+    "ScanResult",
+    "ScanWarning",
 ]

@@ -21,8 +21,10 @@ Extension points for the slices that build on this tracer:
 - **#62 covering** adds ``Collection.covering(SkyCoord)`` reading the footprint columns
   (``ra_deg`` / ``dec_deg`` / ``radius_deg``) already parsed on each row, then deciding final
   containment from the candidate store's own WCS at open time.
-- **#61 scan-builder** adds an alternate constructor (``Collection.from_store_dir``) building a
-  :class:`~astrolyze.collection.catalog.Catalog` by scanning stores — it reuses this same facade.
+- **#61 scan-builder** wires :meth:`Collection.open` to fall back to
+  :func:`~astrolyze.collection.scan.build_catalog` when the root carries no ``catalog.parquet``,
+  building an equivalent :class:`~astrolyze.collection.catalog.Catalog` by scanning the stores —
+  it reuses this same facade, the trigger being the index file's presence.
 """
 
 from __future__ import annotations
@@ -31,7 +33,7 @@ from dataclasses import dataclass, replace
 
 from fsspec.core import url_to_fs
 
-from .catalog import Catalog, CatalogRow, read_catalog
+from .catalog import CATALOG_FILENAME, Catalog, CatalogRow, read_catalog
 
 
 @dataclass(frozen=True)
@@ -133,16 +135,33 @@ class Collection:
 
     @classmethod
     def open(cls, path) -> "Collection":
-        """Open the published corpus at *path* (a local directory today, an ``s3://`` URL later).
+        """Open the corpus at *path* (a local directory today, an ``s3://`` URL later).
 
         Path handling goes through fsspec (:func:`fsspec.core.url_to_fs`), so the call shape is
         identical for both — the local case resolves to a ``file://`` root, an object-store case
-        to its scheme. The catalog is read + schema-validated by
-        :func:`~astrolyze.collection.catalog.read_catalog`; an unknown catalog MAJOR raises there
-        (:class:`~astrolyze.collection.catalog.CatalogSchemaError`) rather than mis-reading."""
+        to its scheme.
+
+        **The trigger is the presence of ``catalog.parquet``.** When the root carries the published
+        index it is read + schema-validated by
+        :func:`~astrolyze.collection.catalog.read_catalog` (an unknown catalog MAJOR raises there,
+        :class:`~astrolyze.collection.catalog.CatalogSchemaError`, rather than mis-reading). When it
+        does **not**, the collection transparently falls back to the scan-builder (#61): it
+        reconstructs an equivalent catalog by reading each store's attrs and computing its footprint
+        from its own WCS (:func:`~astrolyze.collection.scan.build_catalog`), so a bare directory of
+        self-describing Zarr stores is browsable with zero extra tooling (PRD #56 user story 29).
+        The scan is read-only — it builds an in-memory catalog and never writes one into the corpus
+        (persist explicitly with :func:`~astrolyze.collection.scan.write_catalog`)."""
         fs, resolved = url_to_fs(str(path))
         root_uri = fs.unstrip_protocol(resolved)
-        catalog = read_catalog(root_uri)
+        if fs.exists(f"{resolved.rstrip('/')}/{CATALOG_FILENAME}"):
+            catalog = read_catalog(root_uri)
+        else:
+            # Catalog-less directory: build one by scanning the stores (the #61 fallback). The scan
+            # stays a local-directory path today; the remote-store scan rides the same #63 seam as
+            # the remote open path.
+            from .scan import build_catalog
+
+            catalog = build_catalog(resolved)
         return cls(catalog, root_uri)
 
     @property
