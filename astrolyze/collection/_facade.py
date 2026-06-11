@@ -29,7 +29,7 @@ Extension points for the slices that build on this tracer:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 
 from fsspec.core import url_to_fs
 
@@ -51,6 +51,37 @@ class ObjectSummary:
     species: tuple[str, ...]
     n_stores: int
     beam_range_arcsec: tuple[float | None, float | None]
+
+
+@dataclass(frozen=True)
+class StoreDetail:
+    """One store's physical detail row (what :meth:`Collection.describe` returns, one per store).
+
+    Built **catalog-row-first**: every field except the three ``*_kms`` velocity-axis fields is
+    read straight off the typed :class:`~astrolyze.collection.catalog.CatalogRow`, so describing a
+    source costs no store read (cheap on a remote corpus — PRD #56 user story 3). The velocity-axis
+    fields the catalog does not carry — native channel width and velocity coverage — are filled
+    **only on request** (``describe(object, deep=True)``), which opens each store and reads its own
+    spectral axis; on a shallow describe they stay ``None`` (the field is unknown, never guessed —
+    ADR-0003). Velocities are in km/s, the analysis-side convention."""
+
+    object: str | None
+    survey: str | None
+    telescope: str | None
+    species: str | None
+    transition: str | None
+    rest_frequency_hz: float | None
+    beam_major_arcsec: float | None
+    beam_minor_arcsec: float | None
+    beam_pa_deg: float | None
+    bunit: str | None
+    store_path: str
+    store_uri: str
+    content_checksum: str | None
+    # Deep-only (filled when describe(deep=True) opens the live store; None otherwise):
+    channel_width_kms: float | None = None
+    velocity_min_kms: float | None = None
+    velocity_max_kms: float | None = None
 
 
 @dataclass(frozen=True)
@@ -224,6 +255,100 @@ class Collection:
             )
         return summaries
 
+    def describe(self, object: str, *, deep: bool = False) -> list[StoreDetail]:
+        """Expand one source into per-store physical detail: one :class:`StoreDetail` per store.
+
+        The drill-down behind :meth:`list` (PRD #56 user story 3): where ``list`` summarises a
+        source object-first, ``describe`` opens it back up — every store of *object* with its beam
+        (major/minor/PA), bunit, rest frequency, transition, and provenance summary
+        (survey/telescope/checksum), so a researcher can judge dataset suitability before loading.
+
+        **The answer comes from the catalog row first.** With ``deep=False`` (the default) nothing
+        is opened: every field is read off the typed catalog row, so describing a source on a
+        remote corpus stays cheap (no store read — the acceptance contract). The velocity-axis
+        fields the catalog does not carry (native channel width, velocity coverage) are filled
+        **only on request**: ``deep=True`` opens each store's spectral axis (still lazy — only the
+        1-D axis is read, not the cube) and reads its channel width and min/max velocity in km/s.
+        On a shallow describe those three fields stay ``None`` (unknown, never guessed — ADR-0003).
+
+        An *object* with no store raises a descriptive :class:`KeyError` naming the known objects,
+        rather than returning an empty list (an empty result would silently hide a typo)."""
+        rows = [row for row in self._catalog.rows if row.object == object]
+        if not rows:
+            known = sorted(
+                {r.object for r in self._catalog.rows if r.object is not None}
+            )
+            raise KeyError(
+                f"no source {object!r} in this collection; known objects: "
+                f"{', '.join(known) if known else '(none)'}"
+            )
+        details = []
+        for row in rows:
+            record = Record(
+                row=row,
+                root_uri=self._root_uri,
+                catalog_version=self._catalog.schema_version,
+            )
+            spectral = _spectral_axis_kms(record) if deep else (None, None, None)
+            details.append(
+                StoreDetail(
+                    object=row.object,
+                    survey=row.survey,
+                    telescope=row.telescope,
+                    species=row.species,
+                    transition=row.transition,
+                    rest_frequency_hz=row.rest_frequency_hz,
+                    beam_major_arcsec=row.beam_major_arcsec,
+                    beam_minor_arcsec=row.beam_minor_arcsec,
+                    beam_pa_deg=row.beam_pa_deg,
+                    bunit=row.bunit,
+                    store_path=row.store_path,
+                    store_uri=record.store_uri,
+                    content_checksum=row.content_checksum,
+                    channel_width_kms=spectral[0],
+                    velocity_min_kms=spectral[1],
+                    velocity_max_kms=spectral[2],
+                )
+            )
+        return details
+
+    def query(self, **filters) -> "Collection":
+        """Filter the catalog along any metadata axis; return a composable sub-:class:`Collection`.
+
+        Slices the corpus along the catalog's own fields (``species=`` / ``survey=`` /
+        ``telescope=`` / ``transition=`` / ``object=`` / …, PRD #56 user story 4) without parsing
+        filenames. Multiple filters are **conjunctive** (a store must match all). The result is a
+        new ``Collection`` over the same corpus root — so every facade method composes on it
+        (``query(...).list()``, ``query(...).describe(obj)``, ``query(...).query(...)``), which is
+        the more useful return than a bare ``list[Record]`` (a list would dead-end the chain).
+
+        An **unknown filter key** raises :class:`ValueError` naming the offending key and the valid
+        axes — a silent no-op would hide a typo (``surveys=`` vs ``survey=``) as an empty result
+        (ADR-0003: refuse, never silently mis-match). The filter axes are exactly the
+        :class:`~astrolyze.collection.catalog.CatalogRow` fields."""
+        valid = {f.name for f in fields(CatalogRow)}
+        unknown = set(filters) - valid
+        if unknown:
+            raise ValueError(
+                f"unknown collection filter key(s): {', '.join(sorted(unknown))}; "
+                f"valid filter axes are {', '.join(sorted(valid))}"
+            )
+        matched = tuple(
+            row
+            for row in self._catalog.rows
+            if all(getattr(row, key) == value for key, value in filters.items())
+        )
+        # A sub-Collection over the same root: the matched rows keep their relative store_path, so
+        # every record still resolves against the unchanged root_uri (covering()/open stay valid).
+        return Collection(
+            replace(self._catalog, rows=matched),
+            self._root_uri,
+        )
+
+    # NOTE: covering(SkyCoord) lands here next (#62) — radius/MOC prefilter over the footprint
+    # columns, final containment decided by the candidate store's own WCS. Left unimplemented here
+    # to keep this slice (#60) additive; the seam is the same `records` axis query() filters.
+
 
 # -- aggregation helpers ---------------------------------------------------------------
 def _distinct(values) -> tuple:
@@ -242,4 +367,26 @@ def _beam_range(rows) -> tuple[float | None, float | None]:
     return (min(majors), max(majors))
 
 
-__all__ = ["Collection", "Record", "ObjectSummary"]
+def _spectral_axis_kms(record: "Record"):
+    """The (channel_width, v_min, v_max) of *record*'s store in km/s — the deep-describe read.
+
+    Opens the record's store (still lazy — :meth:`Record.open` is dask-backed, so only the 1-D
+    spectral axis is materialised, not the cube data) and reads its native channel width and
+    velocity coverage off the cube's own spectral axis. These are the fields the catalog does not
+    carry, so they are only ever read on a ``describe(..., deep=True)`` request.
+
+    Returns ``(None, None, None)`` when the store has no usable spectral axis (e.g. a 2-D map or an
+    axis that does not convert to velocity) — the field stays unknown, never invented (ADR-0003)."""
+    import astropy.units as u
+
+    try:
+        axis = record.open()._sc.spectral_axis.to(u.km / u.s)
+    except Exception:  # noqa: BLE001 — a non-velocity / map store has no velocity coverage to add
+        return (None, None, None)
+    if len(axis) < 2:
+        return (None, None, None)
+    width = abs(float((axis[1] - axis[0]).value))
+    return (width, float(axis.min().value), float(axis.max().value))
+
+
+__all__ = ["Collection", "Record", "ObjectSummary", "StoreDetail"]
