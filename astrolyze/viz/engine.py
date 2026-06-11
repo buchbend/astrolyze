@@ -1,12 +1,13 @@
 """The plotting engine: free functions that draw a wrapper onto an Axes (ADR-0005).
 
 Decision (c) — engine + sugar: the real work lives in free functions (``plot_map(map,
-ax=...)``, ``plot_spectrum``, ``plot_cube``) that take a wrapper plus an optional ``ax`` and
-return ``(fig, ax)``, so they compose into any multi-panel figure the caller builds. The thin
-``obj.plot()`` methods on Cube/Map/Spectrum just delegate here (see ``core/_base.py``). Object
-context makes the result auto-correct: the WCS comes off the map, the colorbar is labelled
-with the object's unit, and the beam ellipse is the object's beam — the caller spells out none
-of it. The house style is applied locally via :func:`astrolyze.viz.style`.
+ax=...)``, ``plot_spectrum``, ``plot_cube``, ``plot_channel_maps``) that take a wrapper plus
+an optional ``ax`` and return ``(fig, ax)`` / ``(fig, axes)``, so they compose into any
+multi-panel figure the caller builds. The thin ``obj.plot()`` / ``obj.plot_channel_maps()``
+methods on Cube/Map/Spectrum just delegate here (see ``core/_base.py``). Object context makes
+the result auto-correct: the WCS comes off the map, the colorbar is labelled with the
+object's unit, and the beam ellipse is the object's beam — the caller spells out none of it.
+The house style is applied locally via :func:`astrolyze.viz.style`.
 
 A ``backend`` keyword is reserved on every signature for a future interactive backend, but
 only matplotlib is built (YAGNI — ADR-0005 rider 1); any other value raises.
@@ -109,6 +110,176 @@ def plot_noise(model, **kwargs):
     return plot_map(model.sigma_map, **kwargs)
 
 
+def plot_channel_maps(
+    cube,
+    *,
+    start=None,
+    stop=None,
+    step=1,
+    v_min=None,
+    v_max=None,
+    ncols=None,
+    cmap=DEFAULT_CMAP,
+    add_beam=True,
+    vmin=None,
+    vmax=None,
+    backend="matplotlib",
+):
+    """Draw a publication-grade channel-map grid for a :class:`~astrolyze.core.Cube`.
+
+    Returns ``(fig, axes)`` where ``axes`` is a 1-D :class:`numpy.ndarray` of Axes, one per
+    selected channel. Every panel shows the channel image on WCS axes, labelled with the
+    channel velocity (or frequency) as its title. A shared colorbar (on the right side of
+    the figure) is labelled with the cube's unit. Unless ``add_beam=False``, the beam ellipse
+    is drawn in the lower-left corner of every panel.
+
+    Channel selection
+    -----------------
+    There are two mutually exclusive selection modes:
+
+    **Index mode** — specify a Python-style integer range with any combination of ``start``,
+    ``stop``, ``step``. The range is ``cube[start:stop:step]``. Defaults to all channels
+    when no selection keyword is given.
+
+    **Velocity mode** — specify ``v_min`` AND ``v_max`` (both required together) as
+    :class:`~astropy.units.Quantity` with velocity units. All channels whose spectral-axis
+    value falls within ``[v_min, v_max]`` (inclusive) are selected; ``step`` is then applied
+    to thin that subset further.
+
+    Parameters
+    ----------
+    cube :
+        A :class:`~astrolyze.core.Cube` to display.
+    start : int, optional
+        First channel index (inclusive). Default: 0.
+    stop : int, optional
+        Last channel index (exclusive). Default: ``len(spectral_axis)``.
+    step : int, optional
+        Step between selected channels within the chosen range. Must be ≥ 1. Default: 1.
+    v_min, v_max : :class:`~astropy.units.Quantity`, optional
+        Velocity (or frequency) bounds for velocity-mode selection. Both must be supplied
+        together; omitting only one raises :class:`ValueError`.
+    ncols : int, optional
+        Number of panel columns in the grid. Default: ``min(n_panels, 5)``.
+    cmap : str, optional
+        Colormap name. Default: ``"cividis"`` (the house default — ADR-0005 rider 2).
+    add_beam : bool, optional
+        Draw the beam ellipse in each panel's lower-left corner. Default: ``True``.
+    vmin, vmax : float, optional
+        Shared display range for all panels. When ``None`` (the default), the range is set
+        from the full data of all selected channels so the colorbar is consistent across
+        panels.
+    backend : str, optional
+        Reserved seam for a future interactive backend (ADR-0005 rider 1). Only
+        ``"matplotlib"`` is built; any other value raises :class:`NotImplementedError`.
+
+    Returns
+    -------
+    fig : :class:`matplotlib.figure.Figure`
+    axes : :class:`numpy.ndarray` of :class:`matplotlib.axes.Axes`
+        One element per selected channel, in selection order.
+
+    Raises
+    ------
+    ValueError
+        ``start`` or ``stop`` out of range; ``start >= stop``; ``step < 1``; a velocity
+        window that selects no channels; ``v_min`` supplied without ``v_max`` or vice versa.
+    NotImplementedError
+        ``backend`` is not ``"matplotlib"``.
+    """
+    _require_backend(backend)
+
+    spectral_axis = cube.spectral_axis  # Quantity array, length n_chan
+    n_chan = len(spectral_axis)
+
+    # -- resolve channel indices ----------------------------------------------------------
+    if v_min is not None or v_max is not None:
+        # Velocity mode — both bounds must be given together.
+        if v_min is None or v_max is None:
+            raise ValueError(
+                "v_min and v_max must both be supplied for velocity-range selection; "
+                "provide both bounds or use index mode (start/stop/step)"
+            )
+        channel_indices = _channels_in_velocity_range(spectral_axis, v_min, v_max, step)
+    else:
+        # Index mode — validate and build the slice.
+        channel_indices = _channels_from_index_range(n_chan, start, stop, step)
+
+    n_panels = len(channel_indices)
+
+    # -- layout ---------------------------------------------------------------------------
+    if ncols is None:
+        ncols = min(n_panels, 5)
+    nrows = int(np.ceil(n_panels / ncols))
+
+    # Determine shared display range from the selected channels when not caller-supplied.
+    # This makes the shared colorbar physically meaningful — the same colour maps to the
+    # same intensity in every panel.
+    if vmin is None or vmax is None:
+        selected_data = np.stack(
+            [np.asarray(cube[k].data) for k in channel_indices], axis=0
+        )
+        finite_data = selected_data[np.isfinite(selected_data)]
+        _vmin = float(finite_data.min()) if vmin is None else vmin
+        _vmax = float(finite_data.max()) if vmax is None else vmax
+    else:
+        _vmin, _vmax = float(vmin), float(vmax)
+
+    # Spatial WCS from a representative channel — all channels share the celestial axes.
+    spatial_wcs = _spatial_wcs(cube)
+
+    # One channel-map panel per subplot; the colorbar gets its own inset Axes via fig.colorbar.
+    with style():
+        # Each panel is square-ish; leave a little extra width on the right for the colorbar.
+        panel_size = 2.2  # inches per panel
+        fig_width = ncols * panel_size + 0.8  # 0.8 for the colorbar column
+        fig_height = nrows * panel_size
+        fig = plt.figure(figsize=(fig_width, fig_height))
+
+        axes = []
+        for i, k in enumerate(channel_indices):
+            ax = fig.add_subplot(
+                nrows,
+                ncols,
+                i + 1,
+                projection=spatial_wcs,
+            )
+            channel_map = cube[k]  # a Map — carries unit + beam
+            data = np.asarray(channel_map.data)
+            img = ax.imshow(
+                data,
+                cmap=cmap,
+                vmin=_vmin,
+                vmax=_vmax,
+                interpolation="nearest",
+            )
+            # Velocity label: round to 2 decimal places, state the unit.
+            vel = spectral_axis[k]
+            ax.set_title(_velocity_label(vel))
+            # Suppress redundant axis labels on interior panels; keep them on the bottom-left
+            # panel only. WCSAxes always shows the coordinate label; hide tick labels on
+            # non-edge panels to avoid clutter in dense grids.
+            if i % ncols != 0:
+                ax.coords[1].set_ticklabel_visible(False)
+            if i < (nrows - 1) * ncols:
+                ax.coords[0].set_ticklabel_visible(False)
+            if add_beam:
+                _draw_beam(ax, channel_map)
+            axes.append(ax)
+
+        # Shared colorbar: attach to the rightmost column of panels. matplotlib's fig.colorbar
+        # with ax=[...] builds one colorbar Axes spanning all supplied panels — that is the
+        # "shared" colorbar pattern (single Axes, single scale for all panels).
+        cbar = fig.colorbar(img, ax=axes, fraction=0.046, pad=0.04)
+        cbar.set_label(str(cube.unit))
+
+        # tight_layout is not compatible with WCSAxes (it warns and may misplace panels).
+        # subplots_adjust gives the same breathing room without triggering the warning.
+        fig.subplots_adjust(hspace=0.35, wspace=0.15)
+
+    return fig, np.array(axes)
+
+
 # --------------------------------------------------------------------------------------
 # helpers
 # --------------------------------------------------------------------------------------
@@ -190,3 +361,116 @@ def _require_backend(backend: str) -> None:
             f"viz backend {backend!r} is not built; only 'matplotlib' is available. "
             "The backend seam is reserved for a future interactive backend (ADR-0005)."
         )
+
+
+def _channels_from_index_range(
+    n_chan: int,
+    start,
+    stop,
+    step: int,
+) -> list[int]:
+    """Validate index-mode channel selection and return a list of channel indices.
+
+    Raises :class:`ValueError` on out-of-range or inverted bounds, or a non-positive step.
+    """
+    if not isinstance(step, (int, np.integer)) or step < 1:
+        raise ValueError(
+            f"step must be a positive integer, got {step!r}; "
+            "use step >= 1 to select every Nth channel"
+        )
+    _start = 0 if start is None else int(start)
+    _stop = n_chan if stop is None else int(stop)
+
+    if _start < 0 or _start >= n_chan:
+        raise ValueError(
+            f"start={_start} is out of range for a cube with {n_chan} channels "
+            f"(valid: 0 .. {n_chan - 1})"
+        )
+    if _stop < 1 or _stop > n_chan:
+        raise ValueError(
+            f"stop={_stop} is out of range for a cube with {n_chan} channels "
+            f"(valid: 1 .. {n_chan})"
+        )
+    if _start >= _stop:
+        raise ValueError(
+            f"start={_start} must be less than stop={_stop}; the selected range is empty"
+        )
+    return list(range(_start, _stop, int(step)))
+
+
+def _channels_in_velocity_range(
+    spectral_axis,
+    v_min,
+    v_max,
+    step: int,
+) -> list[int]:
+    """Return channel indices whose spectral-axis value falls within [v_min, v_max].
+
+    Both bounds are converted to the spectral axis' own unit before comparison, so the
+    caller can pass any velocity/frequency unit compatible with the axis. After filtering,
+    ``step`` thins the matching subset. Raises :class:`ValueError` when no channels match or
+    when the step is non-positive.
+    """
+    if not isinstance(step, (int, np.integer)) or step < 1:
+        raise ValueError(f"step must be a positive integer, got {step!r}")
+    axis_unit = spectral_axis.unit
+    try:
+        lo = v_min.to_value(axis_unit, equivalencies=u.spectral())
+        hi = v_max.to_value(axis_unit, equivalencies=u.spectral())
+    except u.UnitConversionError as exc:
+        raise ValueError(
+            f"v_min/v_max units {v_min.unit}/{v_max.unit} are not compatible with the "
+            f"cube's spectral axis unit {axis_unit}: {exc}"
+        ) from exc
+
+    # Velocity axes may be in ascending or descending order; normalise the comparison.
+    _lo, _hi = min(lo, hi), max(lo, hi)
+    values = spectral_axis.to_value(axis_unit)
+    matching = [k for k, v in enumerate(values) if _lo <= v <= _hi]
+    if not matching:
+        raise ValueError(
+            f"No channels found in velocity range [{v_min}, {v_max}]; the cube's spectral "
+            f"axis spans [{values.min():.4g} .. {values.max():.4g}] {axis_unit}"
+        )
+    return matching[:: int(step)]
+
+
+def _velocity_label(vel) -> str:
+    """A compact title string for a channel, e.g. ``"0.00 km/s"`` or ``"230.54 GHz"``.
+
+    The spectral axis unit determines the display unit and number of significant figures.
+    Velocities are shown in km/s; frequencies in GHz; anything else in its native unit.
+    """
+    unit = vel.unit
+    physical_type = str(u.Unit(unit).physical_type)
+
+    if "speed" in physical_type or "velocity" in physical_type:
+        # Display in km/s for compact, human-readable velocity labels.
+        display_val = vel.to_value(u.km / u.s)
+        return f"{display_val:.2f} km/s"
+    if "frequency" in physical_type:
+        display_val = vel.to_value(u.GHz)
+        return f"{display_val:.4f} GHz"
+    # Fallback: use the native unit as-is.
+    return f"{vel.value:.4g} {unit}"
+
+
+def _spatial_wcs(cube):
+    """Extract the 2D celestial WCS from the cube's 3D WCS.
+
+    Uses the ``celestial`` attribute of the cube's internal SpectralCube WCS when available
+    (WCS objects carry a ``.celestial`` property that drops the spectral axis). Falls back
+    to ``None`` (plain Axes) when the celestial sub-WCS cannot be extracted.
+    """
+    wcs_3d = cube._sc.wcs
+    if wcs_3d is None:
+        return None
+    celestial = getattr(wcs_3d, "celestial", None)
+    if celestial is not None:
+        return celestial
+    # A SpectralCube's slice WCS is accessible via a representative channel map.
+    try:
+        chan = cube[0]
+        return getattr(chan, "wcs", None)
+    except Exception:
+        return None

@@ -657,6 +657,18 @@ class Cube(ContextCarrier):
         _emit("to_spectral_frame", params={"frame": frame})
         return Cube(rebuilt, replace(self.metadata, spectral_frame=frame))
 
+    def plot_channel_maps(self, **kwargs):
+        """Thin sugar: draw a publication-grade channel-map grid via the viz engine (#59).
+
+        Delegates to :func:`astrolyze.viz.plot_channel_maps`; accepts the same keyword
+        arguments (``start``, ``stop``, ``step``, ``v_min``, ``v_max``, ``ncols``, ``cmap``,
+        ``add_beam``, ``vmin``, ``vmax``, ``backend``). Returns ``(fig, axes)``."""
+        from astrolyze import viz
+
+        result = viz.plot_channel_maps(self, **kwargs)
+        _emit("plot_channel_maps", params={k: str(v) for k, v in kwargs.items()})
+        return result
+
     # -- thin passthroughs --------------------------------------------------------------
     @property
     def spectral_axis(self):
