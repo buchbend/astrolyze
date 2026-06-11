@@ -23,7 +23,7 @@ so those extend it without rewrites.
 from __future__ import annotations
 
 from . import catalog, scan
-from ._facade import Collection, ObjectSummary, Record
+from ._facade import Collection, ObjectSummary, Record, StoreDetail
 from .catalog import (
     Catalog,
     CatalogRow,
@@ -42,6 +42,7 @@ __all__ = [
     "Collection",
     "Record",
     "ObjectSummary",
+    "StoreDetail",
     "Catalog",
     "CatalogRow",
     "CatalogSchemaError",

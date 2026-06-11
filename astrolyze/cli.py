@@ -417,6 +417,192 @@ def _format_beam_range(beam_range) -> str:
     return f'{lo:.2f}"–{hi:.2f}"'
 
 
+@collection_app.command("describe")
+def collection_describe(
+    object: str = typer.Argument(
+        ..., help="Source name to expand (e.g. NGC3521), as it appears in the catalog."
+    ),
+    path: str = typer.Argument(
+        ...,
+        help="Corpus root to browse — a local directory today, an s3:// URL later "
+        "(same call shape; fsspec resolves both).",
+    ),
+    deep: bool = typer.Option(
+        False,
+        "--deep",
+        help="Open each store to add native channel width + velocity coverage "
+        "(the catalog does not carry these). Off by default — a shallow describe reads "
+        "the catalog only and issues no store reads, staying cheap on a remote corpus.",
+    ),
+) -> None:
+    """Expand OBJECT into per-store physical detail: beam, bunit, rest frequency, provenance.
+
+    The drill-down behind ``collection list`` (PRD #56 user story 3): one row per store of the
+    source, with its beam / bunit / rest frequency / transition / survey-telescope-checksum. The
+    answer comes from the catalog **row first** — a plain ``describe`` opens nothing — so it stays
+    cheap on a remote corpus; ``--deep`` opens each store's spectral axis to add native channel
+    width and velocity coverage (the fields the catalog does not carry). An unknown OBJECT exits
+    non-zero with the known objects named, the CLI surfacing the library's refusal (ADR-0003).
+    """
+    # deferred (pulls pyarrow / fsspec) so `astrolyze --help` stays fast.
+    from astrolyze.collection import Collection
+    from astrolyze.collection.catalog import CatalogSchemaError
+
+    try:
+        collection = Collection.open(path)
+        details = collection.describe(object, deep=deep)
+    except FileNotFoundError:
+        err_console.print(
+            f"[red]error:[/red] no catalog at {path} "
+            "(a published corpus carries a catalog.parquet at its root)."
+        )
+        raise typer.Exit(code=1)
+    except CatalogSchemaError as exc:
+        err_console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(code=1)
+    except KeyError as exc:
+        # describe() raises KeyError(message); str() of it carries the quotes, .args[0] is clean.
+        err_console.print(f"[red]error:[/red] {exc.args[0]}")
+        raise typer.Exit(code=1)
+
+    table = Table(title=f"{object} — {path}  (catalog {collection.catalog_version})")
+    table.add_column("survey", style="bold")
+    table.add_column("telescope")
+    table.add_column("species")
+    table.add_column("transition")
+    table.add_column("beam")
+    table.add_column("bunit")
+    if deep:
+        table.add_column("chan width")
+        table.add_column("velocity range")
+    for detail in details:
+        row = [
+            detail.survey or "—",
+            detail.telescope or "—",
+            detail.species or "—",
+            detail.transition or "—",
+            _format_detail_beam(detail),
+            detail.bunit or "—",
+        ]
+        if deep:
+            row.append(_format_kms(detail.channel_width_kms))
+            row.append(_format_velocity_range(detail))
+        table.add_row(*row)
+    console.print(table)
+
+
+def _format_detail_beam(detail) -> str:
+    """``13.00" x 11.00" @ 30.0 deg`` from a StoreDetail's beam columns; ``—`` if unstated."""
+    maj, min_, pa = (
+        detail.beam_major_arcsec,
+        detail.beam_minor_arcsec,
+        detail.beam_pa_deg,
+    )
+    if maj is None or min_ is None or pa is None:
+        return "—"
+    return f'{maj:.2f}" x {min_:.2f}" @ {pa:.1f} deg'
+
+
+def _format_kms(value) -> str:
+    """``2.00 km/s`` from a velocity Quantity value in km/s; ``—`` when not read (shallow)."""
+    return "—" if value is None else f"{value:.2f} km/s"
+
+
+def _format_velocity_range(detail) -> str:
+    """``0.00–4.00 km/s`` from a StoreDetail's (min, max) velocity; ``—`` when not read."""
+    lo, hi = detail.velocity_min_kms, detail.velocity_max_kms
+    if lo is None or hi is None:
+        return "—"
+    return f"{lo:.2f}–{hi:.2f} km/s"
+
+
+@collection_app.command("query")
+def collection_query(
+    path: str = typer.Argument(
+        ...,
+        help="Corpus root to browse — a local directory today, an s3:// URL later "
+        "(same call shape; fsspec resolves both).",
+    ),
+    obj: Optional[str] = typer.Option(
+        None, "--object", "-O", help="Filter by object (e.g. NGC3521)."
+    ),
+    survey: Optional[str] = typer.Option(
+        None, "--survey", help="Filter by survey (e.g. HERACLES)."
+    ),
+    telescope: Optional[str] = typer.Option(
+        None, "--telescope", help="Filter by telescope (e.g. IRAM30M)."
+    ),
+    species: Optional[str] = typer.Option(
+        None, "--species", "-s", help="Filter by species (e.g. CO)."
+    ),
+    transition: Optional[str] = typer.Option(
+        None, "--transition", help="Filter by transition (e.g. 2-1)."
+    ),
+) -> None:
+    """List the corpus stores matching the given metadata filters (one row per store).
+
+    Slices the corpus along the catalog's own axes (object / survey / telescope / species /
+    transition, PRD #56 user story 4) without parsing filenames; multiple filters are conjunctive
+    (a store must match all). Mirrors the Python ``Collection.query(**filters)``, which returns a
+    composable sub-collection — here the flat per-store result is rendered as a rich table. An
+    unknown ``catalog_schema_version`` exits non-zero (ADR-0003).
+    """
+    # deferred (pulls pyarrow / fsspec) so `astrolyze --help` stays fast.
+    from astrolyze.collection import Collection
+    from astrolyze.collection.catalog import CatalogSchemaError
+
+    filters = {}
+    if obj is not None:
+        filters["object"] = obj
+    if survey is not None:
+        filters["survey"] = survey
+    if telescope is not None:
+        filters["telescope"] = telescope
+    if species is not None:
+        filters["species"] = species
+    if transition is not None:
+        filters["transition"] = transition
+
+    try:
+        collection = Collection.open(path)
+        records = collection.query(**filters).records
+    except FileNotFoundError:
+        err_console.print(
+            f"[red]error:[/red] no catalog at {path} "
+            "(a published corpus carries a catalog.parquet at its root)."
+        )
+        raise typer.Exit(code=1)
+    except CatalogSchemaError as exc:
+        err_console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(code=1)
+
+    if not records:
+        scope = " matching the filter" if filters else ""
+        console.print(f"[yellow]no records{scope}[/yellow] in {path}")
+        return
+
+    table = Table(
+        title=f"collection query — {path}  (catalog {collection.catalog_version})"
+    )
+    table.add_column("object", style="bold")
+    table.add_column("survey")
+    table.add_column("telescope")
+    table.add_column("species")
+    table.add_column("transition")
+    table.add_column("store")
+    for record in records:
+        r = record.row
+        table.add_row(
+            r.object or "—",
+            r.survey or "—",
+            r.telescope or "—",
+            r.species or "—",
+            r.transition or "—",
+            record.store_path,
+        )
+    console.print(table)
+
+
 @app.command()
 def narrate(
     directory: Path = typer.Argument(
