@@ -18,9 +18,11 @@ Extension points for the slices that build on this tracer:
 
 - **#60 describe/query** add ``Collection.describe(object)`` / ``query(**filters)`` over the same
   :attr:`records`; the typed :class:`~astrolyze.collection.catalog.CatalogRow` is the filter axis.
-- **#62 covering** adds ``Collection.covering(SkyCoord)`` reading the footprint columns
-  (``ra_deg`` / ``dec_deg`` / ``radius_deg``) already parsed on each row, then deciding final
-  containment from the candidate store's own WCS at open time.
+- **#62 covering** adds ``Collection.covering(SkyCoord)``: it *prefilters* on the footprint columns
+  parsed on each row — the always-present center+radius (``ra_deg`` / ``dec_deg`` / ``radius_deg``)
+  and, when mocpy is installed and the row carries one, the exact ``moc`` — then makes the final
+  containment decision from the candidate store's own celestial WCS at open time (the catalog is an
+  index, the WCS is the authority).
 - **#61 scan-builder** wires :meth:`Collection.open` to fall back to
   :func:`~astrolyze.collection.scan.build_catalog` when the root carries no ``catalog.parquet``,
   building an equivalent :class:`~astrolyze.collection.catalog.Catalog` by scanning the stores —
@@ -30,10 +32,14 @@ Extension points for the slices that build on this tracer:
 from __future__ import annotations
 
 from dataclasses import dataclass, fields, replace
+from typing import TYPE_CHECKING
 
 from fsspec.core import url_to_fs
 
 from .catalog import CATALOG_FILENAME, Catalog, CatalogRow, read_catalog
+
+if TYPE_CHECKING:
+    from astropy.coordinates import SkyCoord
 
 
 @dataclass(frozen=True)
@@ -345,9 +351,39 @@ class Collection:
             self._root_uri,
         )
 
-    # NOTE: covering(SkyCoord) lands here next (#62) — radius/MOC prefilter over the footprint
-    # columns, final containment decided by the candidate store's own WCS. Left unimplemented here
-    # to keep this slice (#60) additive; the seam is the same `records` axis query() filters.
+    def covering(self, position: "SkyCoord") -> "Collection":
+        """Stores whose footprint contains *position*; return a composable sub-:class:`Collection`.
+
+        The sky-coverage search (PRD #56 user stories 5/6/7): which cubes cover a sky position,
+        across every survey, without knowing which observed it. The semantics are deliberately
+        **two-layered** (catalog-schema spec §2.4/§2.5/§5) — the catalog footprint is a *prefilter
+        only*, never the geometry authority:
+
+        1. **Prefilter (cheap, no store opened).** Every record is first filtered by the catalog's
+           own footprint columns: the always-present center+radius circle
+           (``ra_deg``/``dec_deg``/``radius_deg``) — works on a bare install — and, *when mocpy is
+           installed and the row carries a ``moc``*, the exact-coverage MOC (eliminating the
+           corner-of-the-circle false positives radius alone admits). See
+           :func:`_prefilter_candidates`.
+        2. **WCS authority (the final decision).** For every *surviving* candidate the store is
+           opened (lazily — :meth:`Record.open` is dask-backed, so only the celestial WCS + grid
+           shape are touched, not the cube data) and the position is tested against that store's
+           **own** celestial pixel grid (:func:`_position_in_store_wcs`). A candidate the prefilter
+           admitted but whose real WCS does **not** contain the position is REJECTED. This guards
+           against a stale or coarse index ever yielding a wrong containment answer (user story 6):
+           the catalog is an index, the WCS is the authority.
+
+        The result is a new ``Collection`` over the same corpus root (like :meth:`query`), so every
+        facade method composes on it (``covering(pos).query(...)``, ``covering(pos).list()``). A
+        position covered by nothing returns an **empty** collection (an honest "no coverage", never
+        an error)."""
+        candidates = _prefilter_candidates(self.records, position)
+        covered = tuple(
+            record.row
+            for record in candidates
+            if _position_in_store_wcs(record, position)
+        )
+        return Collection(replace(self._catalog, rows=covered), self._root_uri)
 
 
 # -- aggregation helpers ---------------------------------------------------------------
@@ -387,6 +423,128 @@ def _spectral_axis_kms(record: "Record"):
         return (None, None, None)
     width = abs(float((axis[1] - axis[0]).value))
     return (width, float(axis.min().value), float(axis.max().value))
+
+
+# -- covering(): prefilter then WCS authority (#62) -------------------------------------
+def _prefilter_candidates(records, position: "SkyCoord") -> list["Record"]:
+    """The records whose catalog footprint *might* cover *position* — the cheap prefilter layer.
+
+    The catalog footprint is an **index, not the authority** (catalog-schema spec §2.4/§2.5): a
+    candidate that survives here is still decided by its store's own WCS in
+    :func:`_position_in_store_wcs`. Two prefilters, in increasing sharpness, never opening a store:
+
+    - **center+radius** (always available, the v1.0 footprint): the position is within
+      ``radius_deg`` of (``ra_deg``, ``dec_deg``). A row missing any footprint column cannot be
+      prefiltered, so it is kept as a candidate (the WCS authority then decides — a null footprint
+      never silently drops a store).
+    - **MOC** (only when mocpy is importable AND the row carries a ``moc``): the exact-coverage
+      polygon test, which removes the corner-of-the-circle false positives radius alone admits.
+      mocpy is an **optional consumer extra** (``astrolyze[coverage]``); absent, this layer is
+      simply skipped and center+radius stands alone — the bare install works end to end (PRD #56).
+
+    A candidate must pass *every* prefilter it can be evaluated against (radius AND, where present,
+    MOC). The MOC import is lazy and per-call so importing astrolyze never imports mocpy."""
+    moc_module = _try_import_moc()
+    candidates = []
+    for record in records:
+        row = record.row
+        if not _within_radius(row, position):
+            continue
+        # MOC is the finer prefilter: applied only when mocpy is present AND this row carries one.
+        # A row without a moc (a v1.0 catalog, or a null cell) falls back to the radius result.
+        if moc_module is not None and row.moc is not None:
+            if not _within_moc(moc_module, row.moc, position):
+                continue
+        candidates.append(record)
+    return candidates
+
+
+def _within_radius(row: CatalogRow, position: "SkyCoord") -> bool:
+    """Whether *position* is within the row's center+radius prefilter circle.
+
+    ``True`` when the angular separation from (``ra_deg``, ``dec_deg``) is ``<= radius_deg``. A row
+    with no center/radius footprint cannot be prefiltered on geometry, so it returns ``True`` (kept
+    as a candidate for the WCS authority to decide — a missing footprint never drops a store
+    silently, ADR-0003)."""
+    import astropy.units as u
+    from astropy.coordinates import SkyCoord
+
+    if row.ra_deg is None or row.dec_deg is None or row.radius_deg is None:
+        return True
+    center = SkyCoord(row.ra_deg * u.deg, row.dec_deg * u.deg)
+    return bool(center.separation(position).to_value(u.deg) <= row.radius_deg)
+
+
+def _within_moc(moc_module, moc_string: str, position: "SkyCoord") -> bool:
+    """Whether *position* falls inside the row's exact-coverage MOC (the finer prefilter).
+
+    Deserializes the mocpy ASCII MOC (catalog-schema spec §2.6) and tests containment. A MOC that
+    cannot be deserialized or queried is treated as *non-discriminating* (returns ``True``): a
+    malformed index entry must never silently drop a store — the store's WCS stays the authority
+    (ADR-0003)."""
+    import astropy.units as u
+    from astropy.coordinates import SkyCoord
+
+    try:
+        moc = moc_module.from_string(moc_string, format="ascii")
+        contains = moc.contains_skycoords(
+            SkyCoord(position.icrs.ra * u.deg, position.icrs.dec * u.deg)
+        )
+    except Exception:  # noqa: BLE001 — a bad MOC is non-discriminating, not a hard failure
+        return True
+    return bool(_as_scalar_bool(contains))
+
+
+def _position_in_store_wcs(record: "Record", position: "SkyCoord") -> bool:
+    """Whether *position* falls inside the candidate store's OWN celestial pixel grid — the authority.
+
+    This is the final containment decision (catalog-schema spec §5, PRD #56 user story 6): the
+    store is opened (lazily — :meth:`Record.open` is dask-backed, so this touches only the celestial
+    WCS and the grid shape, never the cube data) and the position is mapped to a pixel on the
+    store's real celestial WCS. Containment uses the **same** rule as :meth:`Cube.cutout`'s
+    footprint test (issue #58): a world coordinate maps to a pixel centre at integer indices, so the
+    valid extent is the half-open ``[-0.5, n-0.5]`` cell range; a NaN pixel (an undefined projection
+    at this position, e.g. outside a SIN field of view) is off the footprint too.
+
+    A store that cannot be opened, or that has no celestial WCS, cannot confirm containment, so it
+    returns ``False`` — an unverifiable candidate is *not* asserted to cover the position (refuse to
+    guess, ADR-0003), rather than trusting the prefilter as the answer."""
+    import numpy as np
+
+    try:
+        cube = record.open()
+        wcs = cube._sc.wcs
+        if not getattr(wcs, "has_celestial", False):
+            return False
+        celestial = wcs.celestial
+        ny, nx = cube.shape[-2], cube.shape[-1]
+        x, y = celestial.world_to_pixel(position)
+    except Exception:  # noqa: BLE001 — an unopenable/footprint-less store cannot confirm coverage
+        return False
+    on_x = bool(np.isfinite(x)) and -0.5 <= float(x) <= nx - 0.5
+    on_y = bool(np.isfinite(y)) and -0.5 <= float(y) <= ny - 0.5
+    return on_x and on_y
+
+
+def _try_import_moc():
+    """The ``mocpy.MOC`` class if mocpy is importable, else ``None`` (the optional-extra gate).
+
+    mocpy is an optional consumer extra (``astrolyze[coverage]``): a bare install must run the
+    center+radius prefilter + WCS authority end to end without it. The import is lazy and per-call
+    so ``import astrolyze`` never pulls mocpy (the cost is one cached import on a covering call)."""
+    try:
+        from mocpy import MOC
+    except ImportError:
+        return None
+    return MOC
+
+
+def _as_scalar_bool(value) -> bool:
+    """Collapse mocpy's containment result (a 0-d / 1-element array or a bool) to a scalar bool."""
+    import numpy as np
+
+    arr = np.asarray(value)
+    return bool(arr.reshape(-1)[0]) if arr.size else False
 
 
 __all__ = ["Collection", "Record", "ObjectSummary", "StoreDetail"]
