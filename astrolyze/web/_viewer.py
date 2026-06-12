@@ -76,9 +76,17 @@ def _array_to_json(array) -> list:
     """A numpy array → nested Python lists with every non-finite value mapped to ``None``.
 
     JSON has no NaN/inf; a blanked voxel (the cube's ``NaN``) must serialize as ``null`` (valid
-    JSON, and the same "blanked, not zero" meaning the validity machinery uses). ``object``-dtype
-    via ``where`` keeps the nested-list shape while substituting ``None`` for the non-finite mask."""
+    JSON, and the same "blanked, not zero" meaning the validity machinery uses).
+
+    Fast path: when the map has NO non-finite pixel (the common case — most channel maps are fully
+    finite) ``ndarray.tolist()`` is the C-level converter to plain Python floats (valid JSON, no
+    ``None`` needed). Only when a blank exists do we pay for the ``object``-dtype ``where`` that
+    substitutes ``None`` for the non-finite mask — a slow path because object dtype defeats the C
+    converter, so it is reserved for the case that actually needs it. Output is identical either
+    way; this only avoids the object-dtype detour when nothing is blanked."""
     array = np.asarray(array, dtype="float64")
+    if np.isfinite(array).all():
+        return array.tolist()
     return np.where(np.isfinite(array), array, None).tolist()
 
 

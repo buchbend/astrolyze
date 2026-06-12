@@ -71,6 +71,8 @@ client-side routing), while ``/api/*`` 404s stay JSON.
 from __future__ import annotations
 
 import base64
+import threading
+from collections import OrderedDict
 
 from astrolyze.collection import Collection
 
@@ -210,6 +212,15 @@ def create_app(collection_root: str):
     collection is opened once here and held on the app; each request reuses the parsed catalog. The
     built frontend is mounted last so ``/api/*`` routes win over the static catch-all.
 
+    The viewer panels share a small **app-scoped** cache (created here as a closure, also exposed on
+    ``app.state``) of opened cubes plus the per-store ``cube_axes``/``moment0_map`` results, so a
+    viewer session does not re-open the store and re-run the full-cube moment-0 integral on every
+    request (each open is several round-trips over ``s3://``). It is app-scoped on purpose, NOT a
+    module-level ``lru_cache`` keyed by ``store_id``: two apps built over different corpora can reuse
+    the SAME ``store_id`` (a relative ``store_path`` like ``l1/<leaf>`` is identical across a
+    ``file://`` and a ``memory://`` corpus), so a process-global key would hand one app the other's
+    cube. A fresh cache per ``create_app`` keeps each app's cubes its own.
+
     fastapi/starlette are imported **inside** this function (not at module top) so importing
     ``astrolyze.web.api`` does not require the web extra — only building the app does. The
     extra-gate has already run by the time the public :func:`astrolyze.web.create_app` reaches
@@ -221,6 +232,17 @@ def create_app(collection_root: str):
     from . import _viewer
 
     collection = Collection.open(collection_root)
+
+    # App-scoped viewer cache: store_id -> entry {"cube", "axes", "moment0"}. Bounded LRU so a
+    # long-lived process serving many stores cannot grow without limit; an OrderedDict gives the
+    # eviction (move-to-end on hit, popitem(last=False) when full) without a dependency. A single
+    # lock guards both the read-then-insert of an entry and the lazy fill of its memoized fields so
+    # concurrent threadpool requests (FastAPI runs sync endpoints in a threadpool) cannot double-open
+    # or race the dict; the heavy work (open / moment0) is cheap to repeat at worst, so holding the
+    # lock across it is acceptable here and keeps the logic simple and race-free.
+    _CACHE_MAXSIZE = 16
+    _cube_cache: OrderedDict[str, dict] = OrderedDict()
+    _cube_cache_lock = threading.Lock()
 
     app = FastAPI(
         title="astrolyze corpus explorer",
@@ -278,21 +300,69 @@ def create_app(collection_root: str):
         return _record_json(record)
 
     # -- cube viewer (#67): open the store lazily, serve bounded JSON slices for D3 --------
-    def _open_cube(store_id: str):
-        """Resolve *store_id* and open its store into a lazy, dask-backed :class:`Cube` (or 404).
+    def _cache_entry(store_id: str) -> dict:
+        """The cache entry for *store_id* (opening + inserting it on a miss), or 404.
 
-        The single seam every viewer endpoint shares: a 404 when the id is unknown, else the public
-        :meth:`Record.open` (``Cube.from_zarr`` under the hood, so the cube is dask-backed and
-        nothing materialises until a slice is read). Opening is cheap — it reads the store's
-        attrs/WCS, not its data — so the per-request open is not the heavy step (the slice is, and
-        each slice is bounded)."""
-        record = _find_record(collection, store_id)
-        if record is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"no store {_decode_store_id(store_id)!r} in this corpus",
-            )
-        return record.open()
+        The single seam every viewer endpoint shares. On a hit the cube is reused (no re-open); on a
+        miss the store is opened once via the public :meth:`Record.open` (``Cube.from_zarr`` under
+        the hood, dask-backed — nothing materialises until a slice is read) and an entry holding the
+        cube plus empty ``axes``/``moment0`` slots is inserted, evicting the LRU tail if full.
+
+        Laziness is preserved (PRD #56, story 8): caching the *opened* cube caches a dask graph, not
+        data — slice endpoints still compute exactly their one slice. The lock makes the
+        get-or-create atomic so concurrent threadpool requests share one cube rather than racing."""
+        with _cube_cache_lock:
+            entry = _cube_cache.get(store_id)
+            if entry is not None:
+                _cube_cache.move_to_end(store_id)  # mark most-recently-used
+                return entry
+            record = _find_record(collection, store_id)
+            if record is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"no store {_decode_store_id(store_id)!r} in this corpus",
+                )
+            entry = {"cube": record.open(), "axes": None, "moment0": None}
+            _cube_cache[store_id] = entry
+            if len(_cube_cache) > _CACHE_MAXSIZE:
+                _cube_cache.popitem(last=False)  # evict the oldest store
+            return entry
+
+    def _open_cube(store_id: str):
+        """The cached lazy, dask-backed :class:`Cube` for *store_id* (or 404).
+
+        Slice endpoints (channel/spectrum/region/windowed-moment) take the cube straight: each
+        slices it lazily, so only their bounded slice computes — the cube must stay an unrealised
+        dask graph, which the cache holds verbatim."""
+        return _cache_entry(store_id)["cube"]
+
+    def _cached_axes(store_id: str) -> dict:
+        """The memoized :func:`_viewer.cube_axes` result for *store_id* (computed once per store).
+
+        ``cube_axes`` reads a whole mid-channel for a colour-range hint (a single lazy 2-D slice);
+        memoizing its result spares that read on repeat ``/cube`` requests within a viewer session.
+        Filled under the lock (which also guards the entry's existence) so two concurrent
+        first-requests do not both compute it."""
+        entry = _cache_entry(
+            store_id
+        )  # ensures the entry exists + is most-recently-used
+        with _cube_cache_lock:
+            if entry["axes"] is None:
+                entry["axes"] = _viewer.cube_axes(entry["cube"])
+            return entry["axes"]
+
+    def _cached_moment0(store_id: str) -> dict:
+        """The memoized full-band :func:`_viewer.moment0_map` result for *store_id*.
+
+        moment-0 is the one full-cube integral on the hot path; memoizing its RESULT (the whole
+        point of this cache) keeps it one-per-store instead of one-per-request. Only the *full-band*
+        map is memoized — windowed moment-0 (``vmin``/``vmax``) varies per request, so it is not
+        cached and recomputes its slab each time."""
+        entry = _cache_entry(store_id)
+        with _cube_cache_lock:
+            if entry["moment0"] is None:
+                entry["moment0"] = _viewer.moment0_map(entry["cube"])
+            return entry["moment0"]
 
     @app.get(VIEWER_STUB_ROUTE)
     def get_store_viewer(store_id: str) -> dict:
@@ -320,8 +390,9 @@ def create_app(collection_root: str):
         """Axis metadata to drive the viewer UI (shape, velocity axis, sky extent, units, range).
 
         Reads only headers/axes via :func:`_viewer.cube_axes` — no full data plane — so it is cheap
-        even on a huge corpus cube. Unknown store id → ``404``."""
-        return _viewer.cube_axes(_open_cube(store_id))
+        even on a huge corpus cube. Memoized per store (the colour-range hint reads one mid-channel
+        once, not per request). Unknown store id → ``404``."""
+        return _cached_axes(store_id)
 
     @app.get("/api/stores/{store_id}/moment0")
     def get_store_moment0(
@@ -346,16 +417,17 @@ def create_app(collection_root: str):
         the slab — not a reimplemented sum. An empty/invalid window (no channel inside) → ``422``;
         one bound without the other → ``422`` (a window needs both edges). Without either it is the
         full-band map, unchanged (backward compatible with #67)."""
-        cube = _open_cube(store_id)
         if vmin is None and vmax is None:
-            return _viewer.moment0_map(cube)
+            # The full-band map is the heavy full-cube integral; memoize its result per store.
+            return _cached_moment0(store_id)
         if vmin is None or vmax is None:
             raise HTTPException(
                 status_code=422,
                 detail="a velocity window needs both vmin and vmax (got only one bound)",
             )
         try:
-            return _viewer.windowed_moment0_map(cube, vmin, vmax)
+            # Windowed maps vary per request — not memoized; the cached cube keeps them lazy.
+            return _viewer.windowed_moment0_map(_open_cube(store_id), vmin, vmax)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -435,8 +507,10 @@ def create_app(collection_root: str):
                 return FileResponse(candidate)
             return FileResponse(STATIC_DIR / "index.html")
 
-    # Expose the held collection on the app for tests/introspection (read-only handle).
+    # Expose the held collection + the app-scoped viewer cache for tests/introspection (read-only
+    # handles; the cache stays per-app — see the cube-cache note above for why it must not be global).
     app.state.collection = collection
+    app.state.cube_cache = _cube_cache
     return app
 
 
