@@ -8,17 +8,21 @@
 // as a crosshair marker so both maps and the spectrum agree on "where".
 //
 // D3 is used the minimal, idiomatic way (matching BeamRangeBar): d3 owns the MATH (the sequential
-// colour scale, the pixel→screen geometry) and Vue owns the DOM (the <rect> grid is bound
-// reactively), so there is one source of truth and the SVG stays inside Vue's reactivity. The grid
-// is drawn as one <rect> per cell — fine for the bounded map sizes the backend serves (it decimates
-// anything over MAX_MAP_DIM), and it keeps hit-testing trivial (no canvas pixel readback).
+// colour scale, the pixel→screen geometry) and Vue owns the DOM, so there is one source of truth.
+// The pixel grid is rendered as a SINGLE SVG <image> — a raster built offscreen — NOT one <rect>
+// per pixel. The backend serves maps up to MAX_MAP_DIM (512×512), so a per-pixel grid would be
+// ~262k reactive SVG nodes rebuilt on every channel step; a single raster is O(pixels) to build
+// and one DOM node to render. The raster is drawn on an offscreen <canvas> at NATIVE resolution
+// (cols×rows) and nearest-neighbour upscaled to the plot box via preserveAspectRatio="none" +
+// image-rendering: pixelated, so it occupies the exact same PLOT box the old <rect> grid did and
+// the click/zoom/crosshair geometry (cellW/cellH, PLOT/cols/rows) is unchanged.
 // The #68 interactions extend this map: a REGION-DRAW mode (mode="region") collects clicked
 // vertices into a polygon and emits it on finish (the region-averaged spectrum), and a shared
 // pan/zoom VIEW (the `view` prop + `viewchange` emit) keeps the two map panels LINKED so one map's
 // zoom drives both. The polygon is reported in the same full-resolution pixel coordinates as a
 // click, so the region endpoint speaks the viewer's one coordinate convention.
 import { computed, ref } from "vue";
-import { scaleSequential, interpolateViridis } from "d3";
+import { scaleSequential, interpolateViridis, rgb } from "d3";
 
 const props = defineProps({
   // The 2-D value array (rows of columns); null entries are blanked (drawn transparent).
@@ -86,27 +90,58 @@ const color = computed(() =>
   scaleSequential(interpolateViridis).domain(domain.value),
 );
 
-// Flatten the grid into bound cells: image y is the ROW index, drawn top-to-bottom. (Astronomical
-// "up" handling is the WCS/extent labels' job; the array is served in the natural numpy row order.)
-const cells = computed(() => {
-  const out = [];
-  const w = cellW.value;
-  const h = cellH.value;
-  for (let r = 0; r < rows.value; r++) {
-    for (let c = 0; c < cols.value; c++) {
-      const v = props.data[r][c];
-      out.push({
-        key: `${r}-${c}`,
-        x: PAD.left + c * w,
-        y: PAD.top + r * h,
-        w,
-        h,
-        fill: v == null || !Number.isFinite(v) ? "none" : color.value(v),
-        blank: v == null || !Number.isFinite(v),
-      });
+// The pixel raster as a data URL, recomputed ONLY when the data or colour domain change (NOT on
+// zoom/pan — the <g> transform handles those, so panning stays smooth). Image y is the ROW index,
+// drawn top-to-bottom (astronomical "up" is the WCS/extent labels' job; the array is in natural
+// numpy row order). The colour is quantised to a 256-entry LUT sampled once from the sequential
+// scale: 262k per-pixel d3.rgb() calls would dominate the rebuild, while a LUT index makes the fill
+// O(pixels) with no per-pixel d3 cost (256-level quantisation is visually indistinguishable).
+// Blank pixels (null/non-finite) get alpha 0 so the paper-coloured backing rect shows through,
+// matching the old `.blank { fill: var(--paper) }`.
+const rasterUrl = computed(() => {
+  const w = cols.value;
+  const h = rows.value;
+  if (!w || !h) return null;
+  const [lo, hi] = domain.value;
+  const span = hi - lo;
+  // Build the LUT once: 256 rgb entries across the domain.
+  const scale = color.value;
+  const LUT_N = 256;
+  const lut = new Uint8Array(LUT_N * 3);
+  for (let i = 0; i < LUT_N; i++) {
+    const c = rgb(scale(lo + (i / (LUT_N - 1)) * span));
+    lut[i * 3] = c.r;
+    lut[i * 3 + 1] = c.g;
+    lut[i * 3 + 2] = c.b;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  const img = ctx.createImageData(w, h);
+  const buf = img.data;
+  const data = props.data;
+  for (let r = 0; r < h; r++) {
+    const row = data[r];
+    for (let c = 0; c < w; c++) {
+      const v = row[c];
+      const o = (r * w + c) * 4;
+      if (v == null || !Number.isFinite(v)) {
+        buf[o + 3] = 0; // transparent: paper backing shows through
+        continue;
+      }
+      let idx = Math.round(((v - lo) / span) * (LUT_N - 1));
+      if (idx < 0) idx = 0;
+      else if (idx > LUT_N - 1) idx = LUT_N - 1;
+      const li = idx * 3;
+      buf[o] = lut[li];
+      buf[o + 1] = lut[li + 1];
+      buf[o + 2] = lut[li + 2];
+      buf[o + 3] = 255;
     }
   }
-  return out;
+  ctx.putImageData(img, 0, 0);
+  return canvas.toDataURL();
 });
 
 // The crosshair, in screen coords: map a FULL-resolution pixel back to the (possibly decimated)
@@ -354,19 +389,27 @@ const regionPath = computed(() => {
         </clipPath>
       </defs>
 
-      <!-- zoomable content: cells + crosshair + region overlays share one pan/zoom transform -->
+      <!-- zoomable content: raster + crosshair + region overlays share one pan/zoom transform -->
       <g :clip-path="`url(#${clipId})`">
         <g :transform="viewTransform">
-          <!-- the cell grid (Vue-bound rects; D3 supplied the colour) -->
+          <!-- paper backing so blank (transparent) raster pixels read as the paper colour -->
           <rect
-            v-for="cell in cells"
-            :key="cell.key"
-            :x="cell.x"
-            :y="cell.y"
-            :width="cell.w + 0.5"
-            :height="cell.h + 0.5"
-            :fill="cell.fill"
-            :class="{ blank: cell.blank }"
+            :x="PAD.left"
+            :y="PAD.top"
+            :width="PLOT"
+            :height="PLOT"
+            class="hm-blank-bg"
+          />
+          <!-- the pixel grid as ONE native-res raster, nearest-neighbour upscaled to the plot box -->
+          <image
+            v-if="rasterUrl"
+            :href="rasterUrl"
+            :x="PAD.left"
+            :y="PAD.top"
+            :width="PLOT"
+            :height="PLOT"
+            preserveAspectRatio="none"
+            class="hm-raster"
           />
 
           <!-- committed region polygon (the averaged region) -->
@@ -505,8 +548,14 @@ const regionPath = computed(() => {
   stroke: var(--line-strong);
   stroke-width: 1;
 }
-.blank {
+.hm-blank-bg {
   fill: var(--paper);
+}
+.hm-raster {
+  /* native-res raster scaled up to the plot box: keep hard pixel edges (no blur) so the map
+     reads pixel-for-pixel like the old per-cell <rect> grid did */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 .hm-cross line {
   stroke: #ff5d3b;
