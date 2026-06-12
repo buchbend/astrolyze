@@ -23,8 +23,9 @@ opens the store into a dask-backed cube and serves a **bounded JSON slice** — 
 request, no server-side matplotlib). Its panels:
 
 - an **integrated (moment-0) map** (`Cube.moment0`);
-- a **channel map** with a velocity **slider** and **keyboard stepping** (Arrow keys = ∓1 channel;
-  PageUp/PageDown and Shift+Arrow = ∓5), the current velocity always shown;
+- a **channel map** with a velocity **slider** and **keyboard stepping** (click the viewer to focus
+  it first; Arrow keys = ∓1 channel, Shift+Arrow or PageUp/PageDown = ∓5, Home/End jump to the
+  first/last channel), the current velocity always shown;
 - a **pixel spectrum** that updates when you click a position on either map;
 - a **polygon region-averaged spectrum** — draw a region on the moment-0 map and its mean spectrum
   overlays the pixel spectrum;
@@ -65,6 +66,49 @@ astrolyze explore /data/ism_corpus --port 8001     # default 127.0.0.1:8000
 It binds loopback by default (a local analysis tool); pass `--host 0.0.0.0` to expose it on the
 network. Open the printed URL in a browser. On a bare install (no `[web]` extra) the command exits
 with the install line above and nothing else.
+
+### From a source checkout, build the frontend first
+
+The published wheel ships the built Vue bundle, but a fresh `git clone` does not — there is no
+`astrolyze/web/static/` until you build it. Without the build, `astrolyze explore` still serves the
+JSON API, but the browser page is empty (the app degrades to the API alone, by design). Build the
+bundle once:
+
+```bash
+cd astrolyze/web/frontend
+npm install
+npm run build      # emits the bundle into ../static, where the app mounts it at "/"
+```
+
+For frontend work, run the hot-reload dev server instead of rebuilding: keep `astrolyze explore
+<corpus>` in one terminal and `npm run dev` in another — Vite proxies `/api` to the backend on
+`127.0.0.1:8000`, so the SPA reloads on change against a real corpus (`npm run lint` runs eslint).
+In production one process serves both the API and the built bundle; the proxy is dev-only.
+
+## The JSON API
+
+The endpoints that back the SPA are usable directly — handy for a quick `curl`, a notebook, or your
+own client. All are read-only `GET`s under `/api` (plus one `POST` for a region polygon). A store is
+addressed by an opaque `store_id` (the catalog `store_path`, base64-url-safe encoded so a slashed
+path stays one URL segment); read it off the list/detail responses rather than building it.
+
+| Endpoint | Returns | Public call |
+| --- | --- | --- |
+| `GET /api/collection` | corpus root + catalog version + object list | `Collection.list()` |
+| `GET /api/objects/{object}` | per-store details for one object | `Collection.describe(object)` |
+| `GET /api/stores/{store_id}` | one store's catalog row + resolved URI | a single `Record` |
+| `GET /api/stores/{store_id}/cube` | axis metadata (shape, velocity axis, sky extent, units) | reads headers only |
+| `GET /api/stores/{store_id}/moment0` *(opt. `?vmin=&vmax=`)* | moment-0 map, optionally over a velocity window | `Cube.moment0()` |
+| `GET /api/stores/{store_id}/channel/{index}` | one channel slice + its velocity | `cube[index]` |
+| `GET /api/stores/{store_id}/spectrum?x=&y=` | spectrum at a pixel | `cube[:, y, x]` |
+| `POST /api/stores/{store_id}/region-spectrum` | region-averaged spectrum for a `{vertices}` polygon | spatial slice + `nanmean` |
+
+An unknown object is `404`; an out-of-range channel/pixel or an empty velocity window is `422`,
+naming the valid range. FastAPI also serves interactive API docs at `/docs`.
+
+```bash
+curl -s http://127.0.0.1:8000/api/collection | python -m json.tool
+```
 
 ## See also
 
