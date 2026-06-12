@@ -256,3 +256,59 @@ def test_frame_transform_when_frame_absent_raises_naming_spectral_frame(tmp_path
             obstime=Time("2020-01-01T00:00:00"),
             target=SkyCoord(ra=24.174 * u.deg, dec=15.784 * u.deg, frame="icrs"),
         )
+
+
+# ======================================================================================
+# AC: velocity_shift(delta_v) — the arbitrary-Δv spectral relabel (astrolyze #86)
+#
+# The general Δv form of shift_to_rest: an EXACT coordinate relabel of the velocity axis
+# (v_new = v_obs + delta_v, CRVAL += delta_v) with the data carried through untouched (no
+# resampling). Used by the ISM foundation-model probe (issue #10) as the velocity-shift
+# self-supervised augmentation. shift_to_rest(v_sys) == velocity_shift(-v_sys).
+# ======================================================================================
+def test_velocity_shift_relabels_delta_v_by_plus_delta_v(cube):
+    # +Δv re-labels every channel's observed velocity by exactly +Δv (a rigid relabel).
+    shifted = cube.velocity_shift(50.0 * u.km / u.s)
+    expected = cube.coordinates.delta_v + 50.0 * u.km / u.s
+    assert u.allclose(
+        shifted.coordinates.delta_v, expected, rtol=1e-9, atol=1e-6 * u.km / u.s
+    )
+
+
+def test_velocity_shift_is_exact_relabel_data_unchanged(cube):
+    # Exact relabel, not a resample: the data array is carried through bit-for-bit.
+    shifted = cube.velocity_shift(50.0 * u.km / u.s)
+    np.testing.assert_array_equal(
+        shifted._sc.unmasked_data[:], cube._sc.unmasked_data[:]
+    )
+
+
+def test_velocity_shift_zero_is_identity(cube):
+    # Δv = 0 leaves the velocity labels unchanged (a no-op relabel).
+    shifted = cube.velocity_shift(0.0 * u.km / u.s)
+    assert u.allclose(
+        shifted.coordinates.delta_v,
+        cube.coordinates.delta_v,
+        rtol=1e-9,
+        atol=1e-6 * u.km / u.s,
+    )
+
+
+def test_velocity_shift_negative_matches_shift_to_rest(cube):
+    # velocity_shift(-v) IS shift_to_rest(v): they are the same coordinate relabel.
+    v = 30.0 * u.km / u.s
+    via_shift = cube.velocity_shift(-v).coordinates.delta_v
+    via_rest = cube.shift_to_rest(v).coordinates.delta_v
+    assert u.allclose(via_shift, via_rest, rtol=1e-9, atol=1e-6 * u.km / u.s)
+
+
+def test_velocity_shift_without_rest_frequency_raises(tmp_path):
+    # No rest frequency + convention -> the relabel cannot define a velocity axis and raises
+    # (same failure mode as shift_to_rest's require_complete, ADR-0003).
+    header = _cube_header()
+    del header["RESTFRQ"]
+    path = tmp_path / "no_restfrq.fits"
+    fits.writeto(path, np.ones((4, 3, 3), dtype="float32"), header)
+    cube = Cube.from_loaded(load(path))
+    with pytest.raises(MissingContextError):
+        cube.velocity_shift(10.0 * u.km / u.s)

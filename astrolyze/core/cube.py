@@ -719,24 +719,57 @@ class Cube(ContextCarrier):
         smoothing, no signal cost). Bringing members onto one shared grid afterwards is
         :meth:`to_velocity_grid`'s job. *v_sys* must be a velocity ``Quantity``; the cube must
         carry a rest frequency + velocity convention (raises otherwise — no guessed axis, ADR-0003).
-        Returns a new :class:`Cube` whose velocity axis is shifted by *v_sys*."""
+        Returns a new :class:`Cube` whose velocity axis is shifted by *v_sys*.
+
+        ``shift_to_rest(v_sys)`` is exactly ``velocity_shift(-v_sys)`` — the rest shift is the
+        negative-Δv special case of the general :meth:`velocity_shift` relabel."""
+        v_sys_ms = u.Quantity(v_sys).to(u.m / u.s, equivalencies=u.spectral())
+        # Relabel by -v_sys: subtracting the systemic velocity re-centres the line at rest.
+        rebuilt = self._velocity_relabel(-v_sys_ms.to_value(u.m / u.s))
+        _emit("shift_to_rest", params={"v_sys": str(v_sys)})
+        return Cube(rebuilt, self._metadata_with_beam(self.metadata.beam))
+
+    def velocity_shift(self, delta_v: u.Quantity) -> "Cube":
+        """Re-label the velocity axis by an arbitrary *delta_v* (``v_new = v_obs + delta_v``).
+
+        The **general** Δv form of :meth:`shift_to_rest`: where ``shift_to_rest(v_sys)`` moves the
+        line at *v_sys* to rest, this shifts the whole axis by any *delta_v* (``shift_to_rest(v_sys)``
+        is exactly ``velocity_shift(-v_sys)``). Like the rest shift it is an **exact coordinate
+        relabel**, not a resampling: only the velocity WCS reference value (CRVAL) is moved, by
+        *delta_v*, and the data array is carried through untouched — no interpolation, no smoothing,
+        **no signal cost**. *delta_v* must be a velocity ``Quantity``; the cube must carry a rest
+        frequency + velocity convention (raises otherwise — no guessed axis, ADR-0003).
+
+        Used by the ISM foundation-model probe (issue #10) as the **velocity-shift self-supervised
+        augmentation**: a single global Δv re-label of a cube trains velocity zero-point invariance
+        in the model while preserving cross-tracer velocity *differences* exactly (every tracer is
+        relabelled by the same Δv, so their relative offsets — the physics — are untouched). Returns
+        a new :class:`Cube` whose velocity axis is shifted by *delta_v*."""
+        delta_v_ms = u.Quantity(delta_v).to(u.m / u.s, equivalencies=u.spectral())
+        rebuilt = self._velocity_relabel(delta_v_ms.to_value(u.m / u.s))
+        _emit("velocity_shift", params={"delta_v": str(delta_v)})
+        return Cube(rebuilt, self._metadata_with_beam(self.metadata.beam))
+
+    def _velocity_relabel(self, delta_v_ms: float) -> SpectralCube:
+        """Re-label the velocity axis by *delta_v_ms* [m/s] (``CRVAL += delta_v_ms``).
+
+        The shared WCS-relabel core of :meth:`shift_to_rest` and :meth:`velocity_shift`: it puts
+        the axis on velocity under this object's convention, then moves the spectral reference
+        value (CRVAL) by *delta_v_ms*. spectral-cube routes freq<->velocity through astropy with
+        the rest value/convention, so the data are carried through **untouched** — only the axis
+        labels move (an exact relabel, no resampling). Requires a rest frequency + velocity
+        convention (raises via :meth:`_velocity_sc` otherwise — no guessed axis, ADR-0003)."""
         from astropy.wcs import WCS
 
-        v_sys_ms = u.Quantity(v_sys).to(u.m / u.s, equivalencies=u.spectral())
-        # Put the axis on velocity under this object's convention, then relabel by moving the
-        # spectral reference value (CRVAL) by -v_sys. spectral-cube routes freq<->velocity through
-        # astropy with the rest value/convention, so the data are unchanged — only the axis labels.
         vel_sc = self._velocity_sc()
         new_wcs = WCS(vel_sc.header)
         spec = new_wcs.wcs.spec
         crval_ms = (new_wcs.wcs.crval[spec] * u.Unit(new_wcs.wcs.cunit[spec])).to_value(
             u.m / u.s
         )
-        new_wcs.wcs.crval[spec] = crval_ms - v_sys_ms.to_value(u.m / u.s)
+        new_wcs.wcs.crval[spec] = crval_ms + delta_v_ms
         new_wcs.wcs.cunit[spec] = "m/s"
-        rebuilt = SpectralCube(data=vel_sc.unmasked_data[:], wcs=new_wcs)
-        _emit("shift_to_rest", params={"v_sys": str(v_sys)})
-        return Cube(rebuilt, self._metadata_with_beam(self.metadata.beam))
+        return SpectralCube(data=vel_sc.unmasked_data[:], wcs=new_wcs)
 
     def _velocity_sc(self, *, masked: bool = False) -> SpectralCube:
         """The wrapped cube on a velocity (km/s) spectral axis under this object's convention.
