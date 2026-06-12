@@ -116,6 +116,11 @@ target-version = "py311"
 # an %matplotlib magic — so E402 ("module import not at top of cell") fights the idiom. Allow
 # it in .ipynb only; library/test .py still hold imports at the top.
 "*.ipynb" = ["E402"]
+# test_noise_cutout.py reuses test_noise's synthetic-cube fixtures by importing them (this suite has
+# no conftest). pytest then injects each as a test parameter, which ruff reads as redefining the
+# imported name (F811). That is the documented pytest fixture-reuse idiom, not a redefinition bug —
+# scope the ignore to this one file so a genuine redefinition elsewhere still fails.
+"tests/test_noise_cutout.py" = ["F811"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
