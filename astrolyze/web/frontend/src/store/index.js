@@ -57,6 +57,9 @@ export default createStore({
         moment0: null,
         channel: null,
         channelIndex: 0,
+        // Fetched channel slices keyed by channel index — stepping back to a seen channel is a
+        // cache hit (no refetch). Reset per store so a switch never shows a stale cube's slices.
+        channels: {},
         position: null, // { x, y } image pixel, or null until the first click
         spectrum: null,
         loading: false,
@@ -129,6 +132,7 @@ export default createStore({
       state.viewer.moment0 = null;
       state.viewer.channel = null;
       state.viewer.channelIndex = 0;
+      state.viewer.channels = {};
       state.viewer.position = null;
       state.viewer.spectrum = null;
       state.viewer.error = null;
@@ -148,6 +152,12 @@ export default createStore({
       state.viewer.channel = channel;
       if (channel && Number.isInteger(channel.index)) {
         state.viewer.channelIndex = channel.index;
+        // Cache the slice so stepping back is a hit. Reassign the map so Vue tracks the new key
+        // (same convention as detailsByObject).
+        state.viewer.channels = {
+          ...state.viewer.channels,
+          [channel.index]: channel,
+        };
       }
     },
     // The slider/keyboard set the index optimistically (snappy UI); the channel slice fetch follows.
@@ -246,10 +256,16 @@ export default createStore({
     },
     // Fetch one channel's 2-D slice (the velocity slider / keyboard stepping calls this). The index
     // is set optimistically first so the slider thumb tracks the input even before the slice lands.
+    // A cached slice is committed immediately (no fetch); only a miss hits the server.
     async loadChannel({ commit, state }, index) {
       const storeId = state.viewer.store;
       if (storeId == null) return;
       commit("setChannelIndex", index);
+      const cached = state.viewer.channels[index];
+      if (cached) {
+        commit("setViewerChannel", cached);
+        return;
+      }
       try {
         const channel = await getJson(
           `/api/stores/${storeId}/channel/${index}`,

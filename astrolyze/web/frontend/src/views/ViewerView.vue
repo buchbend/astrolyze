@@ -55,7 +55,15 @@ const channelTitle = computed(() => {
   return `Channel ${channelIndex.value} · v = ${velocityText.value}`;
 });
 
+// Pending debounced channel fetch (declared before load() so the switch handler can cancel it).
+let fetchTimer = null;
+
 function load() {
+  // Drop any pending channel fetch from the previous store so it cannot fire after the switch.
+  if (fetchTimer) {
+    clearTimeout(fetchTimer);
+    fetchTimer = null;
+  }
   store.dispatch("openViewer", props.storeId);
   // Deep-linked viewer: make sure the masthead carries the corpus identity too.
   if (!store.state.rootUri) store.dispatch("loadCollection");
@@ -64,11 +72,29 @@ onMounted(load);
 watch(() => props.storeId, load);
 
 // -- channel stepping (slider + keyboard) ---------------------------------------------
+// Stepping must feel instant, but the slice fetch is costly (server slice read + JSON). So the
+// index updates immediately on every step (slider thumb + velocity readout track with no lag) and
+// the fetch is debounced: a fast drag or held arrow key fires ONE fetch for where the user lands,
+// not one per intermediate channel. A cached channel applies immediately (no artificial delay).
+const FETCH_DEBOUNCE_MS = 100;
+
 function goToChannel(index) {
   if (nChannels.value === 0) return;
   const clamped = Math.max(0, Math.min(nChannels.value - 1, index));
   if (clamped === channelIndex.value && channel.value) return;
-  store.dispatch("loadChannel", clamped);
+  // Reflect the new channel in the UI right away (slider/velocity readout), even before the slice.
+  store.commit("setChannelIndex", clamped);
+  if (fetchTimer) clearTimeout(fetchTimer);
+  // Cached slice: show it now (loadChannel detects the hit and skips the network).
+  if (store.state.viewer.channels[clamped]) {
+    store.dispatch("loadChannel", clamped);
+    return;
+  }
+  // Miss: coalesce the fetch so only the landing channel is requested.
+  fetchTimer = setTimeout(() => {
+    fetchTimer = null;
+    store.dispatch("loadChannel", clamped);
+  }, FETCH_DEBOUNCE_MS);
 }
 
 function onSlider(event) {
@@ -107,7 +133,11 @@ function onKey(event) {
 }
 
 onMounted(() => window.addEventListener("keydown", onKey));
-onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onKey);
+  // Cancel a pending fetch so it cannot fire after the viewer is gone.
+  if (fetchTimer) clearTimeout(fetchTimer);
+});
 
 // -- shared position (click on either map) --------------------------------------------
 function onSelect({ x, y }) {
