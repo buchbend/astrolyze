@@ -390,6 +390,57 @@ def test_match_to_reprojects_to_common_grid_when_asked(tmp_path):
     assert u.isclose(matched_a.beam.major, matched_b.beam.major, rtol=1e-6)
 
 
+def _make_freq_cube(
+    tmp_path, name="freq.fits", nspec=8, nx=5, ny=5, crval1=24.174, crval2=15.784
+):
+    """The FREQ-axis cube for the FREQ<->VELO cross-survey reproject case (issue #50)."""
+    from astrolyze.io import load
+
+    h = fits.Header()
+    h["CTYPE1"], h["CRVAL1"] = "RA---SIN", crval1
+    h["CDELT1"], h["CRPIX1"], h["CUNIT1"] = -2e-4, 1.0, "deg"
+    h["CTYPE2"], h["CRVAL2"] = "DEC--SIN", crval2
+    h["CDELT2"], h["CRPIX2"], h["CUNIT2"] = 2e-4, 1.0, "deg"
+    h["CTYPE3"], h["CRVAL3"] = "FREQ", REST.to_value(u.Hz)
+    h["CDELT3"], h["CRPIX3"], h["CUNIT3"] = 1e6, 1.0, "Hz"
+    h["OBJECT"] = "NGC0628"
+    h["TELESCOP"] = "ALMA"
+    h["BUNIT"] = "Jy/beam"
+    h["RESTFRQ"] = (REST.to_value(u.Hz), "Hz")
+    for k, v in BEAM.to_header_keywords().items():
+        h[k] = v
+    h["HIERARCH ASTROLYZE VCONV"] = "radio"
+    h["HIERARCH ASTROLYZE SPECIES"] = "CO21"
+
+    path = tmp_path / name
+    data = np.ones((nspec, ny, nx), dtype="float32")
+    fits.writeto(path, data, h)
+    return Cube.from_loaded(load(path))
+
+
+def test_match_to_reproject_across_freq_and_velo_spectral_types(tmp_path):
+    # Cross-survey case: a FREQ-axis interferometer cube reprojected onto a VELO/VRAD single-dish
+    # cube. Previously this raised "spectral coordinate types are not equivalent" because the
+    # reproject adopted other's full 3D (VELO) header instead of self's own spectral WCS (#50).
+    freq = _make_freq_cube(tmp_path, name="freq.fits", nx=5, ny=5)  # self, FREQ axis
+    # other, VRAD axis, on a shifted + larger grid so the reproject is real (not a no-op).
+    velo = _make_cube(
+        tmp_path, name="velo.fits", nx=7, ny=7, crval1=24.1744, crval2=15.7844
+    )
+
+    matched_self, matched_other = freq.match_to(velo, reproject=True)  # must NOT raise
+    # self landed on other's spatial grid (a common grid).
+    assert matched_self.shape[1:] == matched_other.shape[1:] == velo.shape[1:]
+    # but self kept its OWN spectral axis — only the spatial grid changed, the FREQ axis is left
+    # untouched (length and values).
+    assert matched_self.shape[0] == freq.shape[0]
+    np.testing.assert_allclose(
+        matched_self.spectral_axis.to_value(u.Hz),
+        freq.spectral_axis.to_value(u.Hz),
+        rtol=1e-9,
+    )
+
+
 # --------------------------------------------------------------------------------------
 # Every op records the new beam as context (ADR-0004): the metadata is updated, not stale.
 # --------------------------------------------------------------------------------------
