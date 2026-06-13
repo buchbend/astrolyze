@@ -178,7 +178,12 @@ class Cube(ContextCarrier):
     # real science cube is full of source (ADR-0003). With no ``noise=`` the return is the bare
     # Cube exactly as in #31 (backward compatible).
     def convolve_to_beam(
-        self, beam: radio_beam.Beam, *, noise=None, save_to_tmp_dir: bool = False
+        self,
+        beam: radio_beam.Beam,
+        *,
+        noise=None,
+        save_to_tmp_dir: bool = False,
+        allow_huge: bool = False,
     ):
         """Smooth the cube spatially to a **larger** *beam* via spectral-cube ``convolve_to``.
 
@@ -197,9 +202,17 @@ class Cube(ContextCarrier):
         ``save_to_tmp_dir=True`` to compute it once to a temp directory (point ``TMPDIR`` at real
         disk, not tmpfs); on the in-memory FITS path the flag is a no-op. The **synchronous** dask
         scheduler also helps — set it caller-side via ``dask.config.set(scheduler="synchronous")``
-        (issue #51)."""
+        (issue #51).
+
+        ``convolve_fft`` enforces a hard size guard (``"Arrays will be N.NG"``) sized from the
+        kernel-padding estimate, which can fire even on a small spatial crop with a fine pixel
+        grid (a haloed beam-coarsen read on interferometer cubes); pass ``allow_huge=True`` to
+        override it. It defaults ``False`` (opt-in) so a genuinely huge array is never silently
+        materialised (issue #88)."""
         self._require_larger_beam(beam)
-        smoothed = self._convolve_to_fft(beam, save_to_tmp_dir=save_to_tmp_dir)
+        smoothed = self._convolve_to_fft(
+            beam, save_to_tmp_dir=save_to_tmp_dir, allow_huge=allow_huge
+        )
         _emit("convolve_to_beam", params={"beam": str(beam)})
         out = Cube(smoothed, self._metadata_with_beam(beam))
         if noise is None:
@@ -534,7 +547,11 @@ class Cube(ContextCarrier):
         return sc
 
     def _convolve_to_fft(
-        self, beam: radio_beam.Beam, *, save_to_tmp_dir: bool = False
+        self,
+        beam: radio_beam.Beam,
+        *,
+        save_to_tmp_dir: bool = False,
+        allow_huge: bool = False,
     ) -> SpectralCube:
         """Spatial convolution forced onto the FFT path (issue #51).
 
@@ -542,15 +559,22 @@ class Cube(ContextCarrier):
         ``convolve_fft``, ``DaskSpectralCube`` to the ~65x slower direct ``convolve``. A Zarr-backed
         cube (#23) is dask-backed and so silently took the direct default. We pass ``convolve_fft``
         explicitly so the backend's default can't pick direct; FFT is bit-identical here, not an
-        approximation. spectral-cube auto-sets ``allow_huge`` for the dask FFT path.
+        approximation. ``convolve_fft``'s hard size guard still fires on the dask path (issue #88's
+        repro), so the caller can force ``allow_huge`` explicitly via :meth:`convolve_to_beam`'s
+        threaded parameter (default off).
 
         ``save_to_tmp_dir`` is a ``DaskSpectralCube``-only eager-materialisation control; the
         in-memory base class has no such parameter and would forward the unknown kwarg into
-        ``convolve_fft`` and error, so it is attached only on the dask path (a no-op otherwise)."""
+        ``convolve_fft`` and error, so it is attached only on the dask path (a no-op otherwise).
+        ``allow_huge``, unlike ``save_to_tmp_dir``, is a plain ``convolve_fft`` kwarg valid on both
+        backends, so it is forwarded unconditionally when requested (only when truthy, to leave the
+        default size guard intact)."""
         masked = self._masked_sc()
         kwargs = {"convolve": convolve_fft}
         if save_to_tmp_dir and isinstance(masked, DaskSpectralCube):
             kwargs["save_to_tmp_dir"] = True
+        if allow_huge:
+            kwargs["allow_huge"] = True
         return masked.convolve_to(beam, **kwargs)
 
     def _metadata_with_beam(self, beam) -> Metadata:
