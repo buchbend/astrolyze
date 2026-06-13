@@ -178,7 +178,12 @@ class Cube(ContextCarrier):
     # real science cube is full of source (ADR-0003). With no ``noise=`` the return is the bare
     # Cube exactly as in #31 (backward compatible).
     def convolve_to_beam(
-        self, beam: radio_beam.Beam, *, noise=None, save_to_tmp_dir: bool = False
+        self,
+        beam: radio_beam.Beam,
+        *,
+        noise=None,
+        save_to_tmp_dir: bool = False,
+        allow_huge: bool = False,
     ):
         """Smooth the cube spatially to a **larger** *beam* via spectral-cube ``convolve_to``.
 
@@ -197,9 +202,17 @@ class Cube(ContextCarrier):
         ``save_to_tmp_dir=True`` to compute it once to a temp directory (point ``TMPDIR`` at real
         disk, not tmpfs); on the in-memory FITS path the flag is a no-op. The **synchronous** dask
         scheduler also helps — set it caller-side via ``dask.config.set(scheduler="synchronous")``
-        (issue #51)."""
+        (issue #51).
+
+        ``convolve_fft`` enforces a hard size guard (``"Arrays will be N.NG"``) sized from the
+        kernel-padding estimate, which can fire even on a small spatial crop with a fine pixel
+        grid (a haloed beam-coarsen read on interferometer cubes); pass ``allow_huge=True`` to
+        override it. It defaults ``False`` (opt-in) so a genuinely huge array is never silently
+        materialised (issue #88)."""
         self._require_larger_beam(beam)
-        smoothed = self._convolve_to_fft(beam, save_to_tmp_dir=save_to_tmp_dir)
+        smoothed = self._convolve_to_fft(
+            beam, save_to_tmp_dir=save_to_tmp_dir, allow_huge=allow_huge
+        )
         _emit("convolve_to_beam", params={"beam": str(beam)})
         out = Cube(smoothed, self._metadata_with_beam(beam))
         if noise is None:
@@ -216,9 +229,10 @@ class Cube(ContextCarrier):
         :class:`LossyDirectionError` — ``spectral_bin`` only ever coarsens (ADR-0003).
 
         Returns a new :class:`Cube`; the spatial beam is unchanged and carried through. When a
-        :class:`~astrolyze.core.NoiseModel` is passed as ``noise``, it is propagated analytically
-        through the channel averaging (σ / √M_eff, M_eff from the stored ACF) and the return is
-        ``(cube, propagated_model)`` (issue #32)."""
+        :class:`~astrolyze.core.NoiseModel` is passed as ``noise``, its spectral axis is rebinned
+        onto the binned grid (block-averaged σ in quadrature through the stored ACF, σ_0 reduced by
+        √M_eff) so the σ companion stays paired voxel-for-voxel with the binned data, and the
+        return is ``(cube, propagated_model)`` (issues #32, #87)."""
         if not isinstance(factor, (int, np.integer)) or factor <= 1:
             raise LossyDirectionError(
                 f"spectral_bin only coarsens: factor must be an integer > 1, got {factor!r} "
@@ -231,7 +245,7 @@ class Cube(ContextCarrier):
             return out
         from .noise import propagate
 
-        return out, propagate(noise, spectral_factor=int(factor))
+        return out, propagate(noise, spectral_bin=int(factor))
 
     def spectral_smooth_to(self, width: u.Quantity, *, noise=None):
         """Smooth the spectral axis to a **broader** resolution *width* (a FWHM).
@@ -513,9 +527,47 @@ class Cube(ContextCarrier):
         return self.convolve_to_beam(beam, save_to_tmp_dir=save_to_tmp_dir)
 
     def _reproject_spatial_to(self, other: "Cube") -> "Cube":
-        """Reproject onto *other*'s spatial grid (a common grid), keeping our spectral axis."""
-        reprojected = self._masked_sc().reproject(other._sc.header)
+        """Reproject onto *other*'s spatial grid (a common grid), keeping our spectral axis.
+
+        The target WCS is other's CELESTIAL grid combined with our OWN spectral axis — not other's
+        full 3D header. Adopting other's spectral WCS too would make reproject resample our
+        spectral axis onto other's, which raises when the two differ in spectral type (FREQ vs
+        VELO); the line-ratio caller wants only the spatial grid aligned (issue #50)."""
+        target_header = self._reproject_target_header(other)
+        reprojected = self._masked_sc().reproject(target_header)
         return Cube(reprojected, self._metadata_with_beam(self.metadata.beam))
+
+    def _reproject_target_header(self, other: "Cube"):
+        """other's celestial grid + self's own spectral axis, as a reproject target header (#50)."""
+        # Start from OTHER's 3D WCS (its spatial grid) and overwrite ONLY the spectral axis with
+        # SELF's, so reproject regrids spatially but leaves our spectral axis identical.
+        target_wcs = other._sc.wcs.deepcopy()
+        spec_o = target_wcs.wcs.spec  # spectral axis index (WCS order) in other
+        self_w = self._sc.wcs.wcs
+        spec_s = self_w.spec  # ... and in self
+        for attr in ("ctype", "cunit", "crval", "crpix", "cdelt"):
+            getattr(target_wcs.wcs, attr)[spec_o] = getattr(self_w, attr)[spec_s]
+        # If the target WCS carries a CD matrix, cdelt is ignored; copy self's spectral scale onto
+        # the CD diagonal and zero the spectral cross-terms (these radio cubes are separable).
+        if target_wcs.wcs.has_cd():
+            self_scale = (
+                self_w.cd[spec_s, spec_s] if self_w.has_cd() else self_w.cdelt[spec_s]
+            )
+            target_wcs.wcs.cd[spec_o, :] = 0.0
+            target_wcs.wcs.cd[:, spec_o] = 0.0
+            target_wcs.wcs.cd[spec_o, spec_o] = self_scale
+        target_wcs.wcs.restfrq = self_w.restfrq
+        target_wcs.wcs.restwav = self_w.restwav
+        if self_w.specsys:
+            target_wcs.wcs.specsys = self_w.specsys
+        header = target_wcs.to_header()
+        # reproject reads the output shape from NAXIS*: other's spatial extent, self's channels.
+        nz = self._sc.shape[0]
+        ny, nx = other._sc.shape[1], other._sc.shape[2]
+        header["WCSAXES"] = 3
+        header["NAXIS"] = 3
+        header["NAXIS1"], header["NAXIS2"], header["NAXIS3"] = nx, ny, nz
+        return header
 
     def _channel_width(self) -> u.Quantity:
         """The native spectral channel width (a positive Quantity in the axis' units)."""
@@ -534,7 +586,11 @@ class Cube(ContextCarrier):
         return sc
 
     def _convolve_to_fft(
-        self, beam: radio_beam.Beam, *, save_to_tmp_dir: bool = False
+        self,
+        beam: radio_beam.Beam,
+        *,
+        save_to_tmp_dir: bool = False,
+        allow_huge: bool = False,
     ) -> SpectralCube:
         """Spatial convolution forced onto the FFT path (issue #51).
 
@@ -542,15 +598,22 @@ class Cube(ContextCarrier):
         ``convolve_fft``, ``DaskSpectralCube`` to the ~65x slower direct ``convolve``. A Zarr-backed
         cube (#23) is dask-backed and so silently took the direct default. We pass ``convolve_fft``
         explicitly so the backend's default can't pick direct; FFT is bit-identical here, not an
-        approximation. spectral-cube auto-sets ``allow_huge`` for the dask FFT path.
+        approximation. ``convolve_fft``'s hard size guard still fires on the dask path (issue #88's
+        repro), so the caller can force ``allow_huge`` explicitly via :meth:`convolve_to_beam`'s
+        threaded parameter (default off).
 
         ``save_to_tmp_dir`` is a ``DaskSpectralCube``-only eager-materialisation control; the
         in-memory base class has no such parameter and would forward the unknown kwarg into
-        ``convolve_fft`` and error, so it is attached only on the dask path (a no-op otherwise)."""
+        ``convolve_fft`` and error, so it is attached only on the dask path (a no-op otherwise).
+        ``allow_huge``, unlike ``save_to_tmp_dir``, is a plain ``convolve_fft`` kwarg valid on both
+        backends, so it is forwarded unconditionally when requested (only when truthy, to leave the
+        default size guard intact)."""
         masked = self._masked_sc()
         kwargs = {"convolve": convolve_fft}
         if save_to_tmp_dir and isinstance(masked, DaskSpectralCube):
             kwargs["save_to_tmp_dir"] = True
+        if allow_huge:
+            kwargs["allow_huge"] = True
         return masked.convolve_to(beam, **kwargs)
 
     def _metadata_with_beam(self, beam) -> Metadata:

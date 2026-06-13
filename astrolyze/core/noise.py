@@ -827,11 +827,146 @@ def _scaled_representation(rep, factor: float):
     )
 
 
+# -- spectral rebin (issue #87): rebin the noise spectral axis onto the binned data grid -----
+# spectral_factor is variance-only (smoothing keeps the channel grid); spectral_bin instead
+# coarsens the spectral axis to match a k-channel averaging of the DATA so the σ companion stays
+# paired voxel-for-voxel with the binned cube. The block structure mirrors spectral-cube's
+# downsample_axis(k, axis=0) (truncate=False): contiguous k-channel blocks with a trailing
+# PARTIAL block, so nz_out = ceil(N/k). The σ-level reduction follows the same σ/√M_eff law the
+# spectral_factor path uses (the variance-of-the-mean result through the stored ACF); per-channel
+# σ is rebinned in quadrature through the same normalised ACF ρ.
+
+
+def _block_bounds(n: int, k: int):
+    """The [start, stop) channel index pairs of an ``k``-channel binning of ``n`` channels.
+
+    Contiguous blocks of ``k`` with a trailing partial block (truncate=False) — matches
+    spectral-cube's ``downsample_axis`` exactly, including the remainder block for non-divisors."""
+    starts = np.arange(0, n, k)
+    return [(int(s), int(min(s + k, n))) for s in starts]
+
+
+def _normalised_acf(acf: np.ndarray) -> np.ndarray:
+    """The stored ACF normalised to ρ(0)=1; empty/degenerate -> a white spike ``[1.0]``."""
+    acf = np.asarray(acf, dtype="float64")
+    if acf.size == 0 or not np.isfinite(acf[0]) or acf[0] == 0.0:
+        return np.array([1.0])
+    return acf / acf[0]
+
+
+def _rho_at(rho: np.ndarray, lag: int) -> float:
+    """ρ at integer ``lag``; symmetric (ρ(-l)=ρ(l)), zero beyond the stored length."""
+    lag = abs(int(lag))
+    if lag < rho.size:
+        v = float(rho[lag])
+        return v if np.isfinite(v) else 0.0
+    return 0.0
+
+
+def _block_quadrature(sigma: np.ndarray, rho: np.ndarray, lo: int, hi: int) -> float:
+    """The block-averaged σ over channels ``[lo:hi)``: ``sqrt((1/m²) ΣΣ σ_p σ_q ρ(|p-q|))``.
+
+    The variance-of-the-block-mean through the noise correlation ρ. White noise (ρ=δ) collapses
+    to rms/√m -> σ/√k for a full block of equal σ; correlation raises it (fewer independent
+    samples), so this is the exact per-channel analogue of σ/√M_eff (issue #87)."""
+    idx = np.arange(lo, hi)
+    m = idx.size
+    if m == 0:
+        return 0.0
+    s = sigma[idx]
+    # Lag matrix |p-q| over the block; ρ(|p-q|) via the symmetric, zero-padded lookup.
+    lag = np.abs(idx[:, None] - idx[None, :])
+    rho_mat = np.array([[_rho_at(rho, int(lg)) for lg in row] for row in lag])
+    var = float((s[:, None] * s[None, :] * rho_mat).sum()) / (m * m)
+    return float(np.sqrt(var)) if var > 0.0 else 0.0
+
+
+def _rebin_sigma_v(sigma_v: np.ndarray, rho: np.ndarray, k: int) -> np.ndarray:
+    """Rebin the 1D per-channel σ (length N -> ceil(N/k)) by the block quadrature above."""
+    sigma_v = np.asarray(sigma_v, dtype="float64")
+    bounds = _block_bounds(sigma_v.size, k)
+    return np.array([_block_quadrature(sigma_v, rho, lo, hi) for lo, hi in bounds])
+
+
+def _rebin_sigma_field(sigma_field: np.ndarray, rho: np.ndarray, k: int) -> np.ndarray:
+    """Rebin the full 3D σ field along the spectral axis (nz -> ceil(nz/k)) per spatial pixel."""
+    sigma_field = np.asarray(sigma_field, dtype="float64")
+    nz, ny, nx = sigma_field.shape
+    bounds = _block_bounds(nz, k)
+    out = np.empty((len(bounds), ny, nx))
+    for j, (lo, hi) in enumerate(bounds):
+        m = hi - lo
+        block = sigma_field[lo:hi]  # (m, ny, nx)
+        idx = np.arange(lo, hi)
+        lag = np.abs(idx[:, None] - idx[None, :])
+        rho_mat = np.array([[_rho_at(rho, int(lg)) for lg in row] for row in lag])
+        # ΣΣ σ_p σ_q ρ(|p-q|) per pixel via the (m,m) ρ contraction over the two block axes.
+        var = np.einsum("pyx,qyx,pq->yx", block, block, rho_mat) / (m * m)
+        out[j] = np.sqrt(np.where(var > 0.0, var, 0.0))
+    return out
+
+
+def _coarse_acf(acf: np.ndarray, k: int, nz_out: int) -> np.ndarray:
+    """The ACF of the binned noise (length ``nz_out``) from the fine ACF and bin factor ``k``.
+
+    A k-channel block average is a triangular (Bartlett) filter on the channel grid; the binned
+    autocovariance at coarse lag L is the fine autocovariance summed against the overlap weight
+    ``W(δ)=k-|δ|`` over the fine lags spanned by that coarse lag. Normalising by the L=0 sum gives
+    ρ_out(0)=1. White noise -> a spike at 0. Degenerate normalisation -> white fallback (#87)."""
+    rho = _normalised_acf(acf)
+    deltas = np.arange(-(k - 1), k)
+    weights = k - np.abs(deltas)
+    ndenom = float(
+        sum(_rho_at(rho, int(d)) * float(w) for d, w in zip(deltas, weights))
+    )
+    out = np.zeros(int(nz_out))
+    if not np.isfinite(ndenom) or ndenom <= 0.0:
+        out[0] = 1.0
+        return out
+    for L in range(int(nz_out)):
+        nnum = sum(
+            float(w) * _rho_at(rho, int(L * k + d)) for d, w in zip(deltas, weights)
+        )
+        out[L] = nnum / ndenom
+    return out
+
+
+def _rebinned_representation(rep, k: int, r: float):
+    """Rebin *rep* onto a ``k``-channel-binned spectral grid (issue #87).
+
+    σ_v is rebinned in quadrature through the normalised ACF; σ_xy and the scalar take the same
+    global √M_eff level reduction ``r`` the variance-only path applies (so the reconstruct ratio
+    σ_xy/σ_0 — hence sigma_cube — is preserved); the ACF is re-derived on the coarse grid. For the
+    full (non-separable) case the dense σ field is block-rebinned per pixel as well."""
+    from dataclasses import replace
+
+    rho = _normalised_acf(rep.acf)
+    sigma_v_out = _rebin_sigma_v(rep.sigma_v, rho, k)
+    acf_out = _coarse_acf(rep.acf, k, sigma_v_out.size)
+    if isinstance(rep, SeparableNoise):
+        return replace(
+            rep,
+            sigma_xy=np.asarray(rep.sigma_xy) * r,
+            sigma_v=sigma_v_out,
+            scalar=float(rep.scalar) * r,
+            acf=acf_out,
+        )
+    return replace(
+        rep,
+        sigma_field=_rebin_sigma_field(rep.sigma_field, rho, k),
+        sigma_xy=np.asarray(rep.sigma_xy) * r,
+        sigma_v=sigma_v_out,
+        scalar=float(rep.scalar) * r,
+        acf=acf_out,
+    )
+
+
 def propagate(
     model: NoiseModel,
     *,
     beam_out=None,
     spectral_factor: int | None = None,
+    spectral_bin: int | None = None,
     per_channel_beam: bool = False,
 ) -> NoiseModel:
     """Propagate *model* through a matching op analytically; return a new :class:`NoiseModel`.
@@ -842,19 +977,39 @@ def propagate(
 
     - **spatial** (``beam_out``) — σ × ``√(Ω_corr,in / Ω_out)`` with the correlation area the
       **beam** solid angle (not the pixel area); the new beam is recorded as context;
-    - **spectral** (``spectral_factor`` M) — σ ÷ ``√M_eff`` with ``M_eff = M²/Σρ`` from the
-      stored ACF (the naive σ/√M only when the noise is white).
+    - **spectral, variance-only** (``spectral_factor`` M) — σ ÷ ``√M_eff`` with ``M_eff = M²/Σρ``
+      from the stored ACF (the naive σ/√M only when the noise is white). The channel grid is
+      UNCHANGED — this is the smoothing path (:meth:`Cube.spectral_smooth_to`);
+    - **spectral, rebinning** (``spectral_bin`` k) — REBINS the noise spectral axis onto a
+      k-channel binning of the data (:meth:`Cube.spectral_bin`, issue #87). σ_v is block-averaged
+      in quadrature through the ACF and the axis coarsens to ceil(N/k) channels; σ_xy / σ_0 take
+      the same √M_eff level reduction; the ACF is re-derived on the coarse grid. Distinct from
+      ``spectral_factor`` (which never changes the channel count) — the two must not be conflated.
 
     The result carries :data:`NoiseQuality.PROPAGATED`. It degrades to
     :data:`NoiseQuality.APPROXIMATE` (no silent physics) when the single-kernel / stationary
     assumption breaks: a *per-channel beam* (``per_channel_beam=True``) or a non-stationary
     source model (a full-3D, non-separable input — propagated as a uniform rescale, which is only
     approximate). Re-estimation is **never** invoked here — that is :func:`reestimate`."""
-    if beam_out is None and spectral_factor is None:
+    if beam_out is None and spectral_factor is None and spectral_bin is None:
         raise ValueError(
-            "propagate() needs a geometry to propagate through: pass beam_out (spatial) "
-            "and/or spectral_factor (spectral). With neither there is nothing to propagate "
-            "(astrolyze does not silently return the input model unchanged, ADR-0003)."
+            "propagate() needs a geometry to propagate through: pass beam_out (spatial), "
+            "spectral_factor (spectral, variance-only), and/or spectral_bin (spectral rebin). "
+            "With none there is nothing to propagate (astrolyze does not silently return the "
+            "input model unchanged, ADR-0003)."
+        )
+    if spectral_bin is not None and spectral_factor is not None:
+        raise ValueError(
+            "propagate() got both spectral_bin and spectral_factor: they are different spectral "
+            "ops — spectral_factor is a variance-only rescale (smoothing keeps the channel grid), "
+            "spectral_bin rebins the spectral axis (#87). Pass one, not both."
+        )
+    if spectral_bin is not None and (
+        not isinstance(spectral_bin, (int, np.integer)) or int(spectral_bin) < 2
+    ):
+        raise ValueError(
+            f"propagate(spectral_bin=...) must be an integer >= 2, got {spectral_bin!r} "
+            "(factor 1 is a no-op, < 1 invalid — mirrors Cube.spectral_bin's guard)."
         )
 
     rep = model._rep
@@ -865,10 +1020,27 @@ def propagate(
     if spectral_factor is not None:
         m_eff = _m_eff(np.asarray(model._rep.acf, dtype="float64"), spectral_factor)
         rep = _scaled_representation(rep, 1.0 / float(np.sqrt(m_eff)))
+    if spectral_bin is not None:
+        k = int(spectral_bin)
+        # Same global √M_eff level reduction the variance-only path applies, so the scalar lands
+        # at σ_0/√M_eff and the reconstruct ratio σ_xy/σ_0 (hence sigma_cube) is preserved (#87).
+        r = 1.0 / float(np.sqrt(_m_eff(np.asarray(rep.acf, dtype="float64"), k)))
+        rep = _rebinned_representation(rep, k, r)
 
     quality = NoiseQuality.APPROXIMATE if approximate else NoiseQuality.PROPAGATED
     new_cube = model._cube
-    if beam_out is not None:
+    new_beam = beam_out if beam_out is not None else model.beam
+    if spectral_bin is not None:
+        # Downsample the parent cube through the SAME spectral-cube call the data binning uses, so
+        # the returned model's coarse spectral axis / WCS / channel count match the binned data
+        # EXACTLY (trailing partial block included) — the model's sigma_spectrum/sigma_cube build
+        # off this cube's axis, so it must already be the coarse grid (#87). Lazy import keeps the
+        # core import order clean (cube imports noise).
+        from .cube import Cube
+
+        binned_sc = model._cube._masked_sc().downsample_axis(int(spectral_bin), axis=0)
+        new_cube = Cube(binned_sc, model._cube._metadata_with_beam(new_beam))
+    elif beam_out is not None:
         # Carry the new beam onto the model's parent cube so the propagated products report the
         # post-match resolution. Lazy import keeps core import order clean (cube imports noise).
         from .cube import Cube
@@ -879,6 +1051,7 @@ def propagate(
         params={
             "beam_out": str(beam_out) if beam_out is not None else None,
             "spectral_factor": spectral_factor,
+            "spectral_bin": spectral_bin,
             "quality": quality.value,
         },
     )

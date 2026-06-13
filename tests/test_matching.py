@@ -216,6 +216,65 @@ def test_convolve_to_beam_ignores_save_to_tmp_dir_on_eager(cube):
 
 
 # --------------------------------------------------------------------------------------
+# convolve_to_beam: allow_huge threads through to convolve_fft's size guard (issue #88)
+#
+# convolve_fft refuses to allocate kernels above a hard "Arrays will be N.NG" size. allow_huge=True
+# is the explicit caller lever that overrides that guard; it must thread down through convolve_to
+# into convolve_fft. Default False must never inject it — today's behaviour, backward compatible.
+# --------------------------------------------------------------------------------------
+def test_convolve_to_beam_threads_allow_huge(cube, monkeypatch):
+    # allow_huge is the lever that overrides convolve_fft's hard size guard (issue #88): when the
+    # caller asks for it, astrolyze must forward it through convolve_to into convolve_fft.
+    from spectral_cube import SpectralCube
+
+    captured = {}
+    real = SpectralCube.convolve_to
+
+    def spy(self, beam, *args, **kwargs):
+        captured["kwargs"] = kwargs
+        return real(self, beam, *args, **kwargs)
+
+    monkeypatch.setattr(SpectralCube, "convolve_to", spy)
+    cube.convolve_to_beam(LARGER_BEAM, allow_huge=True)
+    assert captured["kwargs"].get("allow_huge") is True
+
+
+def test_convolve_to_beam_threads_allow_huge_on_dask(tmp_path, monkeypatch):
+    # The big-cube case lives on the dask path; allow_huge must reach the dask convolve_to too
+    # (overriding convolve_fft's size guard is exactly the lever a huge Zarr cube needs, issue #88).
+    from spectral_cube import DaskSpectralCube
+
+    cube = _make_dask_cube(tmp_path)
+    captured = {}
+    real = DaskSpectralCube.convolve_to
+
+    def spy(self, beam, *args, **kwargs):
+        captured["kwargs"] = kwargs
+        return real(self, beam, *args, **kwargs)
+
+    monkeypatch.setattr(DaskSpectralCube, "convolve_to", spy)
+    cube.convolve_to_beam(LARGER_BEAM, allow_huge=True)
+    assert captured["kwargs"].get("allow_huge") is True
+
+
+def test_convolve_to_beam_defaults_no_allow_huge(cube, monkeypatch):
+    # Regression guard: without allow_huge, astrolyze must NOT inject it into convolve_to's kwargs.
+    # Default False == today's behaviour, so existing callers keep convolve_fft's size guard intact.
+    from spectral_cube import SpectralCube
+
+    captured = {}
+    real = SpectralCube.convolve_to
+
+    def spy(self, beam, *args, **kwargs):
+        captured["kwargs"] = kwargs
+        return real(self, beam, *args, **kwargs)
+
+    monkeypatch.setattr(SpectralCube, "convolve_to", spy)
+    cube.convolve_to_beam(LARGER_BEAM)
+    assert "allow_huge" not in captured["kwargs"]
+
+
+# --------------------------------------------------------------------------------------
 # convolve_to_beam: the REFUSED direction (a smaller / deconvolving target) raises
 # --------------------------------------------------------------------------------------
 def test_convolve_to_smaller_beam_raises_clear_named_error(cube):
@@ -329,6 +388,57 @@ def test_match_to_reprojects_to_common_grid_when_asked(tmp_path):
     assert matched_a.shape[1:] == matched_b.shape[1:] == b.shape[1:]
     # and still a common beam.
     assert u.isclose(matched_a.beam.major, matched_b.beam.major, rtol=1e-6)
+
+
+def _make_freq_cube(
+    tmp_path, name="freq.fits", nspec=8, nx=5, ny=5, crval1=24.174, crval2=15.784
+):
+    """The FREQ-axis cube for the FREQ<->VELO cross-survey reproject case (issue #50)."""
+    from astrolyze.io import load
+
+    h = fits.Header()
+    h["CTYPE1"], h["CRVAL1"] = "RA---SIN", crval1
+    h["CDELT1"], h["CRPIX1"], h["CUNIT1"] = -2e-4, 1.0, "deg"
+    h["CTYPE2"], h["CRVAL2"] = "DEC--SIN", crval2
+    h["CDELT2"], h["CRPIX2"], h["CUNIT2"] = 2e-4, 1.0, "deg"
+    h["CTYPE3"], h["CRVAL3"] = "FREQ", REST.to_value(u.Hz)
+    h["CDELT3"], h["CRPIX3"], h["CUNIT3"] = 1e6, 1.0, "Hz"
+    h["OBJECT"] = "NGC0628"
+    h["TELESCOP"] = "ALMA"
+    h["BUNIT"] = "Jy/beam"
+    h["RESTFRQ"] = (REST.to_value(u.Hz), "Hz")
+    for k, v in BEAM.to_header_keywords().items():
+        h[k] = v
+    h["HIERARCH ASTROLYZE VCONV"] = "radio"
+    h["HIERARCH ASTROLYZE SPECIES"] = "CO21"
+
+    path = tmp_path / name
+    data = np.ones((nspec, ny, nx), dtype="float32")
+    fits.writeto(path, data, h)
+    return Cube.from_loaded(load(path))
+
+
+def test_match_to_reproject_across_freq_and_velo_spectral_types(tmp_path):
+    # Cross-survey case: a FREQ-axis interferometer cube reprojected onto a VELO/VRAD single-dish
+    # cube. Previously this raised "spectral coordinate types are not equivalent" because the
+    # reproject adopted other's full 3D (VELO) header instead of self's own spectral WCS (#50).
+    freq = _make_freq_cube(tmp_path, name="freq.fits", nx=5, ny=5)  # self, FREQ axis
+    # other, VRAD axis, on a shifted + larger grid so the reproject is real (not a no-op).
+    velo = _make_cube(
+        tmp_path, name="velo.fits", nx=7, ny=7, crval1=24.1744, crval2=15.7844
+    )
+
+    matched_self, matched_other = freq.match_to(velo, reproject=True)  # must NOT raise
+    # self landed on other's spatial grid (a common grid).
+    assert matched_self.shape[1:] == matched_other.shape[1:] == velo.shape[1:]
+    # but self kept its OWN spectral axis — only the spatial grid changed, the FREQ axis is left
+    # untouched (length and values).
+    assert matched_self.shape[0] == freq.shape[0]
+    np.testing.assert_allclose(
+        matched_self.spectral_axis.to_value(u.Hz),
+        freq.spectral_axis.to_value(u.Hz),
+        rtol=1e-9,
+    )
 
 
 # --------------------------------------------------------------------------------------
