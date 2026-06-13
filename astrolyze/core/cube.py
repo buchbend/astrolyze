@@ -229,9 +229,10 @@ class Cube(ContextCarrier):
         :class:`LossyDirectionError` — ``spectral_bin`` only ever coarsens (ADR-0003).
 
         Returns a new :class:`Cube`; the spatial beam is unchanged and carried through. When a
-        :class:`~astrolyze.core.NoiseModel` is passed as ``noise``, it is propagated analytically
-        through the channel averaging (σ / √M_eff, M_eff from the stored ACF) and the return is
-        ``(cube, propagated_model)`` (issue #32)."""
+        :class:`~astrolyze.core.NoiseModel` is passed as ``noise``, its spectral axis is rebinned
+        onto the binned grid (block-averaged σ in quadrature through the stored ACF, σ_0 reduced by
+        √M_eff) so the σ companion stays paired voxel-for-voxel with the binned data, and the
+        return is ``(cube, propagated_model)`` (issues #32, #87)."""
         if not isinstance(factor, (int, np.integer)) or factor <= 1:
             raise LossyDirectionError(
                 f"spectral_bin only coarsens: factor must be an integer > 1, got {factor!r} "
@@ -244,7 +245,7 @@ class Cube(ContextCarrier):
             return out
         from .noise import propagate
 
-        return out, propagate(noise, spectral_factor=int(factor))
+        return out, propagate(noise, spectral_bin=int(factor))
 
     def spectral_smooth_to(self, width: u.Quantity, *, noise=None):
         """Smooth the spectral axis to a **broader** resolution *width* (a FWHM).

@@ -176,6 +176,75 @@ def test_spectral_propagation_uses_m_eff_not_naive_sqrt_m():
 
 
 # --------------------------------------------------------------------------------------
+# AC: spectral binning rebins the noise spectral axis to match the data (#87)
+# --------------------------------------------------------------------------------------
+def test_spectral_bin_rebins_noise_axis_to_match_data(noise_cube):
+    # The σ companion must be paired voxel-for-voxel with the binned data — the bug is that
+    # propagate() kept N channels (variance-only rescale), so after spectral_bin(k) the data had
+    # N/k channels but the noise still had N. Rebinning the noise spectral axis fixes the pairing.
+    model = noise_cube.estimate_noise()
+    out_cube, out_model = noise_cube.spectral_bin(2, noise=model)
+    assert out_model.sigma_spectrum.flux.size == out_cube.shape[0]
+    assert out_model.sigma_cube.shape == out_cube.shape
+
+
+def test_spectral_bin_pairing_holds_for_non_divisor_factor(noise_cube):
+    # 160 is not divisible by 3: the rebin must match spectral-cube's downsample channel count
+    # EXACTLY (remainder included), not a naive N // k, or the pairing breaks for odd factors.
+    model = noise_cube.estimate_noise()
+    out_cube, out_model = noise_cube.spectral_bin(3, noise=model)
+    assert out_model.sigma_spectrum.flux.size == out_cube.shape[0]
+
+
+def test_propagate_spectral_bin_returns_coarse_sigma_v(noise_cube):
+    # The direct propagate() API: the new keyword-only spectral_bin rebins the stored σ_v profile
+    # onto the coarse grid (160 -> 80). Fails today with TypeError: unexpected keyword 'spectral_bin'.
+    model = noise_cube.estimate_noise()
+    propagated = noise_mod.propagate(model, spectral_bin=2)
+    assert (
+        np.asarray(propagated._rep.sigma_v).size
+        == np.asarray(model._rep.sigma_v).size // 2
+    )
+    assert isinstance(propagated, NoiseModel)
+
+
+def test_spectral_bin_white_noise_recovers_sigma_over_sqrt_k(noise_cube):
+    # Physics oracle on white noise: block-averaging k channels lowers σ by √k. Every coarse
+    # channel must land at SIGMA/√k.
+    model = noise_cube.estimate_noise()
+    k = 4
+    out_cube, out_model = noise_cube.spectral_bin(k, noise=model)
+    sv = out_model.sigma_spectrum.flux.to_value(u.K)
+    # the σ_v profile is on the BINNED axis (one σ per coarse channel), not the original 160.
+    assert sv.size == out_cube.shape[0]
+    assert np.allclose(sv, SIGMA / np.sqrt(k), rtol=0.15)
+    # cross-check: re-estimating σ from the binned data (the mad_std oracle) agrees.
+    oracle = noise_mod.reestimate(out_cube).sigma_spectrum.flux.to_value(u.K)
+    assert np.nanmedian(sv) == pytest.approx(np.nanmedian(oracle), rel=0.15)
+
+
+def test_spectral_bin_white_acf_stays_white(noise_cube):
+    # The coarse ACF is re-derived on the binned grid: binning white noise leaves it ~white, so
+    # the ACF is a spike at lag 0 with near-zero side lobes.
+    model = noise_cube.estimate_noise()
+    propagated = noise_mod.propagate(model, spectral_bin=4)
+    acf = np.asarray(propagated._rep.acf, dtype=float)
+    assert acf[0] == pytest.approx(1.0, rel=1e-9)
+    assert np.all(np.abs(acf[1:5]) < 0.2)
+
+
+def test_spectral_factor_stays_variance_only_no_rebin(noise_cube):
+    # BACKWARD-COMPAT GUARD (passes today, must keep passing): spectral_factor is the
+    # smoothing/variance-only path — spectral_smooth_to keeps the channel grid; only the new
+    # spectral_bin rebins. The two must not be conflated, so the channel count is UNCHANGED.
+    model = noise_cube.estimate_noise()
+    propagated = noise_mod.propagate(model, spectral_factor=4)
+    assert (
+        np.asarray(propagated._rep.sigma_v).size == np.asarray(model._rep.sigma_v).size
+    )
+
+
+# --------------------------------------------------------------------------------------
 # AC: the propagated model carries PROPAGATED (→ APPROXIMATE when assumptions break)
 # --------------------------------------------------------------------------------------
 def test_propagated_model_is_flagged_propagated(noise_cube):
