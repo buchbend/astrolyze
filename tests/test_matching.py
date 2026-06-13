@@ -216,6 +216,65 @@ def test_convolve_to_beam_ignores_save_to_tmp_dir_on_eager(cube):
 
 
 # --------------------------------------------------------------------------------------
+# convolve_to_beam: allow_huge threads through to convolve_fft's size guard (issue #88)
+#
+# convolve_fft refuses to allocate kernels above a hard "Arrays will be N.NG" size. allow_huge=True
+# is the explicit caller lever that overrides that guard; it must thread down through convolve_to
+# into convolve_fft. Default False must never inject it — today's behaviour, backward compatible.
+# --------------------------------------------------------------------------------------
+def test_convolve_to_beam_threads_allow_huge(cube, monkeypatch):
+    # allow_huge is the lever that overrides convolve_fft's hard size guard (issue #88): when the
+    # caller asks for it, astrolyze must forward it through convolve_to into convolve_fft.
+    from spectral_cube import SpectralCube
+
+    captured = {}
+    real = SpectralCube.convolve_to
+
+    def spy(self, beam, *args, **kwargs):
+        captured["kwargs"] = kwargs
+        return real(self, beam, *args, **kwargs)
+
+    monkeypatch.setattr(SpectralCube, "convolve_to", spy)
+    cube.convolve_to_beam(LARGER_BEAM, allow_huge=True)
+    assert captured["kwargs"].get("allow_huge") is True
+
+
+def test_convolve_to_beam_threads_allow_huge_on_dask(tmp_path, monkeypatch):
+    # The big-cube case lives on the dask path; allow_huge must reach the dask convolve_to too
+    # (overriding convolve_fft's size guard is exactly the lever a huge Zarr cube needs, issue #88).
+    from spectral_cube import DaskSpectralCube
+
+    cube = _make_dask_cube(tmp_path)
+    captured = {}
+    real = DaskSpectralCube.convolve_to
+
+    def spy(self, beam, *args, **kwargs):
+        captured["kwargs"] = kwargs
+        return real(self, beam, *args, **kwargs)
+
+    monkeypatch.setattr(DaskSpectralCube, "convolve_to", spy)
+    cube.convolve_to_beam(LARGER_BEAM, allow_huge=True)
+    assert captured["kwargs"].get("allow_huge") is True
+
+
+def test_convolve_to_beam_defaults_no_allow_huge(cube, monkeypatch):
+    # Regression guard: without allow_huge, astrolyze must NOT inject it into convolve_to's kwargs.
+    # Default False == today's behaviour, so existing callers keep convolve_fft's size guard intact.
+    from spectral_cube import SpectralCube
+
+    captured = {}
+    real = SpectralCube.convolve_to
+
+    def spy(self, beam, *args, **kwargs):
+        captured["kwargs"] = kwargs
+        return real(self, beam, *args, **kwargs)
+
+    monkeypatch.setattr(SpectralCube, "convolve_to", spy)
+    cube.convolve_to_beam(LARGER_BEAM)
+    assert "allow_huge" not in captured["kwargs"]
+
+
+# --------------------------------------------------------------------------------------
 # convolve_to_beam: the REFUSED direction (a smaller / deconvolving target) raises
 # --------------------------------------------------------------------------------------
 def test_convolve_to_smaller_beam_raises_clear_named_error(cube):
