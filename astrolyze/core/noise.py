@@ -30,6 +30,7 @@ version as provenance (the heavy lifting is in :mod:`astrolyze.io.zarr_backend`)
 from __future__ import annotations
 
 import enum
+import warnings
 from dataclasses import dataclass
 from typing import Callable
 
@@ -1060,6 +1061,126 @@ def propagate(
     )
 
 
+# -- velocity-grid interpolation propagation (issue #82): σ through a spectral regrid -----------
+# The stacking alignment step :meth:`Stack.to_velocity_grid` interpolates each member onto one
+# shared velocity grid (via :meth:`Cube.to_velocity_grid`); the σ companion must ride the SAME
+# resampling so the noise-weighted coadd weights on the post-alignment σ, not the as-published one.
+# Unlike beam/bin propagation (a uniform level rescale), an interpolation onto an arbitrary grid
+# REDISTRIBUTES variance per output channel, so the law is the linear-interpolation weight matrix
+# applied to the variance: each output channel j is the linear interpolation Σ_k W[j,k]·d_k of its
+# bracketing input channels, so under channel-independent noise its variance is Σ_k W[j,k]²·σ_k².
+# This is EXACT for the published-noise companion (white in channels, ACF = spike); spectral
+# channel-to-channel correlation would add cross terms (an acknowledged approximation). An output
+# channel outside the input's native coverage — or interpolated through a NaN input channel — is
+# "not observed" and carries NaN σ (zero weight in the coadd), exactly mirroring the data regrid.
+
+
+def _linear_interp_weights(src: np.ndarray, dst: np.ndarray) -> np.ndarray:
+    """The linear-interpolation weight matrix ``W`` mapping *src* samples to *dst* (no extrapolation).
+
+    Row ``j`` holds the (at most two) weights of the input channels bracketing ``dst[j]``, summing
+    to 1; a ``dst[j]`` outside ``[min(src), max(src)]`` gets an all-zero row (it is not observed,
+    so the propagated σ there is NaN — the spectral analogue of the data regrid's ``fill_value=nan``,
+    never an extrapolated guess, ADR-0003). Mirrors the linear interpolation spectral-cube applies
+    to the data so the σ field rides the same resampling."""
+    src = np.asarray(src, dtype="float64")
+    dst = np.asarray(dst, dtype="float64")
+    n_src = src.size
+    order = np.argsort(src)  # tolerate a descending velocity axis (freq-derived grids)
+    s = src[order]
+    weights = np.zeros((dst.size, n_src), dtype="float64")
+    for j, x in enumerate(dst):
+        if not np.isfinite(x) or x < s[0] or x > s[-1]:
+            continue  # outside native coverage -> all-zero row -> NaN σ downstream
+        i = int(np.searchsorted(s, x))
+        if i == 0:  # x == s[0] (the left edge)
+            weights[j, order[0]] = 1.0
+            continue
+        lo, hi = i - 1, min(i, n_src - 1)
+        span = s[hi] - s[lo]
+        if hi == lo or span == 0.0:
+            weights[j, order[hi]] = 1.0
+            continue
+        t = (
+            x - s[lo]
+        ) / span  # x == s[hi] -> t == 1 -> all weight on the coincident channel
+        weights[j, order[lo]] = 1.0 - t
+        weights[j, order[hi]] = t
+    return weights
+
+
+def _full_representation_from_field(field: np.ndarray, acf: np.ndarray) -> FullNoise:
+    """A :class:`FullNoise` storing *field* verbatim so :attr:`NoiseModel.sigma_cube` is exact.
+
+    The interpolated σ field is not a uniform rescale of a separable input, so it is kept dense
+    (``FullNoise.reconstruct`` returns it unchanged). The σ_xy / σ_v / scalar *views* are
+    NaN-ignoring means of the field (used only by the model's summary products, not by the coadd,
+    which reconstructs the full field); the ACF is carried through unitless."""
+    field = np.asarray(field, dtype="float64")
+    with warnings.catch_warnings():
+        warnings.simplefilter(
+            "ignore", RuntimeWarning
+        )  # nanmean of an all-NaN channel -> NaN
+        sigma_xy = np.nanmean(field, axis=0)
+        sigma_v = np.nanmean(field.reshape(field.shape[0], -1), axis=1)
+        scalar = float(np.nanmean(field))
+    return FullNoise(
+        sigma_field=field,
+        sigma_xy=np.asarray(sigma_xy, dtype="float64"),
+        sigma_v=np.asarray(sigma_v, dtype="float64"),
+        scalar=scalar,
+        acf=np.asarray(acf, dtype="float64"),
+    )
+
+
+def propagate_velocity_grid(
+    model: NoiseModel, *, new_cube, src_velocity, dst_velocity
+) -> NoiseModel:
+    """Propagate *model* through a velocity-grid interpolation; return a new :class:`NoiseModel`.
+
+    The spectral-regrid analogue of :func:`propagate` (issue #82): the stored σ field is resampled
+    onto *dst_velocity* by the SAME linear interpolation the data uses, but in the **variance** —
+    output channel ``j``'s variance is ``Σ_k W[j,k]²·σ_k²`` with ``W`` the interpolation weights
+    (:func:`_linear_interp_weights`). Exact for channel-independent noise (the published-noise
+    companion); spectral correlation would add cross terms (an acknowledged approximation, so the
+    result is still flagged :data:`NoiseQuality.PROPAGATED` only where the data is). An output
+    channel outside native coverage, or drawing on a NaN input channel, carries NaN σ — it is not
+    observed and gets zero weight in the coadd, never an extrapolated value (ADR-0003).
+
+    *new_cube* is the already-regridded data cube (its WCS/axis/shape define the propagated model's
+    products); *src_velocity* / *dst_velocity* are the input and target velocity axes (km/s)."""
+    src = np.asarray(u.Quantity(src_velocity).to_value(u.km / u.s), dtype="float64")
+    dst = np.asarray(u.Quantity(dst_velocity).to_value(u.km / u.s), dtype="float64")
+    sigma_field = np.asarray(
+        model.sigma_cube._data_quantity.to_value(model.unit), dtype="float64"
+    )  # (nz_in, ny, nx)
+    weights = _linear_interp_weights(src, dst)  # (nz_out, nz_in)
+
+    finite = np.isfinite(sigma_field)
+    variance_in = np.where(finite, np.square(sigma_field), 0.0)
+    variance_out = np.einsum("js,syx->jyx", np.square(weights), variance_in)
+    # An output channel is unobserved if it brackets nothing (out of coverage) or draws on a NaN
+    # input channel (can't interpolate through a gap) -> NaN σ, mirroring the data regrid's NaNs.
+    contributes = (weights != 0.0).astype("float64")
+    drew_on_nan = (
+        np.einsum("js,syx->jyx", contributes, (~finite).astype("float64")) > 0.0
+    )
+    covered = (weights != 0.0).any(axis=1)
+    sigma_out = np.sqrt(variance_out)
+    sigma_out[~covered, :, :] = np.nan
+    sigma_out[drew_on_nan] = np.nan
+
+    rep = _full_representation_from_field(sigma_out, model._rep.acf)
+    _emit("noise.propagate_velocity_grid", params={"n": int(dst.size)})
+    return NoiseModel(
+        new_cube,
+        rep,
+        method=model.method,
+        quality=NoiseQuality.PROPAGATED,
+        version=model.version,
+    )
+
+
 def reestimate(cube) -> NoiseModel:
     """The validation oracle / non-stationary fallback: re-measure σ from *cube* via ``mad_std``.
 
@@ -1221,6 +1342,7 @@ __all__ = [
     "register_estimator",
     "available_estimators",
     "propagate",
+    "propagate_velocity_grid",
     "reestimate",
     "synthesize_correlated_noise",
     "NOISE_SCHEMA_VERSION",

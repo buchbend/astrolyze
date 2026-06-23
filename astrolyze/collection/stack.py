@@ -20,7 +20,8 @@ corpus snapshot.
 
 **Stage 2 (#65) — explicit alignment + homogeneity-gated co-addition.** On top of the stage-1
 container, this module adds the *physics* of stacking as **separate, explicit, auditable** steps,
-each a per-member broadcast over :meth:`Stack.map`:
+each a per-member operation that also threads the member's noise companion through its resampling
+(issue #82) so the noise-weighted coadd weights on the post-alignment σ:
 
 - :meth:`Stack.to_common_beam` — convolve every member to a common (largest) beam, reusing the
   existing convolution machinery (:meth:`Cube.convolve_to_beam`) and inheriting its
@@ -51,9 +52,11 @@ Design seams these stage-2 methods build on:
   report into a **hard precondition** (plus a spatial+spectral grid-compatibility check the
   categorical report does not cover).
 - **Per-member broadcast.** :meth:`Stack.map` applies a per-member ``Cube -> Cube`` operation
-  across the stack and returns a new Stack; the alignment methods (``to_common_beam`` /
-  ``to_velocity_grid`` / ``shift_to_rest``) are exactly such per-member operations and are
-  expressed over it.
+  across the stack and returns a new Stack — the generic broadcast primitive. The alignment methods
+  (``to_common_beam`` / ``to_velocity_grid`` / ``shift_to_rest``) are the same per-member shape but
+  also **thread each member's noise companion** through their resampling (a ``(Cube, NoiseModel) ->
+  (Cube, NoiseModel)`` step), so the post-alignment σ is what the noise-weighted ``coadd`` weights on
+  (issue #82); they are dedicated per-member helpers rather than thin ``map`` calls for that reason.
 """
 
 from __future__ import annotations
@@ -64,7 +67,7 @@ from typing import TYPE_CHECKING, Callable
 if TYPE_CHECKING:
     from astropy.coordinates import SkyCoord
 
-    from astrolyze.core import Cube
+    from astrolyze.core import Cube, NoiseModel
 
     from ._facade import Record
 
@@ -99,6 +102,23 @@ class StackMember:
     species: str | None
     transition: str | None
     record: "Record | None" = field(default=None, repr=False)
+    #: The member's noise companion **at its current alignment state** (issue #82). ``None`` until
+    #: an alignment step resolves it; the alignment methods (``to_common_beam`` / ``to_velocity_grid``
+    #: / ``shift_to_rest``) thread the σ through their resampling and attach the propagated model so
+    #: the noise-weighted :meth:`Stack.coadd` weights on the **post-alignment** σ, not the
+    #: as-published one. A member with no loadable companion keeps ``None`` (coadd's noise path then
+    #: re-loads the as-published companion, or raises when none exists).
+    noise: "NoiseModel | None" = field(default=None, repr=False)
+
+    def _aligned(self, cube: "Cube", noise: "NoiseModel | None") -> "StackMember":
+        """A copy of this member with its cube + propagated noise swapped (identity preserved).
+
+        The per-member result shape of an alignment step: only the resampled ``cube`` and its
+        propagated ``noise`` change; object / survey / species / transition / record (the identity
+        :meth:`Stack.map` also preserves) ride through unchanged."""
+        from dataclasses import replace
+
+        return replace(self, cube=cube, noise=noise)
 
     @property
     def beam(self):
@@ -284,16 +304,18 @@ class Stack:
     def map(self, fn: Callable[["Cube"], "Cube"]) -> "Stack":
         """Apply *fn* to every member cube; return a new :class:`Stack` of the results.
 
-        The broadcast primitive (PRD #56 stage-1 "broadcasting per-member operations"): *fn* is a
-        ``Cube -> Cube`` callable applied to each member's cutout in turn, and the results form a
-        new Stack with each member's **identity preserved** (only the cube is replaced). The
-        selection provenance is carried through unchanged.
+        The generic broadcast primitive (PRD #56 stage-1 "broadcasting per-member operations"):
+        *fn* is a ``Cube -> Cube`` callable applied to each member's cutout in turn, and the results
+        form a new Stack with each member's **identity preserved** (only the cube is replaced). The
+        selection provenance is carried through unchanged. Any attached noise companion is **dropped**
+        (reset to ``None``): a generic transform changes the cube arbitrarily, so a previously-paired
+        σ no longer applies — the noise-aware alignment methods thread σ explicitly instead.
 
-        This is the seam #65's alignment methods (``to_common_beam`` / ``to_velocity_grid`` /
-        ``shift_to_rest``) hook onto — each is a per-member ``Cube -> Cube`` operation, so they are
-        expressed as ``stack.map(...)`` (or thin sugar over it) without this class needing to know
-        the physics. *fn* must return a :class:`~astrolyze.core.Cube`; anything else raises, so a
-        broken broadcast fails loudly rather than producing a malformed stack (ADR-0003)."""
+        The stage-2 alignment methods (``to_common_beam`` / ``to_velocity_grid`` / ``shift_to_rest``)
+        are the same per-member shape but additionally propagate each member's noise companion
+        through their resampling (issue #82), so they are dedicated helpers rather than ``map`` calls.
+        *fn* must return a :class:`~astrolyze.core.Cube`; anything else raises, so a broken broadcast
+        fails loudly rather than producing a malformed stack (ADR-0003)."""
         from astrolyze.core import Cube
 
         mapped = []
@@ -359,10 +381,12 @@ class Stack:
         )
 
     # -- stage-2 alignment: explicit, auditable resampling (the coadd preconditions) ----
-    # Each is a per-member broadcast over map(): the Stack stays thin and the PHYSICS lives in the
-    # reused Cube machinery (convolution / regrid / rest-shift), inheriting its guards (notably the
-    # no-super-resolution guard). The point of staging them is that every resampling is a VISIBLE
-    # call in the analysis, not a silent step buried inside coadd (PRD #56 user story 14).
+    # Each is a per-member operation: the Stack stays thin and the PHYSICS lives in the reused Cube
+    # machinery (convolution / regrid / rest-shift), inheriting its guards (notably the no-super-
+    # resolution guard). Beyond the data, each threads the member's noise companion through the SAME
+    # resampling (issue #82), so the post-alignment σ is what the noise-weighted coadd weights on.
+    # The point of staging them is that every resampling is a VISIBLE call in the analysis, not a
+    # silent step buried inside coadd (PRD #56 user story 14).
     def to_common_beam(self, beam=None, *, save_to_tmp_dir: bool = False) -> "Stack":
         """Convolve every member to a common (largest) beam; return a new :class:`Stack`.
 
@@ -378,6 +402,12 @@ class Stack:
         :class:`~astrolyze.core.cube.LossyDirectionError` (astrolyze never invents structure,
         ADR-0003). A member already *at* the common beam is left untouched (no needless convolution).
 
+        Each member's noise companion is threaded through the same convolution analytically
+        (:meth:`Cube.convolve_to_beam` with ``noise=``) and attached to the aligned member, so a
+        downstream noise-weighted :meth:`coadd` weights on the **post-convolution** σ — the noise of
+        a finer member smoothed by more is reduced by more (issue #82). A member with no loadable
+        companion is convolved without a noise model (it stays ``None``).
+
         ``save_to_tmp_dir`` is forwarded to each convolution (the dask-backed eager-materialisation
         control; see :meth:`Cube.convolve_to_beam`). Raises :class:`ValueError` on an empty stack
         (nothing to bring to a common beam) and if any member lacks a beam (a beam cannot be
@@ -387,27 +417,48 @@ class Stack:
                 "to_common_beam() on an empty stack: there are no members to convolve to a "
                 "common beam (filter()/gather first)"
             )
-        if beam is not None:
-            # An EXPLICIT target: convolve every member to it via convolve_to_beam, which raises
-            # LossyDirectionError on a member already coarser than the target (the no-super-
-            # resolution guard must fire on an explicit finer-beam request, ADR-0003) — never the
-            # silent no-op _convolve_if_needed uses for the coarsest member of an auto common beam.
-            target = beam
-            aligned = self.map(
-                lambda cube: cube.convolve_to_beam(
-                    target, save_to_tmp_dir=save_to_tmp_dir
-                )
+        # An EXPLICIT target forces every member to it — convolve_to_beam raises
+        # LossyDirectionError on a member already coarser (the no-super-resolution guard must fire
+        # on an explicit finer-beam request, ADR-0003). The AUTO common beam is >= every member by
+        # construction, so the member already at it is a legitimate no-op (not super-resolution).
+        target = beam if beam is not None else self._common_beam()
+        force = beam is not None
+        aligned_members = [
+            self._convolve_member(
+                member, target, force=force, save_to_tmp_dir=save_to_tmp_dir
             )
-        else:
-            # The AUTO common beam is >= every member by construction, so the member already at it
-            # is a legitimate no-op (not super-resolution); _convolve_if_needed handles that case.
-            target = self._common_beam()
-            aligned = self.map(
-                lambda cube: cube._convolve_if_needed(
-                    target, save_to_tmp_dir=save_to_tmp_dir
-                )
-            )
+            for member in self._members
+        ]
+        aligned = Stack(aligned_members, self._selection)
         return aligned._with_alignment(self._alignment + (f"to_common_beam({target})",))
+
+    def _convolve_member(self, member, target, *, force: bool, save_to_tmp_dir: bool):
+        """Convolve one member to *target*, threading its noise companion through (issue #82).
+
+        Resolves the member's σ (attached, or freshly loaded from its origin companion), propagates
+        it analytically through the beam change via :meth:`Cube.convolve_to_beam`, and attaches the
+        propagated model to the aligned member. With ``force=False`` (the auto common beam) a member
+        already at the common beam is a no-op — its cube and σ ride through unchanged (no convolution,
+        so its as-published σ is still exact). With ``force=True`` (an explicit target) the convolve
+        raises on a finer-beam request before any noise work."""
+        from astrolyze.core.cube import LossyDirectionError
+
+        cube = member.cube
+        model = self._resolve_member_noise(member)
+        if not force:
+            try:
+                cube._require_larger_beam(target)
+            except LossyDirectionError:
+                return member._aligned(
+                    cube, model
+                )  # at the common beam: nothing to convolve
+        if model is None:
+            new_cube = cube.convolve_to_beam(target, save_to_tmp_dir=save_to_tmp_dir)
+            return member._aligned(new_cube, None)
+        new_cube, new_model = cube.convolve_to_beam(
+            target, noise=model, save_to_tmp_dir=save_to_tmp_dir
+        )
+        return member._aligned(new_cube, new_model)
 
     def to_velocity_grid(self, grid=None) -> "Stack":
         """Resample every member onto one common velocity *grid*; return a new :class:`Stack`.
@@ -421,6 +472,12 @@ class Stack:
         (a 1-D velocity ``Quantity``) to force one. Target channels outside a member's native
         coverage are filled with ``NaN`` — an honest "not observed", zero-weighted by :meth:`coadd`.
 
+        Each member's noise companion is interpolated onto the same grid (analytically, in the
+        variance — :meth:`Cube.to_velocity_grid` with ``noise=``) and attached to the aligned member,
+        so a downstream noise-weighted :meth:`coadd` weights on the **post-regrid** σ (issue #82). A
+        target channel off a member's coverage carries ``NaN`` σ (zero weight), exactly as its data
+        does. A member with no loadable companion is regridded without a noise model.
+
         Raises :class:`ValueError` on an empty stack. Records the operation in the stack's
         alignment provenance."""
         if not self._members:
@@ -428,10 +485,21 @@ class Stack:
                 "to_velocity_grid() on an empty stack: there are no members to resample"
             )
         target = grid if grid is not None else self._common_velocity_grid()
-        aligned = self.map(lambda cube: cube.to_velocity_grid(target))
+        aligned_members = [
+            self._regrid_member(member, target) for member in self._members
+        ]
+        aligned = Stack(aligned_members, self._selection)
         return aligned._with_alignment(
             self._alignment + (f"to_velocity_grid(n={len(target)})",)
         )
+
+    def _regrid_member(self, member, target):
+        """Resample one member onto velocity *target*, threading its noise companion (issue #82)."""
+        model = self._resolve_member_noise(member)
+        if model is None:
+            return member._aligned(member.cube.to_velocity_grid(target), None)
+        new_cube, new_model = member.cube.to_velocity_grid(target, noise=model)
+        return member._aligned(new_cube, new_model)
 
     def shift_to_rest(self, v_sys=None) -> "Stack":
         """Shift every member to rest velocity (its line to 0 km/s); return a new :class:`Stack`.
@@ -453,7 +521,12 @@ class Stack:
 
         Note the per-member resolution means a single *v_sys* you pass here only fills members the
         catalog/store did not already curate — it cannot silently override a curated per-source
-        value (a scalar cannot be correct for a multi-source sample)."""
+        value (a scalar cannot be correct for a multi-source sample).
+
+        The shift is exact (no resampling), so each member's noise companion rides through with its
+        σ **values** unchanged; only its velocity axis is relabelled to stay paired with the shifted
+        cube (so a subsequent :meth:`to_velocity_grid` interpolates the σ against the right axis,
+        issue #82)."""
         if not self._members:
             raise ValueError(
                 "shift_to_rest() on an empty stack: there are no members to shift to rest"
@@ -471,20 +544,46 @@ class Stack:
                     "curate it in the catalog/store"
                 )
             resolved.append((member._label(), v))
-            shifted.append(
-                StackMember(
-                    cube=member.cube.shift_to_rest(v),
-                    object=member.object,
-                    survey=member.survey,
-                    species=member.species,
-                    transition=member.transition,
-                    record=member.record,
-                )
-            )
+            shifted.append(self._shift_member(member, v))
         aligned = Stack(shifted, self._selection)
         return aligned._with_alignment(
             self._alignment + (f"shift_to_rest({len(resolved)} member(s))",)
         )
+
+    def _shift_member(self, member, v):
+        """Relabel one member to rest by *v*, carrying its noise companion onto the shifted axis.
+
+        The rest shift is an exact coordinate relabel — the σ field is unchanged — so the noise
+        companion is rebound to the shifted cube with the **same** σ representation (only its axis
+        moves), keeping the σ paired voxel-for-voxel with the data for a later regrid (issue #82)."""
+        shifted_cube = member.cube.shift_to_rest(v)
+        model = self._resolve_member_noise(member)
+        if model is None:
+            return member._aligned(shifted_cube, None)
+        from astrolyze.core import NoiseModel
+
+        # Rebind the unchanged σ representation onto the shifted cube: sigma_cube then reconstructs
+        # the same per-voxel σ on the relabelled axis (no resampling, no σ change).
+        relabelled = NoiseModel(
+            shifted_cube,
+            model._rep,
+            method=model.method,
+            quality=model.quality,
+            version=model.version,
+        )
+        return member._aligned(shifted_cube, relabelled)
+
+    def _resolve_member_noise(self, member):
+        """The member's noise model to propagate through this alignment step, or ``None``.
+
+        Its **already-attached** :attr:`StackMember.noise` (set by an earlier alignment step, so its
+        σ reflects that prior resampling) when present; otherwise the as-published companion freshly
+        loaded from the member's origin store (the first alignment step, when the cube is still at
+        its published resolution). ``None`` when the member has no loadable companion — alignment
+        then proceeds without a noise model and the noise-weighted coadd handles the absence."""
+        if member.noise is not None:
+            return member.noise
+        return _load_member_noise(member)
 
     # -- stage-2 co-addition: the homogeneity gate + noise-weighted combine -------------
     def coadd(self, weights: str = "noise") -> "Cube":
@@ -507,18 +606,18 @@ class Stack:
         Weighting:
 
         - ``weights="noise"`` (default) — **inverse-variance** weighting from each member's noise
-          companion (loaded from its origin store via
-          :meth:`~astrolyze.core.NoiseModel.from_zarr_companion`): per voxel ``w_i = 1/σ_i²``, the
-          combined value is ``Σ w_i d_i / Σ w_i`` and the combined noise is ``√(1 / Σ w_i)`` (the
-          standard inverse-variance result). A voxel that is ``NaN`` in a member (off its coverage)
-          or carries no σ contributes zero weight — never a fabricated value. The σ used is the
-          member's **as-published** companion (the noise the corpus curated for that store); it is
-          the exact per-voxel σ when the members were not spatially smoothed differently on the way
-          in, and the right *relative* weighting (the IVW mean depends on the σ *ratios*) otherwise.
-          (Known limitation, issue #82: the companion is not yet re-propagated through a preceding
-          :meth:`to_common_beam` convolution — so after heterogeneous smoothing the absolute combined
-          σ is conservative. The Cube convolution machinery already supports analytic noise
-          propagation; threading it through the stack is follow-up work.)
+          companion: per voxel ``w_i = 1/σ_i²``, the combined value is ``Σ w_i d_i / Σ w_i`` and the
+          combined noise is ``√(1 / Σ w_i)`` (the standard inverse-variance result). A voxel that is
+          ``NaN`` in a member (off its coverage) or carries no σ contributes zero weight — never a
+          fabricated value. The σ used is the member's **post-alignment** σ (issue #82): the
+          alignment steps thread each member's noise companion through their resampling —
+          :meth:`to_common_beam` propagates σ analytically through the per-member beam change
+          (a finer member smoothed by more has its σ reduced by more) and :meth:`to_velocity_grid`
+          interpolates σ onto the shared grid — so the weights are minimum-variance optimal and the
+          combined σ is exact across heterogeneously-smoothed members, not conservative. A member
+          coadded without any alignment falls back to its as-published companion (loaded from its
+          origin store via :meth:`~astrolyze.core.NoiseModel.from_zarr_companion`), which is then
+          exact by construction (no resampling happened).
         - ``weights="uniform"`` — equal weights: the combined value is the (NaN-ignoring) mean and,
           when noise companions are available, the combined noise is ``√(Σ σ_i²)/N`` (uncorrelated
           error propagation of an equal-weight mean).
@@ -833,25 +932,19 @@ def _member_sigmas(stack, *, reference_shape, unit, required: bool = True):
 
 
 def _load_member_sigma(member, *, unit):
-    """The member's per-voxel σ as a bare array in *unit*, or ``None`` if no companion is loadable.
+    """The member's per-voxel σ as a bare array in *unit*, or ``None`` if no σ is available.
 
-    Loads the noise companion from the member's origin store URI (the L1 ``noise/`` subgroup) via
-    :meth:`~astrolyze.core.NoiseModel.from_zarr_companion`, converts it to the data unit through the
-    noise model's unit hub, and reconstructs the full σ-cube. Returns ``None`` (rather than raising)
-    when there is no origin store, no companion group, or the companion is UNRELIABLE — the caller
-    decides whether a missing companion is fatal (the ``weights="noise"`` path) or merely skipped
-    (``weights="uniform"``)."""
+    Prefers the member's **post-alignment** companion (:attr:`StackMember.noise`, threaded through
+    the alignment steps so its σ already reflects any convolution/regrid, issue #82); falls back to
+    the as-published companion loaded from the member's origin store (a member coadded without any
+    alignment, for which the as-published σ is exact). The σ-cube is reconstructed and converted to
+    the data unit through the noise model's unit hub. Returns ``None`` (rather than raising) when
+    there is no σ at all or the companion is UNRELIABLE — the caller decides whether a missing
+    companion is fatal (the ``weights="noise"`` path) or merely skipped (``weights="uniform"``)."""
     import numpy as np
 
-    uri = member.origin_store_uri
-    if uri is None:
-        return None
-    try:
-        from astrolyze.core import NoiseModel
-
-        model = NoiseModel.from_zarr_companion(uri)
-    except Exception:
-        # No companion group / unreadable store: treat as "no σ here" (the caller gates on it).
+    model = member.noise if member.noise is not None else _load_member_noise(member)
+    if model is None:
         return None
     if model.unit != unit:
         model = model.to(unit)
@@ -859,6 +952,25 @@ def _load_member_sigma(member, *, unit):
     if not np.isfinite(field).any():
         return None  # an UNRELIABLE (all-NaN) companion carries no usable σ.
     return field
+
+
+def _load_member_noise(member):
+    """The member's as-published noise companion as a :class:`~astrolyze.core.NoiseModel`, or ``None``.
+
+    Loads the companion group (the L1 ``noise/`` subgroup) from the member's origin store URI via
+    :meth:`~astrolyze.core.NoiseModel.from_zarr_companion`. Returns ``None`` (never raises) when
+    there is no origin store or no readable companion — the alignment/coadd caller decides what an
+    absent companion means."""
+    uri = member.origin_store_uri
+    if uri is None:
+        return None
+    try:
+        from astrolyze.core import NoiseModel
+
+        return NoiseModel.from_zarr_companion(uri)
+    except Exception:
+        # No companion group / unreadable store: treat as "no σ here" (the caller gates on it).
+        return None
 
 
 def _inverse_variance_combine(data, sigma):

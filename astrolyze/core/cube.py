@@ -741,7 +741,7 @@ class Cube(ContextCarrier):
         is absent — astrolyze never guesses a velocity axis, ADR-0003)."""
         return self._velocity_sc().spectral_axis.to(u.km / u.s)
 
-    def to_velocity_grid(self, grid: u.Quantity) -> "Cube":
+    def to_velocity_grid(self, grid: u.Quantity, *, noise=None):
         """Resample this cube's spectral axis onto a common velocity *grid*; return a new :class:`Cube`.
 
         The spectral-regrid half of stack alignment (issue #65, PRD #56 user story 14): every
@@ -754,9 +754,17 @@ class Cube(ContextCarrier):
         honest "not observed here" the coadd then treats as zero weight, never an extrapolated
         guess (ADR-0003). Returns a new :class:`Cube` on *grid*, carrying this cube's beam + unit.
 
+        When a :class:`~astrolyze.core.NoiseModel` is passed as ``noise``, its σ field is propagated
+        through the **same** interpolation (analytically, in the variance) and the return is
+        ``(cube, propagated_model)`` (issue #82) — so a noise-weighted coadd downstream weights on
+        the post-regrid σ. The propagation is exact for channel-independent noise (the published
+        companion); see :func:`~astrolyze.core.noise.propagate_velocity_grid`.
+
         Resampling is a **visible, auditable choice** (you call it explicitly), not a silent step
         inside ``coadd`` — that is the whole point of the staged alignment design."""
         grid_kms = u.Quantity(grid).to(u.km / u.s, equivalencies=u.spectral())
+        # The source velocity axis BEFORE regridding — the σ field is paired to it (issue #82).
+        src_velocity = self.velocity_axis()
         masked = self._velocity_sc(masked=True)
         # fill_value=NaN: do NOT nearest-extrapolate beyond native coverage — an unobserved target
         # channel must read NaN (zero weight in the coadd), not a fabricated edge value (ADR-0003).
@@ -767,7 +775,14 @@ class Cube(ContextCarrier):
             "to_velocity_grid",
             params={"n": int(grid_kms.size), "unit": "km/s"},
         )
-        return Cube(regridded, self._metadata_with_beam(self.metadata.beam))
+        out = Cube(regridded, self._metadata_with_beam(self.metadata.beam))
+        if noise is None:
+            return out
+        from .noise import propagate_velocity_grid
+
+        return out, propagate_velocity_grid(
+            noise, new_cube=out, src_velocity=src_velocity, dst_velocity=grid_kms
+        )
 
     def shift_to_rest(self, v_sys: u.Quantity) -> "Cube":
         """Shift the spectral axis so the source's systemic velocity *v_sys* maps to rest (0 km/s).

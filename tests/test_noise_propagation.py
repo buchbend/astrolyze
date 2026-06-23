@@ -321,6 +321,69 @@ def test_spectral_bin_propagates_noise_model(noise_cube):
     assert out_model.scalar.to_value(u.K) == pytest.approx(expected, rel=1e-6)
 
 
+# --------------------------------------------------------------------------------------
+# AC (#82): velocity-grid interpolation propagates σ (variance-correct linear interp)
+# --------------------------------------------------------------------------------------
+SIGMA_CONST = (
+    0.3  # a known, CONSTANT per-voxel σ (K) for exact interpolation arithmetic
+)
+
+
+def _constant_noise_member(tmp_path, name, nz=3):
+    """A small cube on the velocity axis [0,2,4,...] km/s plus a constant-σ (SIGMA_CONST) companion.
+
+    The constant-σ companion is the published-noise case the interpolation propagation is exact for,
+    and makes the post-regrid σ hand-computable from the linear-interpolation weights alone."""
+    cube = _write_cube(tmp_path / name, np.full((nz, 4, 4), 1.0))
+    model = NoiseModel.from_rms_map(cube, np.full(cube.shape[1:], SIGMA_CONST))
+    return cube, model
+
+
+def test_to_velocity_grid_preserves_sigma_on_coincident_grid(tmp_path):
+    # Regridding onto a grid that coincides with the native channels is an identity on σ: each
+    # output channel draws its full weight from one input channel (no variance redistribution).
+    cube, model = _constant_noise_member(tmp_path, "coincident.fits")
+    native = cube.velocity_axis()  # [0, 2, 4] km/s
+    out_cube, out_model = cube.to_velocity_grid(native, noise=model)
+    assert isinstance(out_cube, Cube)
+    assert isinstance(out_model, NoiseModel)
+    assert out_model.quality is NoiseQuality.PROPAGATED
+    sigma = out_model.sigma_cube._data_quantity.to_value(u.K)
+    assert np.allclose(sigma, SIGMA_CONST)
+
+
+def test_to_velocity_grid_propagates_variance_through_midpoint_interpolation(tmp_path):
+    # A target channel at the midpoint of two native channels is their linear interpolation (weights
+    # 0.5, 0.5); under channel-independent noise its variance is 0.5²σ² + 0.5²σ² = 0.5σ², so the
+    # propagated σ is √0.5·σ — NOT the input σ (interpolating σ directly would be wrong, ADR-0003).
+    cube, model = _constant_noise_member(tmp_path, "midpoint.fits")
+    midpoints = np.array([1.0, 3.0]) * u.km / u.s  # between native [0,2] and [2,4]
+    _, out_model = cube.to_velocity_grid(midpoints, noise=model)
+    sigma = out_model.sigma_cube._data_quantity.to_value(u.K)
+    assert np.allclose(sigma, np.sqrt(0.5) * SIGMA_CONST)
+
+
+def test_to_velocity_grid_off_coverage_sigma_is_nan(tmp_path):
+    # A target channel outside the native coverage is "not observed": its σ is NaN (zero weight in
+    # the coadd), exactly as the data regrid fills it with NaN — never an extrapolated value.
+    cube, model = _constant_noise_member(tmp_path, "offcov.fits")
+    grid = (
+        np.array([2.0, 10.0]) * u.km / u.s
+    )  # native covers [0,4]; 10 km/s is beyond it
+    out_cube, out_model = cube.to_velocity_grid(grid, noise=model)
+    sigma = out_model.sigma_cube._data_quantity.to_value(u.K)
+    assert np.all(np.isfinite(sigma[0]))  # 2 km/s is in coverage
+    assert np.all(np.isnan(sigma[1]))  # 10 km/s is off coverage -> NaN
+    assert np.all(np.isnan(out_cube._data_quantity.to_value(u.K)[1]))  # data agrees
+
+
+def test_to_velocity_grid_without_noise_is_unchanged(tmp_path):
+    # Opt-in: with no noise model the regrid returns a plain Cube exactly as before (#65).
+    cube, _ = _constant_noise_member(tmp_path, "nonoise.fits")
+    out = cube.to_velocity_grid(cube.velocity_axis())
+    assert isinstance(out, Cube)
+
+
 def test_match_to_propagates_both_noise_models(tmp_path):
     rng = np.random.default_rng(11)
     a = _write_cube(tmp_path / "a.fits", rng.normal(0.0, SIGMA, size=(60, 20, 20)))

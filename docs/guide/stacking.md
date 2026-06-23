@@ -120,13 +120,16 @@ except CoaddError as exc:
 
 ## A note on coadd noise propagation
 
-`coadd(weights="noise")` uses each member's **as-published** noise companion σ. This is the exact
-per-voxel σ when the members were not spatially smoothed differently on the way in, and the right
-*relative* weighting (the inverse-variance mean depends on the σ ratios) otherwise. The known
-limitation is that the companion is not yet re-propagated through a preceding `to_common_beam()`
-convolution — so after heterogeneous smoothing the *absolute* combined σ is conservative. The cube
-convolution machinery already supports analytic noise propagation; threading it through the stack is
-tracked in [issue #82](https://github.com/buchbend/astrolyze/issues/82).
+`coadd(weights="noise")` weights on each member's **post-alignment** σ. The alignment steps thread
+every member's noise companion through their resampling: `to_common_beam()` propagates σ analytically
+through the per-member beam change (`σ × √(Ω_in/Ω_out)`, so a finer member smoothed by more has its σ
+reduced by more), and `to_velocity_grid()` interpolates σ onto the shared grid in the variance (a
+target channel off a member's coverage carries NaN σ, zero-weighted). So after heterogeneously
+smoothing the members the inverse-variance weights stay minimum-variance optimal and the combined σ is
+exact — not the conservative as-published value
+([issue #82](https://github.com/buchbend/astrolyze/issues/82)). A stack co-added without any alignment
+falls back to each member's as-published companion, which is then exact by construction (no resampling
+happened).
 
 ## See also
 
