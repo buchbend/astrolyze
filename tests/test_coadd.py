@@ -64,6 +64,33 @@ def _header(*, obj, species, bmaj_arcsec, bunit="K", crval3=0.0, cdelt3=2000.0):
     return h, beam
 
 
+def _header_circular(
+    *, obj, species, beam_arcsec, bunit="K", crval3=0.0, cdelt3=2000.0
+):
+    """Like :func:`_header` but a CIRCULAR beam (minor == major).
+
+    A circular beam makes the solid angle Ω ∝ major² so the analytic noise-propagation factor
+    √(Ω_in/Ω_target) through a beam change is hand-computable (issue #82)."""
+    h = fits.Header()
+    h["CTYPE1"], h["CRVAL1"] = "RA---SIN", 170.0
+    h["CDELT1"], h["CRPIX1"], h["CUNIT1"] = -PIX_DEG, 1.0, "deg"
+    h["CTYPE2"], h["CRVAL2"] = "DEC--SIN", -0.04
+    h["CDELT2"], h["CRPIX2"], h["CUNIT2"] = PIX_DEG, 1.0, "deg"
+    h["CTYPE3"], h["CRVAL3"] = "VRAD", crval3
+    h["CDELT3"], h["CRPIX3"], h["CUNIT3"] = cdelt3, 1.0, "m/s"
+    h["OBJECT"] = obj
+    h["BUNIT"] = bunit
+    h["RESTFRQ"] = (REST_CO21, "Hz")
+    h["HIERARCH ASTROLYZE SPECIES"] = species
+    h["HIERARCH ASTROLYZE VCONV"] = "radio"
+    beam = radio_beam.Beam(
+        major=beam_arcsec * u.arcsec, minor=beam_arcsec * u.arcsec, pa=0 * u.deg
+    )
+    for k, v in beam.to_header_keywords().items():
+        h[k] = v
+    return h, beam
+
+
 def _cube(header, data):
     """A Cube from a header + a known data array (eager FITS path; 3 channels x ny x nx)."""
     from astrolyze.io.access import LoadedData
@@ -460,6 +487,85 @@ def test_to_velocity_grid_aligns_members_for_coadd(tmp_path):
 
 
 # --------------------------------------------------------------------------------------
+# (F2) #82: coadd weights on the POST-ALIGNMENT σ — the alignment steps thread each member's
+#      noise companion through their resampling, so the weights are the propagated σ, not the
+#      conservative as-published one.
+# --------------------------------------------------------------------------------------
+def _omega_ratio_factor(beam_in, beam_target):
+    """The analytic spatial-RMS propagation factor √(Ω_in/Ω_target) (radio_beam beam solid angles)."""
+    return float(
+        np.sqrt((beam_in.sr / beam_target.sr).to_value(u.dimensionless_unscaled))
+    )
+
+
+def test_to_common_beam_attaches_propagated_member_noise(tmp_path):
+    """to_common_beam threads each member's σ through the convolution: the aligned member carries a
+    NoiseModel reduced by √(Ω_in/Ω_target) — a finer member smoothed by more is reduced by more."""
+    ha, beam_a = _header_circular(obj="SRC", species="CO", beam_arcsec=2.0)
+    hb, beam_b = _header_circular(obj="SRC", species="CO", beam_arcsec=3.0)
+    a = _store_with_noise(
+        tmp_path, "a", cube=_cube(ha, np.full((3, 8, 8), 10.0)), sigma=1.0
+    )
+    b = _store_with_noise(
+        tmp_path, "b", cube=_cube(hb, np.full((3, 8, 8), 12.0)), sigma=2.0
+    )
+    target = radio_beam.Beam(major=5 * u.arcsec, minor=5 * u.arcsec, pa=0 * u.deg)
+    aligned = _stack([a, b]).to_common_beam(beam=target)
+    assert aligned[0].noise is not None and aligned[1].noise is not None
+    # σ_i' = σ_i,published · √(Ω_i/Ω_target); the finer member (2") is reduced more than the 3".
+    assert np.isclose(
+        aligned[0].noise.scalar.to_value(u.K),
+        1.0 * _omega_ratio_factor(beam_a, target),
+        rtol=1e-6,
+    )
+    assert np.isclose(
+        aligned[1].noise.scalar.to_value(u.K),
+        2.0 * _omega_ratio_factor(beam_b, target),
+        rtol=1e-6,
+    )
+
+
+def test_coadd_weights_on_post_convolution_sigma(tmp_path):
+    """#82 acceptance: members convolved by DIFFERENT amounts coadd weighting on the post-convolution
+    σ — the combined σ matches the hand-computed propagated value, NOT the conservative one."""
+    ha, beam_a = _header_circular(obj="SRC", species="CO", beam_arcsec=2.0)
+    hb, beam_b = _header_circular(obj="SRC", species="CO", beam_arcsec=3.0)
+    a = _store_with_noise(
+        tmp_path, "a", cube=_cube(ha, np.full((3, 8, 8), 10.0)), sigma=1.0
+    )
+    b = _store_with_noise(
+        tmp_path, "b", cube=_cube(hb, np.full((3, 8, 8), 12.0)), sigma=2.0
+    )
+    target = radio_beam.Beam(major=5 * u.arcsec, minor=5 * u.arcsec, pa=0 * u.deg)
+
+    result = _stack([a, b]).to_common_beam(beam=target).coadd(weights="noise")
+
+    # Hand-computed: σ_i' = σ_i · √(Ω_i/Ω_target); IVW combined σ = √(1/Σ 1/σ_i'²).
+    sa = 1.0 * _omega_ratio_factor(beam_a, target)
+    sb = 2.0 * _omega_ratio_factor(beam_b, target)
+    wa, wb = 1.0 / sa**2, 1.0 / sb**2
+    expected_sigma = np.sqrt(1.0 / (wa + wb))
+    assert np.allclose(result._coadd_sigma.to_value(u.K), expected_sigma)
+    # ... and that is strictly tighter than the conservative as-published combine (σ=1, σ=2):
+    conservative = np.sqrt(1.0 / (1.0 / 1.0**2 + 1.0 / 2.0**2))  # = sqrt(0.8)
+    assert not np.isclose(expected_sigma, conservative, rtol=1e-3)
+    assert float(np.mean(result._coadd_sigma.to_value(u.K))) < conservative
+
+
+def test_to_velocity_grid_threads_member_noise(tmp_path):
+    """Stack.to_velocity_grid propagates each member's σ onto the new grid (issue #82): a target at
+    the midpoint of two native channels combines their variance (σ -> √0.5·σ)."""
+    h, _ = _header(obj="SRC", species="CO", bmaj_arcsec=5.0, crval3=0.0, cdelt3=2000.0)
+    m = _store_with_noise(
+        tmp_path, "m", cube=_cube(h, np.full((3, 4, 4), 10.0)), sigma=1.0
+    )
+    # native axis [0,2,4] km/s; [1,3] are the two interior midpoints (weights 0.5, 0.5).
+    aligned = _stack([m]).to_velocity_grid(np.array([1.0, 3.0]) * u.km / u.s)
+    sigma = aligned[0].noise.sigma_cube._data_quantity.to_value(u.K)
+    assert np.allclose(sigma, np.sqrt(0.5) * 1.0)
+
+
+# --------------------------------------------------------------------------------------
 # (F) END-TO-END: a heterogeneous browse stack -> filter -> align -> coadd
 # --------------------------------------------------------------------------------------
 def test_end_to_end_filter_align_coadd(tmp_path):
@@ -467,7 +573,9 @@ def test_end_to_end_filter_align_coadd(tmp_path):
 
     Two CO members (different beams + offset velocity grids, σ=1 and σ=2) and one HI member. The
     HI member makes the whole stack heterogeneous; filter(species='CO') narrows to the co-addable
-    subset, to_common_beam + to_velocity_grid align it, and coadd yields the hand-computed IVW mean.
+    subset, to_common_beam + to_velocity_grid align it, and coadd yields the inverse-variance mean
+    weighted on the **post-alignment** σ (issue #82): each member's noise companion is threaded
+    through the convolution and the velocity regrid, so the weights are the propagated σ.
 
     The cubes are 16x16 px with modest beams so the spatial convolution to the common beam leaves
     the uniform interior intact at the centre pixel (edge pixels attenuate, as convolution must);
@@ -498,13 +606,26 @@ def test_end_to_end_filter_align_coadd(tmp_path):
     grid = np.array([0.0, 2.0, 4.0]) * u.km / u.s
     aligned = co.to_common_beam().to_velocity_grid(grid)
 
-    # (3) coadd: IVW of d=10 (σ=1, w=1) and d=12 (σ=2, w=0.25) -> 10.4 at the beam-invariant centre
-    # voxel of the v=2 km/s channel (covered by both members). σ propagation rides the same weights;
-    # the common-beam convolution scales σ but the IVW value is the weighted mean, asserted here.
+    # (3) coadd weights on the POST-ALIGNMENT σ (#82): the convolution to the common beam reduced
+    # each member's σ by a different amount and the velocity regrid redistributed it, so the IVW
+    # weights are the propagated per-voxel σ the aligned members now carry — not the as-published
+    # σ=1, σ=2. Assert the combined value and σ at the beam-invariant centre voxel of the shared
+    # v=2 km/s channel are the inverse-variance combine of exactly those propagated σ.
     result = aligned.coadd(weights="noise")
     assert isinstance(result, Cube)
-    centre = result._data_quantity.to_value(u.K)[1, 8, 8]  # v=2 channel, centre pixel
-    assert np.isclose(centre, 10.4, atol=1e-3)
+    ch, yx = 1, (8, 8)  # v=2 km/s channel (covered by both), centre pixel
+    da = aligned[0].cube._data_quantity.to_value(u.K)[ch][yx]
+    db = aligned[1].cube._data_quantity.to_value(u.K)[ch][yx]
+    sa = aligned[0].noise.sigma_cube._data_quantity.to_value(u.K)[ch][yx]
+    sb = aligned[1].noise.sigma_cube._data_quantity.to_value(u.K)[ch][yx]
+    wa, wb = 1.0 / sa**2, 1.0 / sb**2
+    expected = (da * wa + db * wb) / (wa + wb)
+    expected_sigma = np.sqrt(1.0 / (wa + wb))
+    centre = result._data_quantity.to_value(u.K)[ch][yx]
+    assert np.isclose(centre, expected, atol=1e-6)
+    assert np.isclose(
+        result._coadd_sigma.to_value(u.K)[ch][yx], expected_sigma, atol=1e-6
+    )
 
     # (4) The result carries combined provenance: which members, alignment steps, catalog version.
     prov = result.metadata.provenance
