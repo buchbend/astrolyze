@@ -307,6 +307,13 @@ def _save_noise_companion(model, store) -> Path:
     dataset.to_zarr(
         store, group=NOISE_GROUP, mode="a", zarr_format=3, consolidated=False
     )
+    if rep.spatial_acf is None:
+        # mode="a" keeps variables it does not write: drop a stale ACF from an earlier save.
+        import zarr
+
+        group = zarr.open_group(store / NOISE_GROUP, mode="a", zarr_format=3)
+        if "spatial_acf" in group:
+            del group["spatial_acf"]
     _emit("save", params={"format": "zarr", "group": NOISE_GROUP}, outputs=[store])
     return store / NOISE_GROUP
 

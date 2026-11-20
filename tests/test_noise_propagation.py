@@ -694,3 +694,19 @@ def test_companion_without_spatial_acf_still_loads(noise_cube, tmp_path):
     ).to_zarr_companion(store)
     back = NoiseModel.from_zarr_companion(store)
     assert back._rep.spatial_acf is None
+
+
+def test_rewriting_companion_without_spatial_acf_drops_stale_acf(noise_cube, tmp_path):
+    # Overwriting a companion with a model lacking the ACF must not leave the old one behind.
+    from dataclasses import replace
+
+    store = noise_cube.to_zarr(tmp_path / "z")
+    model = noise_cube.estimate_noise()
+    model.to_zarr_companion(store)
+    NoiseModel(
+        model._cube,
+        replace(model._rep, spatial_acf=None),
+        method=model.method,
+        quality=model.quality,
+    ).to_zarr_companion(store)
+    assert NoiseModel.from_zarr_companion(store)._rep.spatial_acf is None
