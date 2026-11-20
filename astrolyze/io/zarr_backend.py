@@ -289,6 +289,11 @@ def _save_noise_companion(model, store) -> Path:
         # The dense per-voxel σ field (store order sky_y, sky_x, freq — same as the cube var).
         field = np.transpose(np.asarray(rep.sigma_field, dtype="float64"), (1, 2, 0))
         data_vars["sigma_field"] = (CUBE_DIMS, field)
+    if rep.spatial_acf is not None:
+        data_vars["spatial_acf"] = (
+            ("acf_y", "acf_x"),
+            np.asarray(rep.spatial_acf, dtype="float64"),
+        )
     attrs = {
         ATTR_NOISE_METHOD: model.method,
         ATTR_NOISE_VERSION: int(model.version),
@@ -321,6 +326,10 @@ def _load_noise_companion(store):
     sigma_xy = np.asarray(dataset["sigma_xy"].data)
     sigma_v = np.asarray(dataset["sigma_v"].data)
     acf = np.asarray(dataset["acf"].data)
+    # Companions written before #96 carry no spatial ACF.
+    spatial_acf = (
+        np.asarray(dataset["spatial_acf"].data) if "spatial_acf" in dataset else None
+    )
 
     if attrs.get(ATTR_NOISE_REPRESENTATION) == "full":
         # Restore the dense σ-field to FITS array order (freq, sky_y, sky_x).
@@ -331,9 +340,16 @@ def _load_noise_companion(store):
             sigma_v=sigma_v,
             scalar=scalar,
             acf=acf,
+            spatial_acf=spatial_acf,
         )
     else:
-        rep = SeparableNoise(sigma_xy=sigma_xy, sigma_v=sigma_v, scalar=scalar, acf=acf)
+        rep = SeparableNoise(
+            sigma_xy=sigma_xy,
+            sigma_v=sigma_v,
+            scalar=scalar,
+            acf=acf,
+            spatial_acf=spatial_acf,
+        )
     _emit("load", inputs=[store / NOISE_GROUP])
     return (
         rep,

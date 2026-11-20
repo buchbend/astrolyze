@@ -109,11 +109,10 @@ def test_spatial_propagation_scales_by_beam_solid_angle_ratio():
     assert 0.0 < factor < 1.0
 
 
-def test_spatial_propagation_uses_beam_not_pixel_area(noise_cube):
-    # The scaling must depend ONLY on the beam ratio, not on the pixel grid. Two cubes with the
-    # same beams but different pixel scales propagate to the SAME σ ratio (beam-, not pixel-,
-    # limited correlation area).
-    model = noise_cube.estimate_noise()
+def test_beam_area_fallback_uses_beam_not_pixel_area(noise_cube):
+    # Without a measured spatial ACF (#96) the scaling depends ONLY on the beam ratio, not on
+    # the pixel grid (beam-, not pixel-, limited correlation area).
+    model = NoiseModel.from_rms_map(noise_cube, np.full(noise_cube.shape[1:], SIGMA))
     out_cube = noise_cube.convolve_to_beam(LARGER_BEAM)
     propagated = noise_mod.propagate(model, beam_out=LARGER_BEAM)
     ratio = propagated.scalar.to_value(u.K) / model.scalar.to_value(u.K)
@@ -296,9 +295,8 @@ def test_convolve_to_beam_propagates_noise_model(noise_cube):
     assert isinstance(out_cube, Cube)
     assert isinstance(out_model, NoiseModel)
     assert out_model.quality is NoiseQuality.PROPAGATED
-    expected = model.scalar.to_value(u.K) * float(
-        np.sqrt((BEAM.sr / LARGER_BEAM.sr).to_value(u.dimensionless_unscaled))
-    )
+    # the op routes through propagate (the ACF law, #96: white noise here, not beam-correlated)
+    expected = noise_mod.propagate(model, beam_out=LARGER_BEAM).scalar.to_value(u.K)
     assert out_model.scalar.to_value(u.K) == pytest.approx(expected, rel=1e-6)
     # the propagated model carries the new, larger beam.
     assert u.isclose(out_model.beam.major, LARGER_BEAM.major, rtol=1e-9)
@@ -535,3 +533,133 @@ def test_propagation_requires_a_geometry(noise_cube):
     model = noise_cube.estimate_noise()
     with pytest.raises(ValueError):
         noise_mod.propagate(model)
+
+
+# --------------------------------------------------------------------------------------
+# AC (#96): propagate(beam_out=...) through the measured spatial noise ACF
+# --------------------------------------------------------------------------------------
+# The beam-area law √(Ω_in/Ω_out) assumes the noise is correlated like the beam. Receiver noise
+# usually is not (OTF gridding kernel narrower than the beam; interferometer noise missing short
+# spacings), so propagate uses σ_out²/σ_in² = Σ_d (k⋆k)(d)·ρ(d) with the measured spatial ACF ρ.
+PIX = 2e-4 * u.deg  # the _cube_header pixel scale (0.72")
+MID_BEAM = radio_beam.Beam(major=18 * u.arcsec, minor=16 * u.arcsec, pa=30 * u.deg)
+
+
+def _interior_std_ratio(before, after, pad):
+    """σ(after)/σ(before) on the interior (``pad`` px from each edge: convolution edges bias σ)."""
+    s = (slice(None), slice(pad, -pad), slice(pad, -pad))
+    return float(np.std(after[s]) / np.std(before[s]))
+
+
+def test_estimate_fills_a_centred_normalised_spatial_acf(noise_cube):
+    acf = noise_cube.estimate_noise()._rep.spatial_acf
+    assert acf is not None
+    assert acf.shape[0] % 2 == 1 and acf.shape[1] % 2 == 1
+    assert acf.shape == (63, 63)  # 32x32 map -> lags ±31
+    assert acf[31, 31] == pytest.approx(1.0)
+    # white noise: no correlation off lag 0
+    off = acf.copy()
+    off[31, 31] = 0.0
+    assert np.max(np.abs(off)) < 0.1
+
+
+def test_propagate_narrow_correlation_matches_measured_sigma(tmp_path):
+    # OTF-like: white noise smoothed by a kernel (FWHM ~3.5 px = 2.5") much narrower than the
+    # declared 12"x10" beam. The beam-area law over-predicts σ; the ACF law must hit it.
+    from astropy.convolution import Gaussian2DKernel, convolve_fft
+
+    rng = np.random.default_rng(96)
+    white = rng.normal(0.0, 1.0, size=(48, 384, 384))
+    kernel = Gaussian2DKernel(1.5)
+    data = np.stack([convolve_fft(p, kernel, boundary="wrap") for p in white])
+    cube = _write_cube(tmp_path / "narrow.fits", data * SIGMA)
+    model = cube.estimate_noise()
+    out_cube, out_model = cube.convolve_to_beam(MID_BEAM, noise=model)
+    measured = _interior_std_ratio(
+        cube._data_quantity.value, out_cube._data_quantity.value, pad=40
+    )
+    predicted = out_model.scalar.to_value(u.K) / model.scalar.to_value(u.K)
+    beam_law = noise_mod._spatial_rms_factor(BEAM, MID_BEAM)
+    print(
+        f"narrow: measured {measured:.4f} ACF law {predicted:.4f} beam law {beam_law:.4f}"
+    )
+    assert out_model.quality is NoiseQuality.PROPAGATED
+    assert predicted == pytest.approx(measured, rel=0.03)
+    assert beam_law > 1.5 * measured  # the old law is badly off here
+
+
+def test_acf_law_matches_beam_law_for_beam_correlated_noise(tmp_path):
+    # White noise convolved with the beam: the textbook case where the beam-area law is exact.
+    # A 6"x5" beam keeps the map many correlation areas wide: the per-plane mean subtraction
+    # biases ρ by ~ -(correlation area / map area), which a 12" beam on 192 px would not hide.
+    small, small_out = (
+        radio_beam.Beam(major=6 * u.arcsec, minor=5 * u.arcsec, pa=30 * u.deg),
+        radio_beam.Beam(major=9 * u.arcsec, minor=8 * u.arcsec, pa=30 * u.deg),
+    )
+    data = noise_mod.synthesize_correlated_noise(
+        (64, 192, 192),
+        beam=small,
+        pixel_scale=PIX,
+        sigma=SIGMA,
+        rng=np.random.default_rng(961),
+    )
+    header = _cube_header()
+    header.update(small.to_header_keywords())
+    fits.writeto(tmp_path / "beamcorr.fits", data.astype("float32"), header)
+    model = Cube.from_loaded(load(tmp_path / "beamcorr.fits")).estimate_noise()
+    acf_law = float(
+        noise_mod.propagate(model, beam_out=small_out).scalar / model.scalar
+    )
+    beam_law = noise_mod._spatial_rms_factor(small, small_out)
+    print(f"beam-correlated: ACF law {acf_law:.4f} beam law {beam_law:.4f}")
+    assert acf_law == pytest.approx(beam_law, rel=0.03)
+
+
+def test_propagate_without_spatial_acf_is_beam_law_and_approximate(noise_cube):
+    model = NoiseModel.from_rms_map(noise_cube, np.full(noise_cube.shape[1:], SIGMA))
+    assert model._rep.spatial_acf is None
+    out = noise_mod.propagate(model, beam_out=LARGER_BEAM)
+    assert out.quality is NoiseQuality.APPROXIMATE
+    ratio = out.scalar.to_value(u.K) / model.scalar.to_value(u.K)
+    assert ratio == pytest.approx(
+        noise_mod._spatial_rms_factor(BEAM, LARGER_BEAM), rel=1e-9
+    )
+
+
+def test_with_spatial_acf_attaches_measured_acf(noise_cube):
+    model = NoiseModel.from_rms_map(noise_cube, np.full(noise_cube.shape[1:], SIGMA))
+    attached = noise_mod.with_spatial_acf(model, noise_cube)
+    # same noise, flat vs measured σ_xy normalisation: the ACFs agree to the estimate scatter
+    np.testing.assert_allclose(
+        attached._rep.spatial_acf,
+        noise_cube.estimate_noise()._rep.spatial_acf,
+        atol=0.03,
+    )
+    assert attached.quality is model.quality
+    out = noise_mod.propagate(attached, beam_out=LARGER_BEAM)
+    assert out.quality is NoiseQuality.PROPAGATED
+
+
+def test_spatial_acf_survives_cutout_and_unit_change(noise_cube):
+    model = noise_cube.estimate_noise()
+    acf = model._rep.spatial_acf
+    np.testing.assert_array_equal(model.cutout(0, 8, 0, 8)._rep.spatial_acf, acf)
+    np.testing.assert_array_equal(model.to(u.mK)._rep.spatial_acf, acf)
+
+
+def test_spatial_acf_zarr_roundtrip(noise_cube, tmp_path):
+    store = noise_cube.to_zarr(tmp_path / "z")
+    model = noise_cube.estimate_noise()
+    model.to_zarr_companion(store)
+    back = NoiseModel.from_zarr_companion(store)
+    np.testing.assert_array_equal(back._rep.spatial_acf, model._rep.spatial_acf)
+
+
+def test_companion_without_spatial_acf_still_loads(noise_cube, tmp_path):
+    # Existing L1 companions were written before #96 and carry no spatial ACF.
+    store = noise_cube.to_zarr(tmp_path / "z")
+    NoiseModel.from_rms_map(
+        noise_cube, np.full(noise_cube.shape[1:], SIGMA)
+    ).to_zarr_companion(store)
+    back = NoiseModel.from_zarr_companion(store)
+    assert back._rep.spatial_acf is None
