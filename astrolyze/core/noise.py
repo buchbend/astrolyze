@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import enum
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Callable
 
 import numpy as np
@@ -90,6 +90,8 @@ class SeparableNoise:
     sigma_v: np.ndarray  # (nz,)
     scalar: float
     acf: np.ndarray  # (nlag,)
+    # 2-D spatial noise ACF (odd-sized, centred, 1 at lag 0); None = not measured (#96).
+    spatial_acf: np.ndarray | None = None
 
     def reconstruct(self, shape) -> np.ndarray:
         """The full per-voxel σ field as the rank-1 outer product ``σ_v ⊗ σ_xy / σ_0``."""
@@ -111,6 +113,7 @@ class FullNoise:
     sigma_v: np.ndarray
     scalar: float
     acf: np.ndarray
+    spatial_acf: np.ndarray | None = None
 
     def reconstruct(self, shape) -> np.ndarray:
         return np.asarray(self.sigma_field).reshape(shape)
@@ -229,21 +232,10 @@ class NoiseModel:
         first (cheap: only σ_xy / σ_field are sliced) means the cutout's ``sigma_cube``
         reconstructs just the tube, not the parent cube (the spatial half of #32's tube reads)."""
         sub_cube = self._cube[:, y0:y1, x0:x1]
-        if self.is_separable:
-            rep = SeparableNoise(
-                sigma_xy=self._rep.sigma_xy[y0:y1, x0:x1],
-                sigma_v=self._rep.sigma_v,
-                scalar=self._rep.scalar,
-                acf=self._rep.acf,
-            )
-        else:
-            rep = FullNoise(
-                sigma_field=self._rep.sigma_field[:, y0:y1, x0:x1],
-                sigma_xy=self._rep.sigma_xy[y0:y1, x0:x1],
-                sigma_v=self._rep.sigma_v,
-                scalar=self._rep.scalar,
-                acf=self._rep.acf,
-            )
+        # The spatial ACF is a stationary property of the noise: a cutout keeps it.
+        rep = replace(self._rep, sigma_xy=self._rep.sigma_xy[y0:y1, x0:x1])
+        if not self.is_separable:
+            rep = replace(rep, sigma_field=self._rep.sigma_field[:, y0:y1, x0:x1])
         _emit("noise.cutout", params={"y0": y0, "y1": y1, "x0": x0, "x1": x1})
         return NoiseModel(
             sub_cube,
@@ -415,6 +407,8 @@ def estimate(cube, *, method: str = DEFAULT_METHOD) -> NoiseModel:
         )
     data = np.asarray(cube._data_quantity.value, dtype="float64")
     rep, quality = estimator(data)
+    if quality is not NoiseQuality.UNRELIABLE and rep.spatial_acf is None:
+        rep = replace(rep, spatial_acf=_spatial_acf(data, rep.sigma_xy))
     _emit("estimate_noise", params={"method": method, "quality": quality.value})
     return NoiseModel(cube, rep, method=method, quality=quality)
 
@@ -608,6 +602,82 @@ def _spectral_acf(data: np.ndarray) -> np.ndarray:
     return acf
 
 
+#: Spatial-ACF measurement (#96): clip |I/σ_xy| above this many robust σ (residual signal), and
+#: use at most this many (quietest) signal-free channels (the ACF is stationary; more only cost).
+SPATIAL_ACF_CLIP = 6.0
+SPATIAL_ACF_MAX_CHANNELS = 32
+# ponytail: ±256 px lag ceiling bounds memory/disk; the 22" PHANGS kernel autocorrelation reaches
+# ~±130 px. Raise it if a larger smoothing kernel on a finer grid needs longer lags.
+SPATIAL_ACF_MAX_LAG = 256
+
+
+def _spatial_acf(data: np.ndarray, sigma_xy: np.ndarray) -> np.ndarray | None:
+    """The 2-D spatial noise autocorrelation ρ(dy, dx) of *data* (issue #96), or ``None``.
+
+    Measured on the signal-free channels: each plane is divided by σ_xy (removing the
+    coverage/pbcor trend so the field is stationary), clipped at ``SPATIAL_ACF_CLIP`` robust σ,
+    and its FFT autocorrelation is divided by the autocorrelation of the valid-pixel mask (the
+    number of pixel pairs per lag — the standard masked-ACF correction). Numerator and pair count
+    are pooled over channels. Lags with < 10 % of the zero-lag pairs carry no information and are
+    zeroed. Returned odd-sized, centred, 1 at lag 0, cropped to ±``SPATIAL_ACF_MAX_LAG`` px."""
+    free = np.flatnonzero(_signal_free_channels(data))
+    if free.size == 0:
+        return None
+    nz, ny, nx = data.shape
+    shape = (2 * ny, 2 * nx)  # zero-pad to 2N: no wrap-around in the FFT correlation
+    # Dividing by a per-pixel σ_xy measured from N channels adds its ~1/√(2N) scatter as
+    # multiplicative noise, biasing the ACF law low by ~0.5/N (≈1 % at N = 50; synthetic check).
+    sigma = np.where(np.isfinite(sigma_xy) & (sigma_xy > 0.0), sigma_xy, np.nan)
+    # "Signal-free" channels still carry faint extended emission below the channel threshold;
+    # it inflates ρ at long lags (σ over-predicted ~15 % on real 22" checks). Keep the quietest
+    # quarter by mean |I|/σ_xy.
+    with np.errstate(divide="ignore", invalid="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)  # all-NaN channel -> NaN score
+        score = np.array([np.nanmean(np.abs(data[k]) / sigma) for k in free])
+    score = np.where(np.isfinite(score), score, np.inf)
+    keep = min(max(free.size // 4, min(4, free.size)), SPATIAL_ACF_MAX_CHANNELS)
+    free = np.sort(free[np.argsort(score)[:keep]])
+    num = np.zeros(shape)
+    den = np.zeros(shape)
+    for k in free:
+        with np.errstate(divide="ignore", invalid="ignore"):
+            n = data[k] / sigma
+        m = np.isfinite(n)
+        if m.sum() < 2:
+            continue
+        m &= np.abs(n) < SPATIAL_ACF_CLIP * mad_std(n[m])
+        f = np.where(m, n - n[m].mean(), 0.0)
+        num += np.fft.irfft2(np.abs(np.fft.rfft2(f, s=shape)) ** 2, s=shape)
+        den += np.fft.irfft2(
+            np.abs(np.fft.rfft2(m.astype(float), s=shape)) ** 2, s=shape
+        )
+    acf = np.fft.fftshift(num / np.maximum(den, 1.0))
+    den = np.fft.fftshift(den)
+    acf[den < 0.1 * den.max()] = 0.0
+    if not np.isfinite(acf[ny, nx]) or acf[ny, nx] <= 0.0:
+        return None
+    hy, hx = min(SPATIAL_ACF_MAX_LAG, ny - 1), min(SPATIAL_ACF_MAX_LAG, nx - 1)
+    return acf[ny - hy : ny + hy + 1, nx - hx : nx + hx + 1] / acf[ny, nx]
+
+
+def with_spatial_acf(model: NoiseModel, cube=None) -> NoiseModel:
+    """Return *model* with a spatial noise ACF measured from *cube* (default: its parent cube).
+
+    For models built without one (survey RMS/weight maps, companions written before #96), so that
+    :func:`propagate` can apply the exact ACF law instead of the beam-area approximation."""
+    cube = model._cube if cube is None else cube
+    data = np.asarray(cube._data_quantity.to_value(model.unit), dtype="float64")
+    rep = replace(model._rep, spatial_acf=_spatial_acf(data, model._rep.sigma_xy))
+    _emit("noise.with_spatial_acf", params={"measured": rep.spatial_acf is not None})
+    return NoiseModel(
+        model._cube,
+        rep,
+        method=model.method,
+        quality=model.quality,
+        version=model.version,
+    )
+
+
 def _build_representation(data, sigma_xy, sigma_v, scalar, acf):
     """Pick the separable form when the per-block spatial-σ matrix is effectively rank-1;
     otherwise keep a full 3D σ-cube (ADR-0003: no silent over-compression of structured noise).
@@ -687,6 +757,7 @@ def _representation_from_field(field: np.ndarray, like) -> SeparableNoise | Full
             sigma_v=np.asarray(sigma_v, dtype="float64"),
             scalar=scalar,
             acf=np.asarray(like.acf, dtype="float64"),  # ACF is unitless: unchanged
+            spatial_acf=like.spatial_acf,
         )
     return FullNoise(
         sigma_field=np.asarray(field, dtype="float64"),
@@ -694,6 +765,7 @@ def _representation_from_field(field: np.ndarray, like) -> SeparableNoise | Full
         sigma_v=np.asarray(sigma_v, dtype="float64"),
         scalar=scalar,
         acf=np.asarray(like.acf, dtype="float64"),
+        spatial_acf=like.spatial_acf,
     )
 
 
@@ -774,6 +846,38 @@ def _spatial_rms_factor(beam_in, beam_out) -> float:
     if omega_out <= 0.0 or omega_in <= 0.0:
         return float("nan")
     return float(np.sqrt(omega_in / omega_out))
+
+
+def _spatial_acf_law(model: NoiseModel, beam_out):
+    """σ factor and output spatial ACF for smoothing *model*'s noise to *beam_out* (issue #96).
+
+    For a stationary field smoothed by a kernel k (sum 1), the exact variance ratio is
+    ``σ_out²/σ_in² = Σ_d (k⋆k)(d)·ρ(d)`` with ρ the input noise ACF, and the output ACF is
+    ``(k⋆k) * ρ``. k is the same kernel the data convolution uses — ``beam_out`` deconvolved by
+    the model beam on the parent cube's pixel grid (the spectral-cube pixel scale, √pixel area).
+    It reduces to the beam-area law only when the noise is correlated exactly like the beam."""
+    from scipy.signal import fftconvolve
+
+    rho = np.asarray(model._rep.spatial_acf, dtype="float64")
+    if beam_out == model.beam:
+        return 1.0, rho
+    pix = float(np.sqrt(np.prod(model._cube.coordinates.pixel_scale.to_value(u.deg))))
+    kernel = np.asarray(beam_out.deconvolve(model.beam).as_kernel(pix * u.deg).array)
+    kernel = kernel / kernel.sum()
+    kk = fftconvolve(kernel, kernel[::-1, ::-1])
+    # Sum over the lags both arrays cover (odd-sized, centred): ρ is ~0 beyond its window.
+    hy = min(kk.shape[0], rho.shape[0]) // 2
+    hx = min(kk.shape[1], rho.shape[1]) // 2
+    ky, kx = kk.shape[0] // 2, kk.shape[1] // 2
+    ry, rx = rho.shape[0] // 2, rho.shape[1] // 2
+    var = float(
+        np.sum(
+            kk[ky - hy : ky + hy + 1, kx - hx : kx + hx + 1]
+            * rho[ry - hy : ry + hy + 1, rx - hx : rx + hx + 1]
+        )
+    )
+    rho_out = fftconvolve(rho, kk, mode="same")
+    return float(np.sqrt(max(var, 0.0))), rho_out / rho_out[ry, rx]
 
 
 def _m_eff(acf: np.ndarray, m: int) -> float:
@@ -1017,7 +1121,14 @@ def propagate(
     approximate = per_channel_beam or not model.is_separable
 
     if beam_out is not None:
-        rep = _scaled_representation(rep, _spatial_rms_factor(model.beam, beam_out))
+        if rep.spatial_acf is None:
+            # No measured spatial ACF: the beam-area law assumes beam-correlated noise, which
+            # receiver noise generally is not (#96) -> only approximate.
+            approximate = True
+            rep = _scaled_representation(rep, _spatial_rms_factor(model.beam, beam_out))
+        else:
+            factor, rho_out = _spatial_acf_law(model, beam_out)
+            rep = replace(_scaled_representation(rep, factor), spatial_acf=rho_out)
     if spectral_factor is not None:
         m_eff = _m_eff(np.asarray(model._rep.acf, dtype="float64"), spectral_factor)
         rep = _scaled_representation(rep, 1.0 / float(np.sqrt(m_eff)))
@@ -1345,6 +1456,7 @@ __all__ = [
     "propagate_velocity_grid",
     "reestimate",
     "synthesize_correlated_noise",
+    "with_spatial_acf",
     "NOISE_SCHEMA_VERSION",
     "DEFAULT_METHOD",
 ]
