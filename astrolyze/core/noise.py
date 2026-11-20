@@ -1061,6 +1061,52 @@ def propagate(
     )
 
 
+def resample_spatial(model: NoiseModel, cube) -> NoiseModel:
+    """Regrid *model*'s σ onto *cube*'s celestial grid (the :meth:`Cube.resample_to_beam_sampling`
+    companion, issue #94); return a new :class:`NoiseModel` parented on *cube*.
+
+    The beam correlates the noise over many native pixels, so a point resample of the field
+    leaves σ per pixel (almost) unchanged — σ does NOT fall as √(pixel-area ratio). The σ map
+    is therefore interpolated, not rescaled; σ_v, σ_0 and the spectral ACF are unchanged."""
+    # ponytail: σ kept per pixel — exact only when the new pixel << beam; the slight σ drop of
+    # bilinear interpolation between partially decorrelated samples near Nyquist is ignored.
+    # Upgrade path: scale by the interpolation-weight quadrature through the beam ACF.
+    from reproject import reproject_interp
+
+    wcs_in, wcs_out = model._cube._sc.wcs.celestial, cube._sc.wcs.celestial
+    shape = cube.shape[1:]
+
+    def regrid(arr):
+        return reproject_interp(
+            (arr, wcs_in), wcs_out, shape_out=shape, return_footprint=False
+        )
+
+    rep = model._rep
+    sigma_xy = regrid(rep.sigma_xy)
+    if model.is_separable:
+        new_rep = SeparableNoise(
+            sigma_xy=sigma_xy, sigma_v=rep.sigma_v, scalar=rep.scalar, acf=rep.acf
+        )
+    else:
+        new_rep = FullNoise(
+            sigma_field=np.stack([regrid(c) for c in rep.sigma_field]),
+            sigma_xy=sigma_xy,
+            sigma_v=rep.sigma_v,
+            scalar=rep.scalar,
+            acf=rep.acf,
+        )
+    # An UNRELIABLE/APPROXIMATE input stays so (no silent physics); otherwise PROPAGATED.
+    quality = (
+        NoiseQuality.PROPAGATED
+        if model.quality in (NoiseQuality.MEASURED, NoiseQuality.PROPAGATED)
+        else model.quality
+    )
+    _emit("noise.resample_spatial", params={"shape": list(shape)})
+    return NoiseModel(
+        cube, new_rep, method=model.method, quality=quality, version=model.version
+    )
+
+
 # -- velocity-grid interpolation propagation (issue #82): σ through a spectral regrid -----------
 # The stacking alignment step :meth:`Stack.to_velocity_grid` interpolates each member onto one
 # shared velocity grid (via :meth:`Cube.to_velocity_grid`); the σ companion must ride the SAME

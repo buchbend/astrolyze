@@ -247,6 +247,59 @@ class Cube(ContextCarrier):
 
         return out, propagate(noise, spectral_bin=int(factor))
 
+    def resample_to_beam_sampling(self, pixels_per_beam: float = 3.0, *, noise=None):
+        """Reproject onto a celestial grid with *pixels_per_beam* pixels per beam FWHM.
+
+        The new pixel is the beam **minor**-axis FWHM / *pixels_per_beam* (no direction is
+        under-sampled). The grid keeps the input's reference sky position (CRVAL), orientation
+        and footprint; the spectral axis is unchanged. Only coarsens: a new pixel finer than the
+        native one raises :class:`LossyDirectionError` (ADR-0003). The ratio of native to target
+        pixels is generally non-integer, so this is a reprojection (spectral-cube ``reproject``),
+        not a block average (issue #94).
+
+        When a :class:`~astrolyze.core.NoiseModel` is passed as ``noise`` its σ map goes onto the
+        same grid (:func:`~astrolyze.core.noise.resample_spatial`) and the return is
+        ``(cube, model)``."""
+        import math
+
+        from astropy.wcs.utils import proj_plane_pixel_scales
+
+        wcs = self._sc.wcs.deepcopy()
+        native = float(max(proj_plane_pixel_scales(wcs.celestial)))  # deg
+        new = (self.metadata.beam.minor / pixels_per_beam).to_value(u.deg)
+        if new < native:
+            raise LossyDirectionError(
+                f"resample_to_beam_sampling only coarsens: {pixels_per_beam} px per beam minor "
+                f'FWHM gives a {new * 3600:.4g}" pixel, finer than the native '
+                f'{native * 3600:.4g}" (a finer grid is never invented)'
+            )
+        factor = new / native
+        lon, lat = wcs.wcs.lng, wcs.wcs.lat
+        # Scale only the celestial pixel size (CD columns or CDELT); orientation is kept.
+        if wcs.wcs.has_cd():
+            wcs.wcs.cd[:, [lon, lat]] *= factor
+        else:
+            wcs.wcs.cdelt[[lon, lat]] *= factor
+        # Same sky reference (CRVAL) and same lower footprint edge (pixel 0.5, FITS 1-based).
+        for i in (lon, lat):
+            wcs.wcs.crpix[i] = (wcs.wcs.crpix[i] - 0.5) / factor + 0.5
+        header = wcs.to_header()
+        nz, ny, nx = self._sc.shape
+        header["NAXIS"] = 3
+        header["NAXIS1"] = max(1, math.floor(nx / factor + 0.5))
+        header["NAXIS2"] = max(1, math.floor(ny / factor + 0.5))
+        header["NAXIS3"] = nz
+        out = Cube(
+            self._masked_sc().reproject(header),
+            self._metadata_with_beam(self.metadata.beam),
+        )
+        _emit("resample_to_beam_sampling", params={"pixels_per_beam": pixels_per_beam})
+        if noise is None:
+            return out
+        from .noise import resample_spatial
+
+        return out, resample_spatial(noise, out)
+
     def spectral_smooth_to(self, width: u.Quantity, *, noise=None):
         """Smooth the spectral axis to a **broader** resolution *width* (a FWHM).
 
