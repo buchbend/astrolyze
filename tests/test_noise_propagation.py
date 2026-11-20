@@ -588,6 +588,37 @@ def test_propagate_narrow_correlation_matches_measured_sigma(tmp_path):
     assert beam_law > 1.5 * measured  # the old law is badly off here
 
 
+def test_acf_ignores_faint_emission_in_signal_free_channels(tmp_path):
+    # Real "signal-free" channels still hold faint extended emission (below the channel-level
+    # threshold, so _signal_free_channels keeps them); it inflates ρ at long lags and the ACF law
+    # over-predicts σ. Half the channels here carry a faint broad Gaussian that passes the test.
+    from astropy.convolution import Gaussian2DKernel, convolve_fft
+
+    rng = np.random.default_rng(962)
+    nz, n = 48, 384
+    white = rng.normal(0.0, 1.0, size=(nz, n, n))
+    noise = np.stack(
+        [convolve_fft(p, Gaussian2DKernel(1.5), boundary="wrap") for p in white]
+    )
+    noise /= noise.std()
+    yy, xx = np.mgrid[0:n, 0:n]
+    blob = np.exp(-((yy - n / 2) ** 2 + (xx - n / 2) ** 2) / (2 * 60.0**2))
+    line = np.arange(nz) % 2 == 1
+    amp = np.where(line, rng.uniform(0.3, 0.8, nz), 0.0)
+    data = (noise + amp[:, None, None] * blob) * SIGMA
+    assert noise_mod._signal_free_channels(data).sum() > nz // 2  # emission passes
+    cube = _write_cube(tmp_path / "faint.fits", data)
+    model = cube.estimate_noise()
+    out_cube, out_model = cube.convolve_to_beam(MID_BEAM, noise=model)
+    quiet = ~line  # σ measured on the emission-free channels only
+    measured = _interior_std_ratio(
+        cube._data_quantity.value[quiet], out_cube._data_quantity.value[quiet], pad=40
+    )
+    predicted = out_model.scalar.to_value(u.K) / model.scalar.to_value(u.K)
+    print(f"faint emission: measured {measured:.4f} ACF law {predicted:.4f}")
+    assert predicted == pytest.approx(measured, rel=0.03)
+
+
 def test_acf_law_matches_beam_law_for_beam_correlated_noise(tmp_path):
     # White noise convolved with the beam: the textbook case where the beam-area law is exact.
     # A 6"x5" beam keeps the map many correlation areas wide: the per-plane mean subtraction

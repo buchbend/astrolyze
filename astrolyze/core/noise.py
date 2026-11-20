@@ -603,7 +603,7 @@ def _spectral_acf(data: np.ndarray) -> np.ndarray:
 
 
 #: Spatial-ACF measurement (#96): clip |I/σ_xy| above this many robust σ (residual signal), and
-#: sample at most this many signal-free channels (the ACF is stationary; more channels only cost).
+#: use at most this many (quietest) signal-free channels (the ACF is stationary; more only cost).
 SPATIAL_ACF_CLIP = 6.0
 SPATIAL_ACF_MAX_CHANNELS = 32
 # ponytail: ±256 px lag ceiling bounds memory/disk; the 22" PHANGS kernel autocorrelation reaches
@@ -623,14 +623,20 @@ def _spatial_acf(data: np.ndarray, sigma_xy: np.ndarray) -> np.ndarray | None:
     free = np.flatnonzero(_signal_free_channels(data))
     if free.size == 0:
         return None
-    free = free[
-        np.unique(np.linspace(0, free.size - 1, SPATIAL_ACF_MAX_CHANNELS).astype(int))
-    ]
     nz, ny, nx = data.shape
     shape = (2 * ny, 2 * nx)  # zero-pad to 2N: no wrap-around in the FFT correlation
     # Dividing by a per-pixel σ_xy measured from N channels adds its ~1/√(2N) scatter as
     # multiplicative noise, biasing the ACF law low by ~0.5/N (≈1 % at N = 50; synthetic check).
     sigma = np.where(np.isfinite(sigma_xy) & (sigma_xy > 0.0), sigma_xy, np.nan)
+    # "Signal-free" channels still carry faint extended emission below the channel threshold;
+    # it inflates ρ at long lags (σ over-predicted ~15 % on real 22" checks). Keep the quietest
+    # quarter by mean |I|/σ_xy.
+    with np.errstate(divide="ignore", invalid="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)  # all-NaN channel -> NaN score
+        score = np.array([np.nanmean(np.abs(data[k]) / sigma) for k in free])
+    score = np.where(np.isfinite(score), score, np.inf)
+    keep = min(max(free.size // 4, min(4, free.size)), SPATIAL_ACF_MAX_CHANNELS)
+    free = np.sort(free[np.argsort(score)[:keep]])
     num = np.zeros(shape)
     den = np.zeros(shape)
     for k in free:
